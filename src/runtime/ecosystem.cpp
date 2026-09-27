@@ -10,6 +10,11 @@
 #include <fstream>
 #include <limits>
 #include <numeric>
+#include <random>
+#include <regex>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 #include <set>
 #include <sstream>
 #include <string>
@@ -106,7 +111,10 @@ void open_file(const std::filesystem::path& path){
 
 } // namespace
 
-bool is_ecosystem_builtin(const std::string& name){static const std::set<std::string> names={"math","data","net","node","next","game"};return names.contains(name);}
+bool is_ecosystem_builtin(const std::string& name){static const std::set<std::string> names={
+  "math","data","net","node","next","game",
+  "statistics","regex","base64","uuid","iter","copy","operator"
+};return names.contains(name);}
 
 TypeInfo ecosystem_builtin_type(const std::string& name){
   auto m=module_type(name);auto& x=m.members;TypeInfo unknown,none(TypeKind::None),num(TypeKind::Num),integer_t(TypeKind::Int),text_t(TypeKind::Text),bool_t(TypeKind::Bool),list_t=list_type(),map_t=map_type();
@@ -116,6 +124,20 @@ TypeInfo ecosystem_builtin_type(const std::string& name){
     for(auto n:{"atan2","pow","fmod","remainder","copysign","nextafter"})x[n]=fn({num,num},num);
     x["hypot"]=fn({num,num},num,true,2);x["min"]=fn({num,num},num,true,2);x["max"]=fn({num,num},num,true,2);x["clamp"]=fn({num,num,num},num);x["lerp"]=fn({num,num,num},num);x["map_range"]=fn({num,num,num,num,num},num);x["sign"]=fn({num},integer_t);x["isfinite"]=fn({num},bool_t);x["isinf"]=fn({num},bool_t);x["isnan"]=fn({num},bool_t);
     x["gcd"]=fn({integer_t,integer_t},integer_t,true,2);x["lcm"]=fn({integer_t,integer_t},integer_t,true,2);x["factorial"]=fn({integer_t},integer_t);x["comb"]=fn({integer_t,integer_t},integer_t);x["perm"]=fn({integer_t,integer_t},integer_t);x["sum"]=fn({list_t},num);x["mean"]=fn({list_t},num);x["median"]=fn({list_t},num);x["variance"]=fn({list_t},num);x["stddev"]=fn({list_t},num);
+  }else if(name=="statistics"){
+    x["mean"]=fn({list_t},num);x["median"]=fn({list_t},num);x["variance"]=fn({list_t},num);x["pvariance"]=fn({list_t},num);x["stdev"]=fn({list_t},num);x["pstdev"]=fn({list_t},num);
+  }else if(name=="regex"){
+    x["match"]=fn({text_t,text_t},bool_t);x["search"]=fn({text_t,text_t},bool_t);x["replace"]=fn({text_t,text_t,text_t},text_t);x["split"]=fn({text_t,text_t},list_type(text_t));
+  }else if(name=="base64"){
+    x["encode"]=fn({text_t},text_t);x["decode"]=fn({text_t},text_t,false,0,true);
+  }else if(name=="uuid"){
+    x["v4"]=fn({},text_t);x["valid"]=fn({text_t},bool_t);
+  }else if(name=="iter"){
+    x["range"]=fn({integer_t,integer_t},list_type(integer_t),true,1);x["enumerate"]=fn({list_t},list_t);x["zip"]=fn({list_t,list_t},list_t);x["product"]=fn({list_t,list_t},list_t);x["permutations"]=fn({list_t},list_t,true,1);x["combinations"]=fn({list_t,integer_t},list_t);
+  }else if(name=="copy"){
+    x["shallow"]=fn({unknown},unknown);x["deep"]=fn({unknown},unknown);
+  }else if(name=="operator"){
+    for(auto n:{"add","sub","mul","div","mod","eq","ne","lt","le","gt","ge"})x[n]=fn({unknown,unknown},unknown);
   }else if(name=="data"){
     x["append"]=fn({list_t,unknown},none);x["extend"]=fn({list_t,list_t},none);x["insert"]=fn({list_t,integer_t,unknown},none);x["pop"]=fn({list_t},unknown,true,1);x["clear"]=fn({unknown},none);x["copy"]=fn({unknown},unknown);x["get"]=fn({map_t,text_t},unknown,true,2);x["set"]=fn({map_t,text_t,unknown},none);x["update"]=fn({map_t,map_t},none);x["delete"]=fn({map_t,text_t},bool_t);x["has"]=fn({unknown,unknown},bool_t);x["keys"]=fn({map_t},list_type(text_t));x["values"]=fn({map_t},list_t);x["items"]=fn({map_t},list_t);
   }else if(name=="net"){
@@ -146,6 +168,49 @@ std::shared_ptr<ModuleData> ecosystem_builtin_module(const std::string& name,Int
     m->exports["sign"]=callable("math.sign",1,1,[](const std::vector<Value>&a,SourcePos p){auto v=number(a[0],p,"math.sign");return Value(static_cast<std::int64_t>((v>0)-(v<0)));});m->exports["isfinite"]=callable("math.isfinite",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(std::isfinite(number(a[0],p,"math.isfinite")));});m->exports["isinf"]=callable("math.isinf",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(std::isinf(number(a[0],p,"math.isinf")));});m->exports["isnan"]=callable("math.isnan",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(std::isnan(number(a[0],p,"math.isnan")));});
     m->exports["gcd"]=callable("math.gcd",2,64,[](const std::vector<Value>&a,SourcePos p){auto r=integer(a[0],p,"math.gcd");for(std::size_t i=1;i<a.size();++i)r=std::gcd(r,integer(a[i],p,"math.gcd"));return Value(r);},true);m->exports["lcm"]=callable("math.lcm",2,64,[](const std::vector<Value>&a,SourcePos p){auto r=integer(a[0],p,"math.lcm");for(std::size_t i=1;i<a.size();++i)r=std::lcm(r,integer(a[i],p,"math.lcm"));return Value(r);},true);m->exports["factorial"]=callable("math.factorial",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(factorial_checked(integer(a[0],p,"math.factorial"),p));});m->exports["comb"]=callable("math.comb",2,2,[](const std::vector<Value>&a,SourcePos p){auto n=integer(a[0],p,"math.comb");auto k=integer(a[1],p,"math.comb");if(k<0||n<0||k>n)throw Error(p,"math.comb needs 0 <= k <= n.");k=std::min(k,n-k);std::int64_t r=1;for(std::int64_t i=1;i<=k;++i)r=r*(n-k+i)/i;return Value(r);});m->exports["perm"]=callable("math.perm",2,2,[](const std::vector<Value>&a,SourcePos p){auto n=integer(a[0],p,"math.perm");auto k=integer(a[1],p,"math.perm");if(k<0||n<0||k>n||n>20)throw Error(p,"math.perm needs 0 <= k <= n <= 20.");std::int64_t r=1;for(std::int64_t i=0;i<k;++i)r*=n-i;return Value(r);});
     auto stat=[&](const std::string& n,auto op){m->exports[n]=callable("math."+n,1,1,[n,op](const std::vector<Value>&a,SourcePos p){return Value(op(numbers(a[0],p,"math."+n)));});};stat("sum",[](std::vector<double> v){return std::accumulate(v.begin(),v.end(),0.0);});stat("mean",[](std::vector<double> v){return std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());});stat("median",[](std::vector<double> v){std::sort(v.begin(),v.end());auto n=v.size();return n%2?v[n/2]:(v[n/2-1]+v[n/2])/2.0;});stat("variance",[](std::vector<double> v){auto mean=std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());double s=0;for(auto q:v){auto d=q-mean;s+=d*d;}return s/static_cast<double>(v.size());});stat("stddev",[](std::vector<double> v){auto mean=std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());double s=0;for(auto q:v){auto d=q-mean;s+=d*d;}return std::sqrt(s/static_cast<double>(v.size()));});
+  }else if(name=="statistics"){
+    auto stat=[&](const std::string& n,auto op){m->exports[n]=callable("statistics."+n,1,1,[n,op](const std::vector<Value>&a,SourcePos p){return Value(op(numbers(a[0],p,"statistics."+n)));});};
+    stat("mean",[](std::vector<double> v){return std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());});
+    stat("median",[](std::vector<double> v){std::sort(v.begin(),v.end());auto n=v.size();return n%2?v[n/2]:(v[n/2-1]+v[n/2])/2.0;});
+    stat("pvariance",[](std::vector<double> v){auto mean=std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());double s=0;for(auto q:v){auto d=q-mean;s+=d*d;}return s/static_cast<double>(v.size());});
+    stat("pstdev",[](std::vector<double> v){auto mean=std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());double s=0;for(auto q:v){auto d=q-mean;s+=d*d;}return std::sqrt(s/static_cast<double>(v.size()));});
+    stat("variance",[](std::vector<double> v){if(v.size()<2)throw std::runtime_error("statistics.variance needs at least 2 values.");auto mean=std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());double s=0;for(auto q:v){auto d=q-mean;s+=d*d;}return s/static_cast<double>(v.size()-1);});
+    stat("stdev",[](std::vector<double> v){if(v.size()<2)throw std::runtime_error("statistics.stdev needs at least 2 values.");auto mean=std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());double s=0;for(auto q:v){auto d=q-mean;s+=d*d;}return std::sqrt(s/static_cast<double>(v.size()-1));});
+  }else if(name=="regex"){
+    m->exports["match"]=callable("regex.match",2,2,[](const std::vector<Value>&a,SourcePos p){try{return Value(std::regex_match(text(a[1],p,"regex.match"),std::regex(text(a[0],p,"regex.match"))));}catch(const std::regex_error&e){throw Error(p,std::string("Invalid regex: ")+e.what());}});
+    m->exports["search"]=callable("regex.search",2,2,[](const std::vector<Value>&a,SourcePos p){try{return Value(std::regex_search(text(a[1],p,"regex.search"),std::regex(text(a[0],p,"regex.search"))));}catch(const std::regex_error&e){throw Error(p,std::string("Invalid regex: ")+e.what());}});
+    m->exports["replace"]=callable("regex.replace",3,3,[](const std::vector<Value>&a,SourcePos p){try{return Value(std::regex_replace(text(a[1],p,"regex.replace"),std::regex(text(a[0],p,"regex.replace")),text(a[2],p,"regex.replace")));}catch(const std::regex_error&e){throw Error(p,std::string("Invalid regex: ")+e.what());}});
+    m->exports["split"]=callable("regex.split",2,2,[](const std::vector<Value>&a,SourcePos p){try{std::regex re(text(a[0],p,"regex.split"));std::string s=text(a[1],p,"regex.split");std::sregex_token_iterator it(s.begin(),s.end(),re,-1),end;auto out=std::make_shared<ListData>();for(;it!=end;++it)out->items.emplace_back(it->str());return Value(out);}catch(const std::regex_error&e){throw Error(p,std::string("Invalid regex: ")+e.what());}});
+  }else if(name=="base64"){
+    static const std::string chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    m->exports["encode"]=callable("base64.encode",1,1,[](const std::vector<Value>&a,SourcePos p){auto s=text(a[0],p,"base64.encode");std::string out;int val=0,valb=-6;for(unsigned char c:s){val=(val<<8)+c;valb+=8;while(valb>=0){out.push_back(chars[(val>>valb)&0x3F]);valb-=6;}}if(valb>-6)out.push_back(chars[((val<<8)>>(valb+8))&0x3F]);while(out.size()%4)out.push_back('=');return Value(out);});
+    m->exports["decode"]=callable("base64.decode",1,1,[](const std::vector<Value>&a,SourcePos p){auto s=text(a[0],p,"base64.decode");std::vector<int> t(256,-1);for(int i=0;i<64;i++)t[static_cast<unsigned char>(chars[i])]=i;std::string out;int val=0,valb=-8;for(unsigned char c:s){if(std::isspace(c))continue;if(c=='=')break;if(t[c]==-1)throw Error(p,"base64.decode received invalid Base64.");val=(val<<6)+t[c];valb+=6;if(valb>=0){out.push_back(char((val>>valb)&0xFF));valb-=8;}}return Value(out);});
+  }else if(name=="uuid"){
+    m->exports["v4"]=callable("uuid.v4",0,0,[](const std::vector<Value>&,SourcePos){std::random_device rd;std::mt19937_64 g(rd());std::uniform_int_distribution<unsigned long long>d;auto a=d(g),b=d(g);unsigned char x[16];for(int i=0;i<8;++i)x[i]=static_cast<unsigned char>((a>>(56-8*i))&255);for(int i=0;i<8;++i)x[8+i]=static_cast<unsigned char>((b>>(56-8*i))&255);x[6]=(x[6]&0x0f)|0x40;x[8]=(x[8]&0x3f)|0x80;std::ostringstream o;o<<std::hex<<std::setfill('0');for(int i=0;i<16;++i){o<<std::setw(2)<<static_cast<int>(x[i]);if(i==3||i==5||i==7||i==9)o<<'-';}return Value(o.str());});
+    m->exports["valid"]=callable("uuid.valid",1,1,[](const std::vector<Value>&a,SourcePos p){auto s=text(a[0],p,"uuid.valid");static const std::regex re("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$");return Value(std::regex_match(s,re));});
+  }else if(name=="iter"){
+    m->exports["range"]=callable("iter.range",1,3,[](const std::vector<Value>&a,SourcePos p){std::int64_t start=0,stop=0,step=1;if(a.size()==1)stop=integer(a[0],p,"iter.range");else{start=integer(a[0],p,"iter.range");stop=integer(a[1],p,"iter.range");if(a.size()==3)step=integer(a[2],p,"iter.range");}if(step==0)throw Error(p,"iter.range step cannot be zero.");auto out=std::make_shared<ListData>();if(step>0)for(auto i=start;i<stop;i+=step)out->items.emplace_back(i);else for(auto i=start;i>stop;i+=step)out->items.emplace_back(i);return Value(out);},true);
+    m->exports["enumerate"]=callable("iter.enumerate",1,1,[](const std::vector<Value>&a,SourcePos p){auto l=list_value(a[0],p,"iter.enumerate");auto out=std::make_shared<ListData>();for(std::size_t i=0;i<l->items.size();++i){auto pair=std::make_shared<ListData>();pair->items.emplace_back(static_cast<std::int64_t>(i));pair->items.push_back(l->items[i]);out->items.emplace_back(pair);}return Value(out);});
+    m->exports["zip"]=callable("iter.zip",2,2,[](const std::vector<Value>&a,SourcePos p){auto x=list_value(a[0],p,"iter.zip"),y=list_value(a[1],p,"iter.zip");auto out=std::make_shared<ListData>();auto n=std::min(x->items.size(),y->items.size());for(std::size_t i=0;i<n;++i){auto pair=std::make_shared<ListData>();pair->items={x->items[i],y->items[i]};out->items.emplace_back(pair);}return Value(out);});
+    m->exports["product"]=callable("iter.product",2,2,[](const std::vector<Value>&a,SourcePos p){auto x=list_value(a[0],p,"iter.product"),y=list_value(a[1],p,"iter.product");auto out=std::make_shared<ListData>();for(auto& i:x->items)for(auto& j:y->items){auto pair=std::make_shared<ListData>();pair->items={i,j};out->items.emplace_back(pair);}return Value(out);});
+    m->exports["permutations"]=callable("iter.permutations",1,2,[](const std::vector<Value>&a,SourcePos p){auto l=list_value(a[0],p,"iter.permutations");auto r=a.size()==2?integer(a[1],p,"iter.permutations"):static_cast<std::int64_t>(l->items.size());if(r<0||static_cast<std::size_t>(r)>l->items.size())throw Error(p,"iter.permutations invalid r.");auto out=std::make_shared<ListData>();std::vector<bool> used(l->items.size());std::vector<Value> cur;std::function<void()> dfs=[&]{if(cur.size()==static_cast<std::size_t>(r)){auto q=std::make_shared<ListData>();q->items=cur;out->items.emplace_back(q);return;}for(std::size_t i=0;i<l->items.size();++i)if(!used[i]){used[i]=true;cur.push_back(l->items[i]);dfs();cur.pop_back();used[i]=false;}};dfs();return Value(out);},true);
+    m->exports["combinations"]=callable("iter.combinations",2,2,[](const std::vector<Value>&a,SourcePos p){auto l=list_value(a[0],p,"iter.combinations");auto r=integer(a[1],p,"iter.combinations");if(r<0||static_cast<std::size_t>(r)>l->items.size())throw Error(p,"iter.combinations invalid r.");auto out=std::make_shared<ListData>();std::vector<Value> cur;std::function<void(std::size_t)> dfs=[&](std::size_t pos){if(cur.size()==static_cast<std::size_t>(r)){auto q=std::make_shared<ListData>();q->items=cur;out->items.emplace_back(q);return;}for(std::size_t i=pos;i<l->items.size();++i){cur.push_back(l->items[i]);dfs(i+1);cur.pop_back();}};dfs(0);return Value(out);});
+  }else if(name=="copy"){
+    m->exports["shallow"]=callable("copy.shallow",1,1,[](const std::vector<Value>&a,SourcePos p){if(auto l=std::get_if<std::shared_ptr<ListData>>(&a[0].data())){auto o=std::make_shared<ListData>();o->items=(*l)->items;return Value(o);}if(auto m=std::get_if<std::shared_ptr<MapData>>(&a[0].data())){auto o=std::make_shared<MapData>();o->items=(*m)->items;return Value(o);}if(auto s=std::get_if<std::shared_ptr<SetData>>(&a[0].data())){auto o=std::make_shared<SetData>();o->items=(*s)->items;return Value(o);}return a[0];});
+    m->exports["deep"]=callable("copy.deep",1,1,[](const std::vector<Value>&a,SourcePos){std::function<Value(const Value&)> cp=[&](const Value&v)->Value{if(auto l=std::get_if<std::shared_ptr<ListData>>(&v.data())){auto o=std::make_shared<ListData>();for(auto&i:(*l)->items)o->items.push_back(cp(i));return Value(o);}if(auto m=std::get_if<std::shared_ptr<MapData>>(&v.data())){auto o=std::make_shared<MapData>();for(auto&i:(*m)->items)o->items.emplace_back(i.first,cp(i.second));return Value(o);}if(auto s=std::get_if<std::shared_ptr<SetData>>(&v.data())){auto o=std::make_shared<SetData>();for(auto&i:(*s)->items)o->items.push_back(cp(i));return Value(o);}return v;};return cp(a[0]);});
+  }else if(name=="operator"){
+    auto bin=[&](const std::string& n,auto op){m->exports[n]=callable("operator."+n,2,2,[n,op](const std::vector<Value>&a,SourcePos p){return op(a[0],a[1],p,n);});};
+    bin("add",[](const Value&a,const Value&b,SourcePos p,const std::string&){if(auto x=std::get_if<std::int64_t>(&a.data())){if(auto y=std::get_if<std::int64_t>(&b.data()))return Value(*x+*y);}if((std::holds_alternative<std::int64_t>(a.data())||std::holds_alternative<double>(a.data()))&&(std::holds_alternative<std::int64_t>(b.data())||std::holds_alternative<double>(b.data())))return Value(number(a,p,"operator.add")+number(b,p,"operator.add"));if(auto x=std::get_if<std::string>(&a.data()))if(auto y=std::get_if<std::string>(&b.data()))return Value(*x+*y);throw Error(p,"operator.add unsupported operands.");});
+    bin("sub",[](const Value&a,const Value&b,SourcePos p,const std::string&){return Value(number(a,p,"operator.sub")-number(b,p,"operator.sub"));});
+    bin("mul",[](const Value&a,const Value&b,SourcePos p,const std::string&){return Value(number(a,p,"operator.mul")*number(b,p,"operator.mul"));});
+    bin("div",[](const Value&a,const Value&b,SourcePos p,const std::string&){auto d=number(b,p,"operator.div");if(d==0)throw Error(p,"operator.div division by zero.");return Value(number(a,p,"operator.div")/d);});
+    bin("mod",[](const Value&a,const Value&b,SourcePos p,const std::string&){auto x=integer(a,p,"operator.mod"),y=integer(b,p,"operator.mod");if(y==0)throw Error(p,"operator.mod division by zero.");return Value(x%y);});
+    bin("eq",[](const Value&a,const Value&b,SourcePos,const std::string&){return Value(value_equal(a,b));});
+    bin("ne",[](const Value&a,const Value&b,SourcePos,const std::string&){return Value(!value_equal(a,b));});
+    bin("lt",[](const Value&a,const Value&b,SourcePos p,const std::string&){return Value(number(a,p,"operator.lt")<number(b,p,"operator.lt"));});
+    bin("le",[](const Value&a,const Value&b,SourcePos p,const std::string&){return Value(number(a,p,"operator.le")<=number(b,p,"operator.le"));});
+    bin("gt",[](const Value&a,const Value&b,SourcePos p,const std::string&){return Value(number(a,p,"operator.gt")>number(b,p,"operator.gt"));});
+    bin("ge",[](const Value&a,const Value&b,SourcePos p,const std::string&){return Value(number(a,p,"operator.ge")>=number(b,p,"operator.ge"));});
   }else if(name=="data"){
     m->exports["append"]=callable("data.append",2,2,[](const std::vector<Value>&a,SourcePos p){list_value(a[0],p,"data.append")->items.push_back(a[1]);return Value{};});
     m->exports["extend"]=callable("data.extend",2,2,[](const std::vector<Value>&a,SourcePos p){auto dst=list_value(a[0],p,"data.extend");auto src=list_value(a[1],p,"data.extend");dst->items.insert(dst->items.end(),src->items.begin(),src->items.end());return Value{};});
