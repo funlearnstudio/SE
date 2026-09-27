@@ -114,7 +114,9 @@ jobs:
       - name: Read VS Code extension version
         id: extension-version
         shell: bash
-        run: echo "version=$(node -p "require('./vscode/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION="$(node -p 'require("./vscode/package.json").version')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Package SE VS Code extension
         working-directory: vscode
