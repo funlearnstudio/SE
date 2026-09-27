@@ -96,9 +96,9 @@ int main(){
 
 #ifdef S_TEST_ROOT
   const auto root=std::filesystem::path(S_TEST_ROOT);
-  EXPECT(run_project(root/"examples/modules/main.s")=="80\nstill alive\n");
-  EXPECT(run_project(root/"examples/paths.s").find("user.txt")!=std::string::npos);
-  EXPECT(run_project(root/"examples/time.s").find("done\n")!=std::string::npos);
+  EXPECT(run_project(root/"examples/modules/main.se")=="80\nstill alive\n");
+  EXPECT(run_project(root/"examples/paths.se").find("user.txt")!=std::string::npos);
+  EXPECT(run_project(root/"examples/time.se").find("done\n")!=std::string::npos);
 
   // Missing and circular modules.
   auto mod_dir=std::filesystem::temp_directory_path()/"s_02_modules_test";
@@ -110,7 +110,7 @@ int main(){
   std::filesystem::remove_all(mod_dir);
 
   // C ABI scalar calls, native errors, opaque-handle ownership and cleanup.
-  s::ModuleLoader native_loader;auto native_program=native_loader.load(root/"examples/native/main.s");
+  s::ModuleLoader native_loader;auto native_program=native_loader.load(root/"examples/native/main.se");
   const s::ast::Module* native_meta=nullptr;for(auto&module:native_program.modules)if(module.native)native_meta=&module;
   EXPECT(native_meta!=nullptr);
   if(native_meta){
