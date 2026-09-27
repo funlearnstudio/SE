@@ -1,8 +1,8 @@
 {
   "name": "se-language",
   "displayName": "SE Language",
-  "description": "Official SE language support with syntax highlighting, IntelliSense, symbols, navigation, snippets, and run/check/build commands for .se files",
-  "version": "0.7.0",
+  "description": "Official SE language support with full standard-library IntelliSense, live compiler diagnostics, syntax guide, navigation, snippets, and run/check/build commands",
+  "version": "0.7.1",
   "publisher": "funlearnstudio",
   "license": "MIT",
   "icon": "icons/se.png",
@@ -14,49 +14,141 @@
   "bugs": {
     "url": "https://github.com/funlearnstudio/SE/issues"
   },
-  "keywords": ["se", "programming language", "syntax highlighting", "intellisense", "autocomplete"],
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Programming Languages"],
-  "activationEvents": ["onLanguage:se", "onCommand:se.run", "onCommand:se.check", "onCommand:se.build"],
+  "keywords": [
+    "se",
+    "programming language",
+    "syntax highlighting",
+    "intellisense",
+    "autocomplete"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:se",
+    "onCommand:se.run",
+    "onCommand:se.check",
+    "onCommand:se.checkProblems",
+    "onCommand:se.build",
+    "onCommand:se.openGuide"
+  ],
   "main": "./extension.js",
   "contributes": {
-    "languages": [{
-      "id": "se",
-      "aliases": ["SE", "se"],
-      "extensions": [".se"],
-      "configuration": "./language-configuration.json",
-      "icon": {
-        "light": "./icons/se-light.svg",
-        "dark": "./icons/se-dark.svg"
+    "languages": [
+      {
+        "id": "se",
+        "aliases": [
+          "SE",
+          "se"
+        ],
+        "extensions": [
+          ".se"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/se-light.svg",
+          "dark": "./icons/se-dark.svg"
+        }
       }
-    }],
-    "grammars": [{
-      "language": "se",
-      "scopeName": "source.se",
-      "path": "./syntaxes/se.tmLanguage.json"
-    }],
+    ],
+    "grammars": [
+      {
+        "language": "se",
+        "scopeName": "source.se",
+        "path": "./syntaxes/se.tmLanguage.json"
+      }
+    ],
     "commands": [
-      {"command":"se.run","title":"SE: Run File","icon":"$(play)"},
-      {"command":"se.check","title":"SE: Check File","icon":"$(check)"},
-      {"command":"se.build","title":"SE: Build File","icon":"$(tools)"}
+      {
+        "command": "se.run",
+        "title": "SE: Run File",
+        "icon": "$(play)"
+      },
+      {
+        "command": "se.check",
+        "title": "SE: Check File in Terminal",
+        "icon": "$(check)"
+      },
+      {
+        "command": "se.checkProblems",
+        "title": "SE: Check File Problems",
+        "icon": "$(issues)"
+      },
+      {
+        "command": "se.build",
+        "title": "SE: Build File",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "se.openGuide",
+        "title": "SE: Open Syntax Guide",
+        "icon": "$(book)"
+      }
     ],
     "menus": {
       "editor/title": [
-        {"command":"se.run","when":"resourceLangId == se","group":"navigation@1"},
-        {"command":"se.check","when":"resourceLangId == se","group":"navigation@2"},
-        {"command":"se.build","when":"resourceLangId == se","group":"navigation@3"}
+        {
+          "command": "se.run",
+          "when": "resourceLangId == se",
+          "group": "navigation@1"
+        },
+        {
+          "command": "se.checkProblems",
+          "when": "resourceLangId == se",
+          "group": "navigation@2"
+        },
+        {
+          "command": "se.build",
+          "when": "resourceLangId == se",
+          "group": "navigation@3"
+        }
       ],
       "editor/context": [
-        {"command":"se.run","when":"resourceLangId == se","group":"navigation@1"},
-        {"command":"se.check","when":"resourceLangId == se","group":"navigation@2"},
-        {"command":"se.build","when":"resourceLangId == se","group":"navigation@3"}
+        {
+          "command": "se.run",
+          "when": "resourceLangId == se",
+          "group": "navigation@1"
+        },
+        {
+          "command": "se.checkProblems",
+          "when": "resourceLangId == se",
+          "group": "navigation@2"
+        },
+        {
+          "command": "se.check",
+          "when": "resourceLangId == se",
+          "group": "navigation@3"
+        },
+        {
+          "command": "se.build",
+          "when": "resourceLangId == se",
+          "group": "navigation@4"
+        }
       ]
     },
     "keybindings": [
-      {"command":"se.run","key":"ctrl+f5","mac":"cmd+f5","when":"editorLangId == se"},
-      {"command":"se.check","key":"ctrl+shift+f5","mac":"cmd+shift+f5","when":"editorLangId == se"}
+      {
+        "command": "se.run",
+        "key": "ctrl+f5",
+        "mac": "cmd+f5",
+        "when": "editorLangId == se"
+      },
+      {
+        "command": "se.check",
+        "key": "ctrl+shift+f5",
+        "mac": "cmd+shift+f5",
+        "when": "editorLangId == se"
+      }
     ],
-    "snippets": [{"language":"se","path":"./snippets/se.json"}],
+    "snippets": [
+      {
+        "language": "se",
+        "path": "./snippets/se.json"
+      }
+    ],
     "configuration": {
       "title": "SE",
       "properties": {
@@ -69,6 +161,18 @@
           "type": "boolean",
           "default": true,
           "description": "Reuse the existing SE terminal for Run, Check, and Build commands."
+        },
+        "se.diagnostics.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run the SE compiler checker automatically and show errors in Problems and as editor diagnostics."
+        },
+        "se.diagnostics.delay": {
+          "type": "number",
+          "default": 450,
+          "minimum": 100,
+          "maximum": 5000,
+          "description": "Delay in milliseconds before checking an SE file after typing."
         }
       }
     }
