@@ -65,7 +65,7 @@ void print_help(){
     "  se doctor                      Show local toolchain diagnostics\n"
     "  se help                        Show this help\n"
     "  se --version                   Show the SE version\n\n"
-    "Built-in modules include json, text, collections, function, async, option, result, db, https, test, process, http, web, js and ts.\n"
+    "Built-in modules include core platform modules plus statistics, regex/re, decimal, csv, datetime, hash/hashlib, base64, uuid, iter/itertools, args/argparse, logging, file/archive/process/socket, threading/queue, sqlite, functools, operator, copy, enum and typing.\n"
     "Source files use .se. Legacy .s files are still accepted during migration.\n";
 }
 
