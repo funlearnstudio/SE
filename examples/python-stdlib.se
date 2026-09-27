@@ -1,0 +1,58 @@
+use statistics
+use regex
+use base64
+use uuid
+use iter
+use decimal
+use csv
+use pickle
+use args
+use queue
+use functools
+use enum
+use typing
+use threading
+
+say statistics.mean [1, 2, 3, 4]
+say regex.search "[0-9]+" "SE2026"
+
+encoded = base64.encode "SE"
+say base64.decode encoded
+
+id = uuid.v4
+say uuid.valid id
+
+values = iter.range 1 5
+say values.len
+say decimal.add "0.1" "0.2"
+
+rows = csv.parse "name,score\nSE,100"
+say rows.len
+
+packed = pickle.dumps ["name": "SE", "version": 1]
+unpacked = pickle.loads packed
+say typing.type_of unpacked
+
+parsed = args.parse ["--name", "SE", "--debug"]
+say args.get parsed "name"
+say args.flag parsed "debug"
+
+q = queue.new
+queue.put q "first"
+say queue.get q
+say queue.empty q
+
+colors = enum.make ["red", "green", "blue"]
+say enum.value colors "green"
+say enum.name colors 2
+
+make add a b
+    return a + b
+
+say functools.reduce add [1, 2, 3]
+
+make twice x
+    return x * 2
+
+job = threading.run twice 21
+say threading.join job
