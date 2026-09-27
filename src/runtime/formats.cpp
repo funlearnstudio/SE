@@ -76,7 +76,7 @@ try:
             import markdown_it
         except ImportError as exc:
             raise RuntimeError('markdown.render requires markdown-it-py installed for the selected Python') from exc
-        value = markdown_it.MarkdownIt('commonmark').render(args[0])
+        value = markdown_it.MarkdownIt('commonmark', {'html': False}).render(args[0])
     elif name == 'crypto':
         if op == 'sha256':
             value = hashlib.sha256(args[0].encode('utf-8')).hexdigest()

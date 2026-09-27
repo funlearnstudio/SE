@@ -66,6 +66,7 @@ void print_help(){
     "  se help                        Show this help\n"
     "  se --version                   Show the SE version\n\n"
     "Built-in modules include core platform modules plus statistics, regex/re, decimal, csv, datetime, hash/hashlib, base64, uuid, iter/itertools, args/argparse, logging, file/archive/process/socket, threading/queue, sqlite, functools, operator, copy, enum and typing.\n"
+    "Expansion module API and optional dependencies: docs/expansion-modules-zh-TW.md\n"
     "Source files use .se. Legacy .s files are still accepted during migration.\n";
 }
 

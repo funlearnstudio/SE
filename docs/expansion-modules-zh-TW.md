@@ -20,7 +20,7 @@
 | `toml` | `parse` | Python 3.11+ `tomllib`，回傳 SE 值；日期時間轉 ISO 文字 |
 | `yaml` | `parse`, `stringify` | Python 3.11+ 加 PyYAML；使用 `safe_load` / `safe_dump` |
 | `xml` | `parse`, `escape` | Python 3.11+ ElementTree；拒絕 DTD、entity 與超過 1 MB 的輸入 |
-| `markdown` | `render` | Python 3.11+ 加 `markdown-it-py`，以 CommonMark 規則輸出 HTML |
+| `markdown` | `render` | Python 3.11+ 加 `markdown-it-py`，以 CommonMark 規則輸出 HTML，原始 HTML 會跳脫 |
 | `crypto` | `sha256`, `hmac_sha256`, `random_hex`, `constant_time_equal` | Python 標準函式庫 hashlib/hmac/secrets |
 | `jwt`, `session` | `sign`/`verify`, `encode`/`decode` | HS256 簽章，驗證時檢查 `exp`；session 為簽章資料而非伺服器儲存 |
 | `auth` | `hash_password`, `verify_password` | PBKDF2-HMAC-SHA256、16 byte 隨機 salt、25 萬次迭代 |

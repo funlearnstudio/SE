@@ -33,6 +33,7 @@ else
 | [Technical Reference](docs/technical-reference.md) | [技術參考](docs/technical-reference-zh-TW.md) |
 | [SE Web](docs/web-language-0.8.md) | [SE Web](docs/web-language-0.8-zh-TW.md) |
 | [Browser API](docs/browser-api-0.8.md) | [Browser API](docs/browser-api-0.8-zh-TW.md) |
+| [Expansion modules (Traditional Chinese)](docs/expansion-modules-zh-TW.md) | [擴充模組與相依套件](docs/expansion-modules-zh-TW.md) |
 | [VS Code](vscode/README.md) | [VS Code](vscode/README-zh-TW.md) |
 
 ## Install / 安裝
