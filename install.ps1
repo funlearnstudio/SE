@@ -1,7 +1,22 @@
 $ErrorActionPreference = 'Stop'
 
-$Version = if ($env:SE_VERSION) { $env:SE_VERSION } else { '0.6.0' }
 $Repo = 'funlearnstudio/SE'
+$FallbackVersion = '0.7.0'
+
+if ($env:SE_VERSION) {
+    $Version = $env:SE_VERSION
+}
+else {
+    try {
+        $Latest = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest" -Headers @{ 'User-Agent' = 'SE-Installer' }
+        $Version = [string]$Latest.tag_name
+        if ($Version.StartsWith('v')) { $Version = $Version.Substring(1) }
+        if ([string]::IsNullOrWhiteSpace($Version)) { $Version = $FallbackVersion }
+    }
+    catch {
+        $Version = $FallbackVersion
+    }
+}
 $Tag = "v$Version"
 $Asset = "se-$Version-windows-x64"
 $Archive = "$Asset.zip"

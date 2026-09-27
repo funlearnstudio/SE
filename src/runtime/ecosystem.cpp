@@ -6,10 +6,17 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <deque>
+#include <iostream>
 #include <filesystem>
 #include <fstream>
 #include <limits>
 #include <numeric>
+#include <random>
+#include <regex>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 #include <set>
 #include <sstream>
 #include <string>
@@ -87,6 +94,69 @@ Value response_map(const NetResponse& r){auto m=std::make_shared<MapData>();m->i
 std::vector<double> numbers(const Value& value,SourcePos p,const std::string& name){auto l=list_value(value,p,name);if(l->items.empty())throw Error(p,name+" needs a non-empty List.");std::vector<double> out;for(auto& v:l->items)out.push_back(number(v,p,name));return out;}
 std::int64_t factorial_checked(std::int64_t n,SourcePos p){if(n<0)throw Error(p,"math.factorial needs a non-negative Int.");if(n>20)throw Error(p,"math.factorial is limited to 20 for Int safety.");std::int64_t r=1;for(std::int64_t i=2;i<=n;++i)r*=i;return r;}
 
+
+std::string decimal_text(long double v,int precision=18){
+  std::ostringstream o;o<<std::setprecision(std::clamp(precision,1,36))<<std::fixed<<v;
+  auto s=o.str();while(s.size()>1&&s.back()=='0')s.pop_back();if(!s.empty()&&s.back()=='.')s.pop_back();if(s=="-0")s="0";return s;
+}
+long double decimal_number(const Value& v,SourcePos p,const std::string& name){
+  auto s=text(v,p,name);try{std::size_t used=0;auto x=std::stold(s,&used);if(used!=s.size())throw std::runtime_error("bad");return x;}catch(...){throw Error(p,name+" needs a decimal Text value.");}
+}
+std::string csv_escape_field(const std::string& s){
+  if(s.find_first_of(",\"\r\n")==std::string::npos)return s;std::string out="\"";for(char ch:s){if(ch=='\"')out+="\"\"";else out+=ch;}return out+"\"";
+}
+std::shared_ptr<ListData> csv_parse_rows(const std::string& input){
+  auto rows=std::make_shared<ListData>();auto row=std::make_shared<ListData>();std::string field;bool quoted=false;
+  auto push_field=[&](){row->items.emplace_back(field);field.clear();};
+  auto push_row=[&](){push_field();rows->items.emplace_back(row);row=std::make_shared<ListData>();};
+  for(std::size_t i=0;i<input.size();++i){char ch=input[i];if(quoted){if(ch=='\"'){if(i+1<input.size()&&input[i+1]=='\"'){field+='\"';++i;}else quoted=false;}else field+=ch;continue;}if(ch=='\"'&&field.empty()){quoted=true;continue;}if(ch==','){push_field();continue;}if(ch=='\n'){if(!field.empty()||!row->items.empty())push_row();continue;}if(ch=='\r'){if(i+1<input.size()&&input[i+1]=='\n')continue;if(!field.empty()||!row->items.empty())push_row();continue;}field+=ch;}
+  if(!field.empty()||!row->items.empty())push_row();return rows;
+}
+std::string csv_stringify_rows(const Value& value,SourcePos p,const std::string& name){
+  auto rows=list_value(value,p,name);std::ostringstream out;
+  for(std::size_t r=0;r<rows->items.size();++r){auto row=list_value(rows->items[r],p,name);for(std::size_t i=0;i<row->items.size();++i){if(i)out<<',';out<<csv_escape_field(row->items[i].text());}if(r+1<rows->items.size())out<<'\n';}
+  return out.str();
+}
+std::string wildcard_regex(const std::string& pattern){
+  std::string out="^";for(std::size_t i=0;i<pattern.size();++i){char ch=pattern[i];if(ch=='*'){if(i+1<pattern.size()&&pattern[i+1]=='*'){out+=".*";++i;}else out+="[^/\\\\]*";}else if(ch=='?')out+=".";else if(std::string(".^$|()[]{}+\\").find(ch)!=std::string::npos){out+='\\';out+=ch;}else if(ch=='\\')out+="[/\\\\]";else if(ch=='/')out+="[/\\\\]";else out+=ch;}return out+"$";
+}
+std::string sha256_text(const std::string& input,SourcePos p){
+  auto stamp=std::chrono::high_resolution_clock::now().time_since_epoch().count();
+  auto file=std::filesystem::temp_directory_path()/("se-sha256-"+std::to_string(stamp)+".tmp");
+  {std::ofstream f(file,std::ios::binary|std::ios::trunc);if(!f)throw Error(p,"hash.sha256 could not create a temporary file.");f<<input;}
+#ifdef _WIN32
+  auto output=process_output("certutil -hashfile "+shell_quote(file.string())+" SHA256",p);
+#else
+  auto output=process_output("(command -v sha256sum >/dev/null 2>&1 && sha256sum "+shell_quote(file.string())+") || shasum -a 256 "+shell_quote(file.string()),p);
+#endif
+  std::error_code ec;std::filesystem::remove(file,ec);std::smatch m;std::regex re("[0-9A-Fa-f]{64}");
+  if(!std::regex_search(output,m,re))throw Error(p,"hash.sha256 could not obtain a SHA-256 digest from the host tools.");auto s=m.str();std::transform(s.begin(),s.end(),s.begin(),[](unsigned char ch){return static_cast<char>(std::tolower(ch));});return s;
+}
+std::tm utc_tm(std::time_t t){
+  std::tm tm{};
+#ifdef _WIN32
+  gmtime_s(&tm,&t);
+#else
+  gmtime_r(&t,&tm);
+#endif
+  return tm;
+}
+std::string iso_utc(std::time_t t){auto tm=utc_tm(t);std::ostringstream o;o<<std::put_time(&tm,"%Y-%m-%dT%H:%M:%SZ");return o.str();}
+struct QueueState{std::deque<Value> items;};
+struct SqliteState{std::filesystem::path path;};
+template<class T> Value native_handle(const std::string& tag,std::shared_ptr<T> value){auto h=std::make_shared<NativeHandleData>();h->tag=tag;h->resource=std::move(value);return Value(h);}
+template<class T> std::shared_ptr<T> native_as(const Value& value,const std::string& tag,SourcePos p,const std::string& name){auto h=std::get_if<std::shared_ptr<NativeHandleData>>(&value.data());if(!h||!(*h)||(*h)->tag!=tag)throw Error(p,name+" needs "+tag+".");return std::static_pointer_cast<T>((*h)->resource);}
+int& se_log_level(){static int level=1;return level;}
+int parse_log_level(std::string level){level=lower_ascii(level);if(level=="debug")return 0;if(level=="info")return 1;if(level=="warn"||level=="warning")return 2;if(level=="error")return 3;return 1;}
+void emit_log(int level,const std::string& label,const std::string& msg){if(level<se_log_level())return;auto now=std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());std::clog<<"["<<iso_utc(now)<<"] ["<<label<<"] "<<msg<<'\n';}
+void finish_socket_write(Socket sock){
+#ifdef _WIN32
+  shutdown(sock,SD_SEND);DWORD timeout=5000;setsockopt(sock,SOL_SOCKET,SO_RCVTIMEO,reinterpret_cast<const char*>(&timeout),sizeof(timeout));
+#else
+  shutdown(sock,SHUT_WR);timeval timeout{5,0};setsockopt(sock,SOL_SOCKET,SO_RCVTIMEO,&timeout,sizeof(timeout));
+#endif
+}
+
 std::string html_escape(const std::string& s){std::string o;for(char c:s){if(c=='&')o+="&amp;";else if(c=='<')o+="&lt;";else if(c=='>')o+="&gt;";else if(c=='\"')o+="&quot;";else o+=c;}return o;}
 std::string js_escape(const std::string& s){std::string o;for(char c:s){if(c=='\\')o+="\\\\";else if(c=='\"')o+="\\\"";else if(c=='\n')o+="\\n";else if(c=='\r')o+="\\r";else o+=c;}return o;}
 struct GameScene{int width=800;int height=600;std::string title="SE Game";std::string background="#111";std::vector<std::string> draw;std::vector<std::string> scripts;};
@@ -106,16 +176,71 @@ void open_file(const std::filesystem::path& path){
 
 } // namespace
 
-bool is_ecosystem_builtin(const std::string& name){static const std::set<std::string> names={"math","data","net","node","next","game"};return names.contains(name);}
+bool is_ecosystem_builtin(const std::string& name){static const std::set<std::string> names={
+  "math","data","net","node","next","game",
+  "statistics","regex","re","base64","uuid","iter","itertools","copy","operator",
+  "decimal","csv","datetime","hash","hashlib","pickle","args","argparse","log","logging",
+  "shutil","glob","zip","zipfile","subprocess","socket","queue","sqlite","sqlite3",
+  "functools","enum","typing"
+};return names.contains(name);}
 
 TypeInfo ecosystem_builtin_type(const std::string& name){
-  auto m=module_type(name);auto& x=m.members;TypeInfo unknown,none(TypeKind::None),num(TypeKind::Num),integer_t(TypeKind::Int),text_t(TypeKind::Text),bool_t(TypeKind::Bool),list_t=list_type(),map_t=map_type();
+  auto m=module_type(name);auto& x=m.members;TypeInfo unknown,none(TypeKind::None),num(TypeKind::Num),integer_t(TypeKind::Int),text_t(TypeKind::Text),bool_t(TypeKind::Bool),list_t=list_type(),map_t=map_type(),func_t(TypeKind::Function);
+  auto handle_t=[](const std::string& n){TypeInfo t(TypeKind::NativeHandle);t.name=n;return t;};
   if(name=="math"){
     x["pi"]=num;x["e"]=num;x["tau"]=num;x["inf"]=num;
     for(auto n:{"sqrt","cbrt","abs","floor","ceil","round","trunc","sin","cos","tan","asin","acos","atan","sinh","cosh","tanh","asinh","acosh","atanh","exp","exp2","expm1","log","log10","log2","log1p","degrees","radians","gamma","lgamma","erf","erfc"})x[n]=fn({num},num);
     for(auto n:{"atan2","pow","fmod","remainder","copysign","nextafter"})x[n]=fn({num,num},num);
     x["hypot"]=fn({num,num},num,true,2);x["min"]=fn({num,num},num,true,2);x["max"]=fn({num,num},num,true,2);x["clamp"]=fn({num,num,num},num);x["lerp"]=fn({num,num,num},num);x["map_range"]=fn({num,num,num,num,num},num);x["sign"]=fn({num},integer_t);x["isfinite"]=fn({num},bool_t);x["isinf"]=fn({num},bool_t);x["isnan"]=fn({num},bool_t);
     x["gcd"]=fn({integer_t,integer_t},integer_t,true,2);x["lcm"]=fn({integer_t,integer_t},integer_t,true,2);x["factorial"]=fn({integer_t},integer_t);x["comb"]=fn({integer_t,integer_t},integer_t);x["perm"]=fn({integer_t,integer_t},integer_t);x["sum"]=fn({list_t},num);x["mean"]=fn({list_t},num);x["median"]=fn({list_t},num);x["variance"]=fn({list_t},num);x["stddev"]=fn({list_t},num);
+  }else if(name=="statistics"){
+    x["mean"]=fn({list_t},num);x["median"]=fn({list_t},num);x["variance"]=fn({list_t},num);x["pvariance"]=fn({list_t},num);x["stdev"]=fn({list_t},num);x["pstdev"]=fn({list_t},num);
+  }else if(name=="regex"||name=="re"){
+    x["match"]=fn({text_t,text_t},bool_t);x["search"]=fn({text_t,text_t},bool_t);x["replace"]=fn({text_t,text_t,text_t},text_t);x["split"]=fn({text_t,text_t},list_type(text_t));
+  }else if(name=="base64"){
+    x["encode"]=fn({text_t},text_t);x["decode"]=fn({text_t},text_t,false,0,true);
+  }else if(name=="uuid"){
+    x["v4"]=fn({},text_t);x["valid"]=fn({text_t},bool_t);
+  }else if(name=="iter"||name=="itertools"){
+    x["range"]=fn({integer_t,integer_t},list_type(integer_t),true,1);x["enumerate"]=fn({list_t},list_t);x["zip"]=fn({list_t,list_t},list_t);x["product"]=fn({list_t,list_t},list_t);x["permutations"]=fn({list_t},list_t,true,1);x["combinations"]=fn({list_t,integer_t},list_t);
+  }else if(name=="copy"){
+    x["shallow"]=fn({unknown},unknown);x["deep"]=fn({unknown},unknown);
+  }else if(name=="operator"){
+    for(auto n:{"add","sub","mul","div","mod","eq","ne","lt","le","gt","ge"})x[n]=fn({unknown,unknown},unknown);
+  }else if(name=="decimal"){
+    x["parse"]=fn({text_t},text_t);x["add"]=fn({text_t,text_t},text_t);x["sub"]=fn({text_t,text_t},text_t);x["mul"]=fn({text_t,text_t},text_t);x["div"]=fn({text_t,text_t},text_t,true,2);x["quantize"]=fn({text_t,integer_t},text_t);
+  }else if(name=="csv"){
+    x["parse"]=fn({text_t},list_t);x["stringify"]=fn({list_t},text_t);x["read"]=fn({text_t},list_t,false,0,true);x["write"]=fn({text_t,list_t},none,false,0,true);
+  }else if(name=="datetime"){
+    x["now"]=fn({},text_t);x["timestamp"]=fn({},integer_t);x["from_timestamp"]=fn({integer_t},text_t);x["format"]=fn({integer_t,text_t},text_t);x["add_seconds"]=fn({integer_t,integer_t},integer_t);
+  }else if(name=="hash"||name=="hashlib"){
+    x["sha256"]=fn({text_t},text_t,false,0,true);x["file_sha256"]=fn({text_t},text_t,false,0,true);
+  }else if(name=="pickle"){
+    x["dumps"]=fn({unknown},text_t);x["loads"]=fn({text_t},unknown,false,0,true);
+  }else if(name=="args"||name=="argparse"){
+    x["parse"]=fn({list_t},map_t);x["get"]=fn({map_t,text_t},unknown,true,2);x["flag"]=fn({map_t,text_t},bool_t);
+  }else if(name=="log"||name=="logging"){
+    x["level"]=fn({text_t},none);x["debug"]=fn({text_t},none);x["info"]=fn({text_t},none);x["warn"]=fn({text_t},none);x["error"]=fn({text_t},none);
+  }else if(name=="shutil"){
+    x["copy"]=fn({text_t,text_t},none,false,0,true);x["move"]=fn({text_t,text_t},none,false,0,true);x["copytree"]=fn({text_t,text_t},none,false,0,true);x["remove"]=fn({text_t},none,false,0,true);x["mkdir"]=fn({text_t},none,false,0,true);
+  }else if(name=="glob"){
+    x["match"]=fn({text_t,text_t},bool_t);x["find"]=fn({text_t},list_type(text_t),false,0,true);
+  }else if(name=="zip"||name=="zipfile"){
+    x["create"]=fn({text_t,list_t},none,false,0,true);x["extract"]=fn({text_t,text_t},none,false,0,true);x["list"]=fn({text_t},list_type(text_t),false,0,true);
+  }else if(name=="subprocess"){
+    x["run"]=fn({text_t},integer_t,false,0,true);x["output"]=fn({text_t},text_t,false,0,true);
+  }else if(name=="socket"){
+    x["resolve"]=fn({text_t},text_t,false,0,true);x["tcp"]=fn({text_t,integer_t,text_t},text_t,false,0,true);
+  }else if(name=="queue"){
+    x["new"]=fn({},handle_t("Queue"));x["put"]=fn({handle_t("Queue"),unknown},none);x["get"]=fn({handle_t("Queue")},unknown,false,0,true);x["empty"]=fn({handle_t("Queue")},bool_t);x["size"]=fn({handle_t("Queue")},integer_t);
+  }else if(name=="sqlite"||name=="sqlite3"){
+    x["open"]=fn({text_t},handle_t("SQLite"));x["exec"]=fn({handle_t("SQLite"),text_t},integer_t,false,0,true);x["query"]=fn({handle_t("SQLite"),text_t},list_t,false,0,true);
+  }else if(name=="functools"){
+    x["partial"]=fn({func_t,unknown},func_t,true,1);x["reduce"]=fn({func_t,list_t},unknown,true,2);x["map"]=fn({func_t,list_t},list_t);x["filter"]=fn({func_t,list_t},list_t);
+  }else if(name=="enum"){
+    x["make"]=fn({list_type(text_t)},map_t);x["name"]=fn({map_t,integer_t},text_t,false,0,true);x["value"]=fn({map_t,text_t},integer_t,false,0,true);x["has"]=fn({map_t,text_t},bool_t);
+  }else if(name=="typing"){
+    x["type_of"]=fn({unknown},text_t);x["is"]=fn({unknown,text_t},bool_t);x["cast"]=fn({unknown,text_t},unknown);
   }else if(name=="data"){
     x["append"]=fn({list_t,unknown},none);x["extend"]=fn({list_t,list_t},none);x["insert"]=fn({list_t,integer_t,unknown},none);x["pop"]=fn({list_t},unknown,true,1);x["clear"]=fn({unknown},none);x["copy"]=fn({unknown},unknown);x["get"]=fn({map_t,text_t},unknown,true,2);x["set"]=fn({map_t,text_t,unknown},none);x["update"]=fn({map_t,map_t},none);x["delete"]=fn({map_t,text_t},bool_t);x["has"]=fn({unknown,unknown},bool_t);x["keys"]=fn({map_t},list_type(text_t));x["values"]=fn({map_t},list_t);x["items"]=fn({map_t},list_t);
   }else if(name=="net"){
@@ -146,6 +271,130 @@ std::shared_ptr<ModuleData> ecosystem_builtin_module(const std::string& name,Int
     m->exports["sign"]=callable("math.sign",1,1,[](const std::vector<Value>&a,SourcePos p){auto v=number(a[0],p,"math.sign");return Value(static_cast<std::int64_t>((v>0)-(v<0)));});m->exports["isfinite"]=callable("math.isfinite",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(std::isfinite(number(a[0],p,"math.isfinite")));});m->exports["isinf"]=callable("math.isinf",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(std::isinf(number(a[0],p,"math.isinf")));});m->exports["isnan"]=callable("math.isnan",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(std::isnan(number(a[0],p,"math.isnan")));});
     m->exports["gcd"]=callable("math.gcd",2,64,[](const std::vector<Value>&a,SourcePos p){auto r=integer(a[0],p,"math.gcd");for(std::size_t i=1;i<a.size();++i)r=std::gcd(r,integer(a[i],p,"math.gcd"));return Value(r);},true);m->exports["lcm"]=callable("math.lcm",2,64,[](const std::vector<Value>&a,SourcePos p){auto r=integer(a[0],p,"math.lcm");for(std::size_t i=1;i<a.size();++i)r=std::lcm(r,integer(a[i],p,"math.lcm"));return Value(r);},true);m->exports["factorial"]=callable("math.factorial",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(factorial_checked(integer(a[0],p,"math.factorial"),p));});m->exports["comb"]=callable("math.comb",2,2,[](const std::vector<Value>&a,SourcePos p){auto n=integer(a[0],p,"math.comb");auto k=integer(a[1],p,"math.comb");if(k<0||n<0||k>n)throw Error(p,"math.comb needs 0 <= k <= n.");k=std::min(k,n-k);std::int64_t r=1;for(std::int64_t i=1;i<=k;++i)r=r*(n-k+i)/i;return Value(r);});m->exports["perm"]=callable("math.perm",2,2,[](const std::vector<Value>&a,SourcePos p){auto n=integer(a[0],p,"math.perm");auto k=integer(a[1],p,"math.perm");if(k<0||n<0||k>n||n>20)throw Error(p,"math.perm needs 0 <= k <= n <= 20.");std::int64_t r=1;for(std::int64_t i=0;i<k;++i)r*=n-i;return Value(r);});
     auto stat=[&](const std::string& n,auto op){m->exports[n]=callable("math."+n,1,1,[n,op](const std::vector<Value>&a,SourcePos p){return Value(op(numbers(a[0],p,"math."+n)));});};stat("sum",[](std::vector<double> v){return std::accumulate(v.begin(),v.end(),0.0);});stat("mean",[](std::vector<double> v){return std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());});stat("median",[](std::vector<double> v){std::sort(v.begin(),v.end());auto n=v.size();return n%2?v[n/2]:(v[n/2-1]+v[n/2])/2.0;});stat("variance",[](std::vector<double> v){auto mean=std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());double s=0;for(auto q:v){auto d=q-mean;s+=d*d;}return s/static_cast<double>(v.size());});stat("stddev",[](std::vector<double> v){auto mean=std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());double s=0;for(auto q:v){auto d=q-mean;s+=d*d;}return std::sqrt(s/static_cast<double>(v.size()));});
+  }else if(name=="statistics"){
+    auto stat=[&](const std::string& n,auto op){m->exports[n]=callable("statistics."+n,1,1,[n,op](const std::vector<Value>&a,SourcePos p){return Value(op(numbers(a[0],p,"statistics."+n)));});};
+    stat("mean",[](std::vector<double> v){return std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());});
+    stat("median",[](std::vector<double> v){std::sort(v.begin(),v.end());auto n=v.size();return n%2?v[n/2]:(v[n/2-1]+v[n/2])/2.0;});
+    stat("pvariance",[](std::vector<double> v){auto mean=std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());double s=0;for(auto q:v){auto d=q-mean;s+=d*d;}return s/static_cast<double>(v.size());});
+    stat("pstdev",[](std::vector<double> v){auto mean=std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());double s=0;for(auto q:v){auto d=q-mean;s+=d*d;}return std::sqrt(s/static_cast<double>(v.size()));});
+    stat("variance",[](std::vector<double> v){if(v.size()<2)throw std::runtime_error("statistics.variance needs at least 2 values.");auto mean=std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());double s=0;for(auto q:v){auto d=q-mean;s+=d*d;}return s/static_cast<double>(v.size()-1);});
+    stat("stdev",[](std::vector<double> v){if(v.size()<2)throw std::runtime_error("statistics.stdev needs at least 2 values.");auto mean=std::accumulate(v.begin(),v.end(),0.0)/static_cast<double>(v.size());double s=0;for(auto q:v){auto d=q-mean;s+=d*d;}return std::sqrt(s/static_cast<double>(v.size()-1));});
+  }else if(name=="regex"||name=="re"){
+    m->exports["match"]=callable("regex.match",2,2,[](const std::vector<Value>&a,SourcePos p){try{return Value(std::regex_match(text(a[1],p,"regex.match"),std::regex(text(a[0],p,"regex.match"))));}catch(const std::regex_error&e){throw Error(p,std::string("Invalid regex: ")+e.what());}});
+    m->exports["search"]=callable("regex.search",2,2,[](const std::vector<Value>&a,SourcePos p){try{return Value(std::regex_search(text(a[1],p,"regex.search"),std::regex(text(a[0],p,"regex.search"))));}catch(const std::regex_error&e){throw Error(p,std::string("Invalid regex: ")+e.what());}});
+    m->exports["replace"]=callable("regex.replace",3,3,[](const std::vector<Value>&a,SourcePos p){try{return Value(std::regex_replace(text(a[1],p,"regex.replace"),std::regex(text(a[0],p,"regex.replace")),text(a[2],p,"regex.replace")));}catch(const std::regex_error&e){throw Error(p,std::string("Invalid regex: ")+e.what());}});
+    m->exports["split"]=callable("regex.split",2,2,[](const std::vector<Value>&a,SourcePos p){try{std::regex re(text(a[0],p,"regex.split"));std::string s=text(a[1],p,"regex.split");std::sregex_token_iterator it(s.begin(),s.end(),re,-1),end;auto out=std::make_shared<ListData>();for(;it!=end;++it)out->items.emplace_back(it->str());return Value(out);}catch(const std::regex_error&e){throw Error(p,std::string("Invalid regex: ")+e.what());}});
+  }else if(name=="base64"){
+    static const std::string chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    m->exports["encode"]=callable("base64.encode",1,1,[](const std::vector<Value>&a,SourcePos p){auto s=text(a[0],p,"base64.encode");std::string out;int val=0,valb=-6;for(unsigned char c:s){val=(val<<8)+c;valb+=8;while(valb>=0){out.push_back(chars[(val>>valb)&0x3F]);valb-=6;}}if(valb>-6)out.push_back(chars[((val<<8)>>(valb+8))&0x3F]);while(out.size()%4)out.push_back('=');return Value(out);});
+    m->exports["decode"]=callable("base64.decode",1,1,[](const std::vector<Value>&a,SourcePos p){auto s=text(a[0],p,"base64.decode");std::vector<int> t(256,-1);for(int i=0;i<64;i++)t[static_cast<unsigned char>(chars[i])]=i;std::string out;int val=0,valb=-8;for(unsigned char c:s){if(std::isspace(c))continue;if(c=='=')break;if(t[c]==-1)throw Error(p,"base64.decode received invalid Base64.");val=(val<<6)+t[c];valb+=6;if(valb>=0){out.push_back(char((val>>valb)&0xFF));valb-=8;}}return Value(out);});
+  }else if(name=="uuid"){
+    m->exports["v4"]=callable("uuid.v4",0,0,[](const std::vector<Value>&,SourcePos){std::random_device rd;std::mt19937_64 g(rd());std::uniform_int_distribution<unsigned long long>d;auto a=d(g),b=d(g);unsigned char x[16];for(int i=0;i<8;++i)x[i]=static_cast<unsigned char>((a>>(56-8*i))&255);for(int i=0;i<8;++i)x[8+i]=static_cast<unsigned char>((b>>(56-8*i))&255);x[6]=(x[6]&0x0f)|0x40;x[8]=(x[8]&0x3f)|0x80;std::ostringstream o;o<<std::hex<<std::setfill('0');for(int i=0;i<16;++i){o<<std::setw(2)<<static_cast<int>(x[i]);if(i==3||i==5||i==7||i==9)o<<'-';}return Value(o.str());});
+    m->exports["valid"]=callable("uuid.valid",1,1,[](const std::vector<Value>&a,SourcePos p){auto s=text(a[0],p,"uuid.valid");static const std::regex re("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$");return Value(std::regex_match(s,re));});
+  }else if(name=="iter"||name=="itertools"){
+    m->exports["range"]=callable("iter.range",1,3,[](const std::vector<Value>&a,SourcePos p){std::int64_t start=0,stop=0,step=1;if(a.size()==1)stop=integer(a[0],p,"iter.range");else{start=integer(a[0],p,"iter.range");stop=integer(a[1],p,"iter.range");if(a.size()==3)step=integer(a[2],p,"iter.range");}if(step==0)throw Error(p,"iter.range step cannot be zero.");auto out=std::make_shared<ListData>();if(step>0)for(auto i=start;i<stop;i+=step)out->items.emplace_back(i);else for(auto i=start;i>stop;i+=step)out->items.emplace_back(i);return Value(out);},true);
+    m->exports["enumerate"]=callable("iter.enumerate",1,1,[](const std::vector<Value>&a,SourcePos p){auto l=list_value(a[0],p,"iter.enumerate");auto out=std::make_shared<ListData>();for(std::size_t i=0;i<l->items.size();++i){auto pair=std::make_shared<ListData>();pair->items.emplace_back(static_cast<std::int64_t>(i));pair->items.push_back(l->items[i]);out->items.emplace_back(pair);}return Value(out);});
+    m->exports["zip"]=callable("iter.zip",2,2,[](const std::vector<Value>&a,SourcePos p){auto x=list_value(a[0],p,"iter.zip"),y=list_value(a[1],p,"iter.zip");auto out=std::make_shared<ListData>();auto n=std::min(x->items.size(),y->items.size());for(std::size_t i=0;i<n;++i){auto pair=std::make_shared<ListData>();pair->items={x->items[i],y->items[i]};out->items.emplace_back(pair);}return Value(out);});
+    m->exports["product"]=callable("iter.product",2,2,[](const std::vector<Value>&a,SourcePos p){auto x=list_value(a[0],p,"iter.product"),y=list_value(a[1],p,"iter.product");auto out=std::make_shared<ListData>();for(auto& i:x->items)for(auto& j:y->items){auto pair=std::make_shared<ListData>();pair->items={i,j};out->items.emplace_back(pair);}return Value(out);});
+    m->exports["permutations"]=callable("iter.permutations",1,2,[](const std::vector<Value>&a,SourcePos p){auto l=list_value(a[0],p,"iter.permutations");auto r=a.size()==2?integer(a[1],p,"iter.permutations"):static_cast<std::int64_t>(l->items.size());if(r<0||static_cast<std::size_t>(r)>l->items.size())throw Error(p,"iter.permutations invalid r.");auto out=std::make_shared<ListData>();std::vector<bool> used(l->items.size());std::vector<Value> cur;std::function<void()> dfs=[&]{if(cur.size()==static_cast<std::size_t>(r)){auto q=std::make_shared<ListData>();q->items=cur;out->items.emplace_back(q);return;}for(std::size_t i=0;i<l->items.size();++i)if(!used[i]){used[i]=true;cur.push_back(l->items[i]);dfs();cur.pop_back();used[i]=false;}};dfs();return Value(out);},true);
+    m->exports["combinations"]=callable("iter.combinations",2,2,[](const std::vector<Value>&a,SourcePos p){auto l=list_value(a[0],p,"iter.combinations");auto r=integer(a[1],p,"iter.combinations");if(r<0||static_cast<std::size_t>(r)>l->items.size())throw Error(p,"iter.combinations invalid r.");auto out=std::make_shared<ListData>();std::vector<Value> cur;std::function<void(std::size_t)> dfs=[&](std::size_t pos){if(cur.size()==static_cast<std::size_t>(r)){auto q=std::make_shared<ListData>();q->items=cur;out->items.emplace_back(q);return;}for(std::size_t i=pos;i<l->items.size();++i){cur.push_back(l->items[i]);dfs(i+1);cur.pop_back();}};dfs(0);return Value(out);});
+  }else if(name=="copy"){
+    m->exports["shallow"]=callable("copy.shallow",1,1,[](const std::vector<Value>&a,SourcePos){if(auto l=std::get_if<std::shared_ptr<ListData>>(&a[0].data())){auto o=std::make_shared<ListData>();o->items=(*l)->items;return Value(o);}if(auto m=std::get_if<std::shared_ptr<MapData>>(&a[0].data())){auto o=std::make_shared<MapData>();o->items=(*m)->items;return Value(o);}if(auto s=std::get_if<std::shared_ptr<SetData>>(&a[0].data())){auto o=std::make_shared<SetData>();o->items=(*s)->items;return Value(o);}return a[0];});
+    m->exports["deep"]=callable("copy.deep",1,1,[](const std::vector<Value>&a,SourcePos){std::function<Value(const Value&)> cp=[&](const Value&v)->Value{if(auto l=std::get_if<std::shared_ptr<ListData>>(&v.data())){auto o=std::make_shared<ListData>();for(auto&i:(*l)->items)o->items.push_back(cp(i));return Value(o);}if(auto m=std::get_if<std::shared_ptr<MapData>>(&v.data())){auto o=std::make_shared<MapData>();for(auto&i:(*m)->items)o->items.emplace_back(i.first,cp(i.second));return Value(o);}if(auto s=std::get_if<std::shared_ptr<SetData>>(&v.data())){auto o=std::make_shared<SetData>();for(auto&i:(*s)->items)o->items.push_back(cp(i));return Value(o);}return v;};return cp(a[0]);});
+  }else if(name=="operator"){
+    auto bin=[&](const std::string& n,auto op){m->exports[n]=callable("operator."+n,2,2,[n,op](const std::vector<Value>&a,SourcePos p){return op(a[0],a[1],p,n);});};
+    bin("add",[](const Value&a,const Value&b,SourcePos p,const std::string&){if(auto x=std::get_if<std::int64_t>(&a.data())){if(auto y=std::get_if<std::int64_t>(&b.data()))return Value(*x+*y);}if((std::holds_alternative<std::int64_t>(a.data())||std::holds_alternative<double>(a.data()))&&(std::holds_alternative<std::int64_t>(b.data())||std::holds_alternative<double>(b.data())))return Value(number(a,p,"operator.add")+number(b,p,"operator.add"));if(auto x=std::get_if<std::string>(&a.data()))if(auto y=std::get_if<std::string>(&b.data()))return Value(*x+*y);throw Error(p,"operator.add unsupported operands.");});
+    bin("sub",[](const Value&a,const Value&b,SourcePos p,const std::string&){return Value(number(a,p,"operator.sub")-number(b,p,"operator.sub"));});
+    bin("mul",[](const Value&a,const Value&b,SourcePos p,const std::string&){return Value(number(a,p,"operator.mul")*number(b,p,"operator.mul"));});
+    bin("div",[](const Value&a,const Value&b,SourcePos p,const std::string&){auto d=number(b,p,"operator.div");if(d==0)throw Error(p,"operator.div division by zero.");return Value(number(a,p,"operator.div")/d);});
+    bin("mod",[](const Value&a,const Value&b,SourcePos p,const std::string&){auto x=integer(a,p,"operator.mod"),y=integer(b,p,"operator.mod");if(y==0)throw Error(p,"operator.mod division by zero.");return Value(x%y);});
+    bin("eq",[](const Value&a,const Value&b,SourcePos,const std::string&){return Value(value_equal(a,b));});
+    bin("ne",[](const Value&a,const Value&b,SourcePos,const std::string&){return Value(!value_equal(a,b));});
+    bin("lt",[](const Value&a,const Value&b,SourcePos p,const std::string&){return Value(number(a,p,"operator.lt")<number(b,p,"operator.lt"));});
+    bin("le",[](const Value&a,const Value&b,SourcePos p,const std::string&){return Value(number(a,p,"operator.le")<=number(b,p,"operator.le"));});
+    bin("gt",[](const Value&a,const Value&b,SourcePos p,const std::string&){return Value(number(a,p,"operator.gt")>number(b,p,"operator.gt"));});
+    bin("ge",[](const Value&a,const Value&b,SourcePos p,const std::string&){return Value(number(a,p,"operator.ge")>=number(b,p,"operator.ge"));});
+  }else if(name=="decimal"){
+    m->exports["parse"]=callable("decimal.parse",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(decimal_text(decimal_number(a[0],p,"decimal.parse")));});
+    m->exports["add"]=callable("decimal.add",2,2,[](const std::vector<Value>&a,SourcePos p){return Value(decimal_text(decimal_number(a[0],p,"decimal.add")+decimal_number(a[1],p,"decimal.add")));});
+    m->exports["sub"]=callable("decimal.sub",2,2,[](const std::vector<Value>&a,SourcePos p){return Value(decimal_text(decimal_number(a[0],p,"decimal.sub")-decimal_number(a[1],p,"decimal.sub")));});
+    m->exports["mul"]=callable("decimal.mul",2,2,[](const std::vector<Value>&a,SourcePos p){return Value(decimal_text(decimal_number(a[0],p,"decimal.mul")*decimal_number(a[1],p,"decimal.mul")));});
+    m->exports["div"]=callable("decimal.div",2,3,[](const std::vector<Value>&a,SourcePos p){auto d=decimal_number(a[1],p,"decimal.div");if(d==0)throw Error(p,"decimal.div division by zero.");auto precision=a.size()==3?static_cast<int>(integer(a[2],p,"decimal.div")):18;return Value(decimal_text(decimal_number(a[0],p,"decimal.div")/d,precision));},true);
+    m->exports["quantize"]=callable("decimal.quantize",2,2,[](const std::vector<Value>&a,SourcePos p){auto places=integer(a[1],p,"decimal.quantize");if(places<0||places>18)throw Error(p,"decimal.quantize places must be 0..18.");std::ostringstream o;o<<std::fixed<<std::setprecision(static_cast<int>(places))<<decimal_number(a[0],p,"decimal.quantize");return Value(o.str());});
+  }else if(name=="csv"){
+    m->exports["parse"]=callable("csv.parse",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(csv_parse_rows(text(a[0],p,"csv.parse")));});
+    m->exports["stringify"]=callable("csv.stringify",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(csv_stringify_rows(a[0],p,"csv.stringify"));});
+    m->exports["read"]=callable("csv.read",1,1,[](const std::vector<Value>&a,SourcePos p){auto path=text(a[0],p,"csv.read");std::ifstream f(path,std::ios::binary);if(!f)throw Error(p,"csv.read could not open '"+path+"'.");std::string s((std::istreambuf_iterator<char>(f)),{});return Value(csv_parse_rows(s));});
+    m->exports["write"]=callable("csv.write",2,2,[](const std::vector<Value>&a,SourcePos p){auto path=text(a[0],p,"csv.write");std::ofstream f(path,std::ios::binary|std::ios::trunc);if(!f)throw Error(p,"csv.write could not open '"+path+"'.");f<<csv_stringify_rows(a[1],p,"csv.write");if(!f)throw Error(p,"csv.write failed.");return Value{};});
+  }else if(name=="datetime"){
+    m->exports["now"]=callable("datetime.now",0,0,[](const std::vector<Value>&,SourcePos){return Value(iso_utc(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())));});
+    m->exports["timestamp"]=callable("datetime.timestamp",0,0,[](const std::vector<Value>&,SourcePos){return Value(static_cast<std::int64_t>(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())));});
+    m->exports["from_timestamp"]=callable("datetime.from_timestamp",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(iso_utc(static_cast<std::time_t>(integer(a[0],p,"datetime.from_timestamp"))));});
+    m->exports["format"]=callable("datetime.format",2,2,[](const std::vector<Value>&a,SourcePos p){auto tm=utc_tm(static_cast<std::time_t>(integer(a[0],p,"datetime.format")));std::ostringstream o;o<<std::put_time(&tm,text(a[1],p,"datetime.format").c_str());return Value(o.str());});
+    m->exports["add_seconds"]=callable("datetime.add_seconds",2,2,[](const std::vector<Value>&a,SourcePos p){return Value(integer(a[0],p,"datetime.add_seconds")+integer(a[1],p,"datetime.add_seconds"));});
+  }else if(name=="hash"||name=="hashlib"){
+    m->exports["sha256"]=callable(name+".sha256",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(sha256_text(text(a[0],p,"hash.sha256"),p));});
+    m->exports["file_sha256"]=callable(name+".file_sha256",1,1,[](const std::vector<Value>&a,SourcePos p){auto path=text(a[0],p,"hash.file_sha256");std::ifstream f(path,std::ios::binary);if(!f)throw Error(p,"hash.file_sha256 could not open '"+path+"'.");std::string s((std::istreambuf_iterator<char>(f)),{});return Value(sha256_text(s,p));});
+  }else if(name=="pickle"){
+    m->exports["dumps"]=callable("pickle.dumps",1,1,[](const std::vector<Value>&a,SourcePos){return Value(json_stringify(a[0]));});
+    m->exports["loads"]=callable("pickle.loads",1,1,[](const std::vector<Value>&a,SourcePos p){return JsonParser(text(a[0],p,"pickle.loads"),p).parse();});
+  }else if(name=="args"||name=="argparse"){
+    m->exports["parse"]=callable(name+".parse",1,1,[](const std::vector<Value>&a,SourcePos p){auto in=list_value(a[0],p,"args.parse");auto out=std::make_shared<MapData>();auto positional=std::make_shared<ListData>();
+      auto set=[&](std::string key,Value value){for(auto& kv:out->items)if(kv.first==key){kv.second=std::move(value);return;}out->items.emplace_back(std::move(key),std::move(value));};
+      for(std::size_t i=0;i<in->items.size();++i){auto s=text(in->items[i],p,"args.parse");if(s.rfind("--",0)==0&&s.size()>2){auto key=s.substr(2);auto eq=key.find('=');if(eq!=std::string::npos){set(key.substr(0,eq),Value(key.substr(eq+1)));continue;}if(i+1<in->items.size()){auto next=text(in->items[i+1],p,"args.parse");if(next.rfind("-",0)!=0){set(key,Value(next));++i;continue;}}set(key,Value(true));}else if(s.size()>1&&s[0]=='-'){for(std::size_t k=1;k<s.size();++k)set(std::string(1,s[k]),Value(true));}else positional->items.emplace_back(s);}set("_",Value(positional));return Value(out);});
+    m->exports["get"]=callable(name+".get",2,3,[](const std::vector<Value>&a,SourcePos p){auto mp=map_value(a[0],p,"args.get");auto key=text(a[1],p,"args.get");for(auto& kv:mp->items)if(kv.first==key)return kv.second;return a.size()==3?a[2]:Value{};},true);
+    m->exports["flag"]=callable(name+".flag",2,2,[](const std::vector<Value>&a,SourcePos p){auto mp=map_value(a[0],p,"args.flag");auto key=text(a[1],p,"args.flag");for(auto& kv:mp->items)if(kv.first==key){if(auto b=std::get_if<bool>(&kv.second.data()))return Value(*b);auto s=lower_ascii(kv.second.text());return Value(s=="1"||s=="true"||s=="yes"||s=="on");}return Value(false);});
+  }else if(name=="log"||name=="logging"){
+    m->exports["level"]=callable(name+".level",1,1,[](const std::vector<Value>&a,SourcePos p){se_log_level()=parse_log_level(text(a[0],p,"log.level"));return Value{};});
+    m->exports["debug"]=callable(name+".debug",1,1,[](const std::vector<Value>&a,SourcePos p){emit_log(0,"DEBUG",text(a[0],p,"log.debug"));return Value{};});
+    m->exports["info"]=callable(name+".info",1,1,[](const std::vector<Value>&a,SourcePos p){emit_log(1,"INFO",text(a[0],p,"log.info"));return Value{};});
+    m->exports["warn"]=callable(name+".warn",1,1,[](const std::vector<Value>&a,SourcePos p){emit_log(2,"WARN",text(a[0],p,"log.warn"));return Value{};});
+    m->exports["error"]=callable(name+".error",1,1,[](const std::vector<Value>&a,SourcePos p){emit_log(3,"ERROR",text(a[0],p,"log.error"));return Value{};});
+  }else if(name=="shutil"){
+    m->exports["copy"]=callable("shutil.copy",2,2,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;std::filesystem::copy_file(text(a[0],p,"shutil.copy"),text(a[1],p,"shutil.copy"),std::filesystem::copy_options::overwrite_existing,ec);if(ec)throw Error(p,"shutil.copy: "+ec.message());return Value{};});
+    m->exports["move"]=callable("shutil.move",2,2,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;std::filesystem::rename(text(a[0],p,"shutil.move"),text(a[1],p,"shutil.move"),ec);if(ec)throw Error(p,"shutil.move: "+ec.message());return Value{};});
+    m->exports["copytree"]=callable("shutil.copytree",2,2,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;std::filesystem::copy(text(a[0],p,"shutil.copytree"),text(a[1],p,"shutil.copytree"),std::filesystem::copy_options::recursive|std::filesystem::copy_options::overwrite_existing,ec);if(ec)throw Error(p,"shutil.copytree: "+ec.message());return Value{};});
+    m->exports["remove"]=callable("shutil.remove",1,1,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;std::filesystem::remove_all(text(a[0],p,"shutil.remove"),ec);if(ec)throw Error(p,"shutil.remove: "+ec.message());return Value{};});
+    m->exports["mkdir"]=callable("shutil.mkdir",1,1,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;std::filesystem::create_directories(text(a[0],p,"shutil.mkdir"),ec);if(ec)throw Error(p,"shutil.mkdir: "+ec.message());return Value{};});
+  }else if(name=="glob"){
+    m->exports["match"]=callable("glob.match",2,2,[](const std::vector<Value>&a,SourcePos p){try{return Value(std::regex_match(text(a[1],p,"glob.match"),std::regex(wildcard_regex(text(a[0],p,"glob.match")))));}catch(const std::regex_error&e){throw Error(p,std::string("glob.match: ")+e.what());}});
+    m->exports["find"]=callable("glob.find",1,1,[](const std::vector<Value>&a,SourcePos p){auto pattern=text(a[0],p,"glob.find");auto wild=pattern.find_first_of("*?");std::filesystem::path root=".";if(wild!=std::string::npos){auto prefix=std::filesystem::path(pattern.substr(0,wild));root=prefix.has_parent_path()?prefix.parent_path():std::filesystem::path(".");}else root=std::filesystem::path(pattern).has_parent_path()?std::filesystem::path(pattern).parent_path():std::filesystem::path(".");
+      std::regex re(wildcard_regex(std::filesystem::path(pattern).generic_string()));auto out=std::make_shared<ListData>();std::error_code ec;if(!std::filesystem::exists(root,ec))return Value(out);
+      for(std::filesystem::recursive_directory_iterator it(root,std::filesystem::directory_options::skip_permission_denied,ec),end;it!=end&&!ec;it.increment(ec)){auto s=it->path().generic_string();if(std::regex_match(s,re))out->items.emplace_back(s);}return Value(out);});
+  }else if(name=="zip"||name=="zipfile"){
+    m->exports["create"]=callable(name+".create",2,2,[](const std::vector<Value>&a,SourcePos p){auto archive=text(a[0],p,"zip.create");auto paths=list_value(a[1],p,"zip.create");if(paths->items.empty())throw Error(p,"zip.create needs at least one path.");std::string cmd="zip -q -r "+shell_quote(archive);for(auto& v:paths->items)cmd+=" "+shell_quote(text(v,p,"zip.create"));if(normalized_system(cmd)!=0)throw Error(p,"zip.create failed; install the host zip utility.");return Value{};});
+    m->exports["extract"]=callable(name+".extract",2,2,[](const std::vector<Value>&a,SourcePos p){auto archive=text(a[0],p,"zip.extract"),dest=text(a[1],p,"zip.extract");std::filesystem::create_directories(dest);if(normalized_system("unzip -q -o "+shell_quote(archive)+" -d "+shell_quote(dest))!=0)throw Error(p,"zip.extract failed; install the host unzip utility.");return Value{};});
+    m->exports["list"]=callable(name+".list",1,1,[](const std::vector<Value>&a,SourcePos p){auto output=process_output("unzip -Z1 "+shell_quote(text(a[0],p,"zip.list"))+" 2>&1",p);auto out=std::make_shared<ListData>();std::istringstream in(output);std::string line;while(std::getline(in,line)){if(!line.empty()&&line.back()=='\r')line.pop_back();if(!line.empty())out->items.emplace_back(line);}return Value(out);});
+  }else if(name=="subprocess"){
+    m->exports["run"]=callable("subprocess.run",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(static_cast<std::int64_t>(normalized_system(text(a[0],p,"subprocess.run"))));});
+    m->exports["output"]=callable("subprocess.output",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(process_output(text(a[0],p,"subprocess.output"),p));});
+  }else if(name=="socket"){
+    m->exports["resolve"]=callable("socket.resolve",1,1,[](const std::vector<Value>&a,SourcePos p){ensure_sockets();auto host=text(a[0],p,"socket.resolve");addrinfo hints{};hints.ai_family=AF_UNSPEC;addrinfo* result=nullptr;if(getaddrinfo(host.c_str(),nullptr,&hints,&result)!=0)throw Error(p,"socket.resolve could not resolve '"+host+"'.");char buf[NI_MAXHOST]{};std::string out;if(result&&getnameinfo(result->ai_addr,static_cast<socklen_t>(result->ai_addrlen),buf,sizeof(buf),nullptr,0,NI_NUMERICHOST)==0)out=buf;freeaddrinfo(result);if(out.empty())throw Error(p,"socket.resolve returned no address.");return Value(out);});
+    m->exports["tcp"]=callable("socket.tcp",3,3,[](const std::vector<Value>&a,SourcePos p){ensure_sockets();auto host=text(a[0],p,"socket.tcp");auto port=std::to_string(integer(a[1],p,"socket.tcp"));auto payload=text(a[2],p,"socket.tcp");addrinfo hints{};hints.ai_family=AF_UNSPEC;hints.ai_socktype=SOCK_STREAM;addrinfo* result=nullptr;if(getaddrinfo(host.c_str(),port.c_str(),&hints,&result)!=0)throw Error(p,"socket.tcp could not resolve host.");Socket sock=invalid_socket;for(auto* q=result;q;q=q->ai_next){sock=::socket(q->ai_family,q->ai_socktype,q->ai_protocol);if(sock==invalid_socket)continue;if(connect(sock,q->ai_addr,static_cast<int>(q->ai_addrlen))==0)break;close_socket(sock);sock=invalid_socket;}freeaddrinfo(result);if(sock==invalid_socket)throw Error(p,"socket.tcp could not connect.");SocketGuard guard(sock);if(!send_all(sock,payload))throw Error(p,"socket.tcp send failed.");finish_socket_write(sock);return Value(recv_all(sock));});
+  }else if(name=="queue"){
+    m->exports["new"]=callable("queue.new",0,0,[](const std::vector<Value>&,SourcePos){return native_handle("Queue",std::make_shared<QueueState>());});
+    m->exports["put"]=callable("queue.put",2,2,[](const std::vector<Value>&a,SourcePos p){native_as<QueueState>(a[0],"Queue",p,"queue.put")->items.push_back(a[1]);return Value{};});
+    m->exports["get"]=callable("queue.get",1,1,[](const std::vector<Value>&a,SourcePos p){auto q=native_as<QueueState>(a[0],"Queue",p,"queue.get");if(q->items.empty())throw Error(p,"queue.get on empty queue.");auto v=q->items.front();q->items.pop_front();return v;});
+    m->exports["empty"]=callable("queue.empty",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(native_as<QueueState>(a[0],"Queue",p,"queue.empty")->items.empty());});
+    m->exports["size"]=callable("queue.size",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(static_cast<std::int64_t>(native_as<QueueState>(a[0],"Queue",p,"queue.size")->items.size()));});
+  }else if(name=="sqlite"||name=="sqlite3"){
+    m->exports["open"]=callable(name+".open",1,1,[](const std::vector<Value>&a,SourcePos p){auto state=std::make_shared<SqliteState>();state->path=text(a[0],p,"sqlite.open");std::ofstream touch(state->path,std::ios::app);if(!touch)throw Error(p,"sqlite.open could not open database path.");return native_handle("SQLite",state);});
+    m->exports["exec"]=callable(name+".exec",2,2,[](const std::vector<Value>&a,SourcePos p){auto db=native_as<SqliteState>(a[0],"SQLite",p,"sqlite.exec");auto sql=text(a[1],p,"sqlite.exec");auto code=normalized_system("sqlite3 "+shell_quote(db->path.string())+" "+shell_quote(sql));if(code!=0)throw Error(p,"sqlite.exec failed; install sqlite3 and check the SQL statement.");return Value(static_cast<std::int64_t>(code));});
+    m->exports["query"]=callable(name+".query",2,2,[](const std::vector<Value>&a,SourcePos p){auto db=native_as<SqliteState>(a[0],"SQLite",p,"sqlite.query");auto sql=text(a[1],p,"sqlite.query");auto out=process_output("sqlite3 -csv "+shell_quote(db->path.string())+" "+shell_quote(sql)+" 2>&1",p);return Value(csv_parse_rows(out));});
+  }else if(name=="functools"){
+    m->exports["partial"]=callable("functools.partial",1,64,[&vm](const std::vector<Value>&a,SourcePos p){if(!std::holds_alternative<std::shared_ptr<CallableData>>(a[0].data()))throw Error(p,"functools.partial needs Function.");auto f=a[0];std::vector<Value> bound(a.begin()+1,a.end());auto out=std::make_shared<CallableData>();out->name="partial";out->min_args=0;out->max_args=64;out->variadic=true;out->call=[&vm,f,bound](const std::vector<Value>&rest,SourcePos q){auto all=bound;all.insert(all.end(),rest.begin(),rest.end());return vm.invoke(f,all,q);};return Value(out);},true);
+    m->exports["reduce"]=callable("functools.reduce",2,3,[&vm](const std::vector<Value>&a,SourcePos p){auto l=list_value(a[1],p,"functools.reduce");if(l->items.empty()&&a.size()<3)throw Error(p,"functools.reduce needs a non-empty List or initial value.");std::size_t i=0;Value acc;if(a.size()==3)acc=a[2];else{acc=l->items[0];i=1;}for(;i<l->items.size();++i)acc=vm.invoke(a[0],{acc,l->items[i]},p);return acc;},true);
+    m->exports["map"]=callable("functools.map",2,2,[&vm](const std::vector<Value>&a,SourcePos p){auto l=list_value(a[1],p,"functools.map");auto out=std::make_shared<ListData>();for(auto&v:l->items)out->items.push_back(vm.invoke(a[0],{v},p));return Value(out);});
+    m->exports["filter"]=callable("functools.filter",2,2,[&vm](const std::vector<Value>&a,SourcePos p){auto l=list_value(a[1],p,"functools.filter");auto out=std::make_shared<ListData>();for(auto&v:l->items)if(vm.invoke(a[0],{v},p).truth(p))out->items.push_back(v);return Value(out);});
+  }else if(name=="enum"){
+    m->exports["make"]=callable("enum.make",1,1,[](const std::vector<Value>&a,SourcePos p){auto l=list_value(a[0],p,"enum.make");auto out=std::make_shared<MapData>();for(std::size_t i=0;i<l->items.size();++i)out->items.emplace_back(text(l->items[i],p,"enum.make"),Value(static_cast<std::int64_t>(i)));return Value(out);});
+    m->exports["name"]=callable("enum.name",2,2,[](const std::vector<Value>&a,SourcePos p){auto mp=map_value(a[0],p,"enum.name");auto value=integer(a[1],p,"enum.name");for(auto&kv:mp->items)if(auto n=std::get_if<std::int64_t>(&kv.second.data());n&&*n==value)return Value(kv.first);throw Error(p,"enum.name value was not found.");});
+    m->exports["value"]=callable("enum.value",2,2,[](const std::vector<Value>&a,SourcePos p){auto mp=map_value(a[0],p,"enum.value");auto key=text(a[1],p,"enum.value");for(auto&kv:mp->items)if(kv.first==key)return Value(integer(kv.second,p,"enum.value"));throw Error(p,"enum.value name was not found.");});
+    m->exports["has"]=callable("enum.has",2,2,[](const std::vector<Value>&a,SourcePos p){auto mp=map_value(a[0],p,"enum.has");auto key=text(a[1],p,"enum.has");for(auto&kv:mp->items)if(kv.first==key)return Value(true);return Value(false);});
+  }else if(name=="typing"){
+    m->exports["type_of"]=callable("typing.type_of",1,1,[](const std::vector<Value>&a,SourcePos){return Value(a[0].type_name());});
+    m->exports["is"]=callable("typing.is",2,2,[](const std::vector<Value>&a,SourcePos p){return Value(lower_ascii(a[0].type_name())==lower_ascii(text(a[1],p,"typing.is")));});
+    m->exports["cast"]=callable("typing.cast",2,2,[](const std::vector<Value>&a,SourcePos p){auto expected=lower_ascii(text(a[1],p,"typing.cast"));if(lower_ascii(a[0].type_name())!=expected)throw Error(p,"typing.cast expected "+text(a[1],p,"typing.cast")+" but got "+a[0].type_name()+".");return a[0];});
   }else if(name=="data"){
     m->exports["append"]=callable("data.append",2,2,[](const std::vector<Value>&a,SourcePos p){list_value(a[0],p,"data.append")->items.push_back(a[1]);return Value{};});
     m->exports["extend"]=callable("data.extend",2,2,[](const std::vector<Value>&a,SourcePos p){auto dst=list_value(a[0],p,"data.extend");auto src=list_value(a[1],p,"data.extend");dst->items.insert(dst->items.end(),src->items.begin(),src->items.end());return Value{};});

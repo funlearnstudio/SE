@@ -95,7 +95,7 @@ std::mutex async_vm_mutex;
 } // namespace
 
 bool is_advanced_builtin(const std::string& name){
-  return name=="function"||name=="async"||name=="option"||name=="result"||name=="match"||name=="db"||name=="https";
+  return name=="function"||name=="async"||name=="threading"||name=="option"||name=="result"||name=="match"||name=="db"||name=="https";
 }
 
 void extend_collections_type(TypeInfo& m){
@@ -127,9 +127,11 @@ TypeInfo advanced_builtin_type(const std::string& name){
   TypeInfo m=module_type(name),unknown,text_t(TypeKind::Text),bool_t(TypeKind::Bool),int_t(TypeKind::Int),none(TypeKind::None),func(TypeKind::Function);
   auto& x=m.members;
   if(name=="function"){
-    x["bind"]=fn({func,unknown},func,true,2);x["call"]=fn({func,unknown},unknown,true,1);x["pipe"]=fn({unknown,func},unknown,true,2);
+    x["bind"]=fn({func,unknown},func,true,2);x["partial"]=fn({func,unknown},func,true,1);x["call"]=fn({func,unknown},unknown,true,1);x["pipe"]=fn({unknown,func},unknown,true,2);x["reduce"]=fn({func,list_type(),unknown},unknown,true,2);x["map"]=fn({func,list_type()},list_type());x["filter"]=fn({func,list_type()},list_type());
   }else if(name=="async"){
     x["run"]=fn({func,unknown},handle_type("Task"),true,1);x["await"]=fn({handle_type("Task")},unknown,false,0,true);x["ready"]=fn({handle_type("Task")},bool_t);
+  }else if(name=="threading"){
+    x["run"]=fn({func,unknown},handle_type("Task"),true,1);x["join"]=fn({handle_type("Task")},unknown,false,0,true);x["ready"]=fn({handle_type("Task")},bool_t);
   }else if(name=="option"){
     x["some"]=fn({unknown},handle_type("Option"));x["none"]=fn({},handle_type("Option"));x["is_some"]=fn({handle_type("Option")},bool_t);x["is_none"]=fn({handle_type("Option")},bool_t);x["value"]=fn({handle_type("Option")},unknown,false,0,true);x["or"]=fn({handle_type("Option"),unknown},unknown);
   }else if(name=="result"){
@@ -150,10 +152,18 @@ std::shared_ptr<ModuleData> advanced_builtin_module(const std::string& name,Inte
     m->exports["bind"]=callable("function.bind",2,64,[](const std::vector<Value>& a,SourcePos p){auto f=function(a[0],p,"function.bind");std::vector<Value> bound(a.begin()+1,a.end());auto out=std::make_shared<CallableData>();out->name="bound "+f->name;out->min_args=f->min_args>bound.size()?f->min_args-bound.size():0;out->max_args=f->max_args>bound.size()?f->max_args-bound.size():0;out->variadic=f->variadic;out->call=[f,bound](const std::vector<Value>& rest,SourcePos q){auto all=bound;all.insert(all.end(),rest.begin(),rest.end());return f->call(all,q);};return Value(out);},true);
     m->exports["call"]=callable("function.call",1,64,[&vm](const std::vector<Value>& a,SourcePos p){function(a[0],p,"function.call");return vm.invoke(a[0],std::vector<Value>(a.begin()+1,a.end()),p);},true);
     m->exports["pipe"]=callable("function.pipe",2,64,[&vm](const std::vector<Value>& a,SourcePos p){Value v=a[0];for(std::size_t i=1;i<a.size();++i){function(a[i],p,"function.pipe");v=vm.invoke(a[i],{v},p);}return v;},true);
+    m->exports["partial"]=callable("function.partial",1,64,[](const std::vector<Value>& a,SourcePos p){auto f=function(a[0],p,"function.partial");std::vector<Value> bound(a.begin()+1,a.end());auto out=std::make_shared<CallableData>();out->name="partial "+f->name;out->min_args=f->min_args>bound.size()?f->min_args-bound.size():0;out->max_args=f->max_args>bound.size()?f->max_args-bound.size():0;out->variadic=f->variadic;out->call=[f,bound](const std::vector<Value>& rest,SourcePos q){auto all=bound;all.insert(all.end(),rest.begin(),rest.end());return f->call(all,q);};return Value(out);},true);
+    m->exports["reduce"]=callable("function.reduce",2,3,[&vm](const std::vector<Value>& a,SourcePos p){function(a[0],p,"function.reduce");auto in=list(a[1],p,"function.reduce");if(in->items.empty()&&a.size()<3)throw Error(p,"function.reduce needs a non-empty List or an initial value.");std::size_t i=0;Value acc;if(a.size()==3)acc=a[2];else{acc=in->items[0];i=1;}for(;i<in->items.size();++i)acc=vm.invoke(a[0],{acc,in->items[i]},p);return acc;},true);
+    m->exports["map"]=callable("function.map",2,2,[&vm](const std::vector<Value>& a,SourcePos p){function(a[0],p,"function.map");auto in=list(a[1],p,"function.map");auto out=std::make_shared<ListData>();for(auto&v:in->items)out->items.push_back(vm.invoke(a[0],{v},p));return Value(out);});
+    m->exports["filter"]=callable("function.filter",2,2,[&vm](const std::vector<Value>& a,SourcePos p){function(a[0],p,"function.filter");auto in=list(a[1],p,"function.filter");auto out=std::make_shared<ListData>();for(auto&v:in->items)if(vm.invoke(a[0],{v},p).truth(p))out->items.push_back(v);return Value(out);});
   }else if(name=="async"){
     m->exports["run"]=callable("async.run",1,64,[&vm](const std::vector<Value>& a,SourcePos p){function(a[0],p,"async.run");Value f=a[0];std::vector<Value> args(a.begin()+1,a.end());auto task=std::make_shared<TaskData>();task->future=std::async(std::launch::async,[&vm,f,args,p](){std::lock_guard<std::mutex> lock(async_vm_mutex);return vm.invoke(f,args,p);}).share();return handle("Task",task);},true);
     m->exports["await"]=callable("async.await",1,1,[](const std::vector<Value>& a,SourcePos p){auto t=as_handle<TaskData>(a[0],"Task",p,"async.await");try{return t->future.get();}catch(const RuntimeFailure&){throw;}catch(const std::exception& e){throw RuntimeFailure({e.what(),"",p.line,"AsyncError"});}});
     m->exports["ready"]=callable("async.ready",1,1,[](const std::vector<Value>& a,SourcePos p){auto t=as_handle<TaskData>(a[0],"Task",p,"async.ready");return Value(t->future.wait_for(std::chrono::milliseconds(0))==std::future_status::ready);});
+  }else if(name=="threading"){
+    m->exports["run"]=callable("threading.run",1,64,[&vm](const std::vector<Value>& a,SourcePos p){function(a[0],p,"threading.run");Value f=a[0];std::vector<Value> args(a.begin()+1,a.end());auto task=std::make_shared<TaskData>();task->future=std::async(std::launch::async,[&vm,f,args,p](){std::lock_guard<std::mutex> lock(async_vm_mutex);return vm.invoke(f,args,p);}).share();return handle("Task",task);},true);
+    m->exports["join"]=callable("threading.join",1,1,[](const std::vector<Value>& a,SourcePos p){auto t=as_handle<TaskData>(a[0],"Task",p,"threading.join");try{return t->future.get();}catch(const RuntimeFailure&){throw;}catch(const std::exception& e){throw RuntimeFailure({e.what(),"",p.line,"ThreadError"});}});
+    m->exports["ready"]=callable("threading.ready",1,1,[](const std::vector<Value>& a,SourcePos p){auto t=as_handle<TaskData>(a[0],"Task",p,"threading.ready");return Value(t->future.wait_for(std::chrono::milliseconds(0))==std::future_status::ready);});
   }else if(name=="option"){
     m->exports["some"]=callable("option.some",1,1,[](const std::vector<Value>& a,SourcePos){auto o=std::make_shared<OptionData>();o->some=true;o->value=a[0];return handle("Option",o);});
     m->exports["none"]=callable("option.none",0,0,[](const std::vector<Value>&,SourcePos){return handle("Option",std::make_shared<OptionData>());});

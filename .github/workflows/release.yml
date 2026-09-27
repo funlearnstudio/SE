@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 env:
-  VERSION: 0.6.0
-  TAG: v0.6.0
+  VERSION: 0.7.0
+  TAG: v0.7.0
 
 jobs:
   build-packages:
@@ -22,16 +22,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            asset: se-0.6.0-linux-x64
+            asset: se-0.7.0-linux-x64
             archive: tar.gz
           - os: macos-15-intel
-            asset: se-0.6.0-macos-x64
+            asset: se-0.7.0-macos-x64
             archive: tar.gz
           - os: macos-14
-            asset: se-0.6.0-macos-arm64
+            asset: se-0.7.0-macos-arm64
             archive: tar.gz
           - os: windows-latest
-            asset: se-0.6.0-windows-x64
+            asset: se-0.7.0-windows-x64
             archive: zip
     runs-on: ${{ matrix.os }}
     steps:
@@ -113,13 +113,13 @@ jobs:
 
       - name: Package SE VS Code extension
         working-directory: vscode
-        run: npx vsce package --out ../se-language-0.6.0.vsix
+        run: npx vsce package --out ../se-language-0.7.0.vsix
 
       - name: Upload VS Code extension artifact
         uses: actions/upload-artifact@v4
         with:
-          name: se-language-0.6.0-vsix
-          path: se-language-0.6.0.vsix
+          name: se-language-0.7.0-vsix
+          path: se-language-0.7.0.vsix
           if-no-files-found: error
 
   publish:
@@ -146,14 +146,14 @@ jobs:
           sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
-      - name: Create or update SE 0.6.0 release
+      - name: Create or update SE 0.7.0 release
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" release-assets/* --clobber
           else
             gh release create "$TAG" \
               --target "${{ github.event.workflow_run.head_sha }}" \
-              --title "SE 0.6.0" \
+              --title "SE 0.7.0" \
               --notes-file RELEASE_NOTES.md \
               release-assets/*
           fi

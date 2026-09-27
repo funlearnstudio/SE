@@ -2,7 +2,7 @@
 
 [繁體中文版](getting-started-zh-TW.md)
 
-This guide gets SE installed, verifies the toolchain, and runs your first program. The current stable release is **SE 0.6.0**; a source checkout of `main` may contain newer compiler and Web work while still reporting the 0.6 language version.
+This guide gets SE installed, verifies the toolchain, and runs your first program. The current stable release is **SE 0.7.0**; a source checkout of `main` may contain newer compiler and Web work while reporting the 0.7 language version.
 
 ## 1. Install SE
 

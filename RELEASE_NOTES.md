@@ -1,6 +1,6 @@
-# SE 0.6.0
+# SE 0.7.0
 
-SE 0.6.0 is the first SE release designed for quick public installation with prebuilt packages. Normal users can download SE and immediately use `se run`, `se check`, `se test`, the REPL, modules and the interpreter without installing CMake, Git or a C++ compiler.
+SE 0.7.0 expands the standard library substantially and improves installation so the prebuilt packages can be used immediately across supported platforms.
 
 ## Quick install
 
@@ -16,60 +16,76 @@ Windows PowerShell:
 irm https://raw.githubusercontent.com/funlearnstudio/SE/main/install.ps1 | iex
 ```
 
-GitHub Releases also provides downloadable archives for macOS Apple Silicon, macOS Intel, Linux x64 and Windows x64.
+Both installers now resolve the latest GitHub Release automatically when `SE_VERSION` is not explicitly set.
 
-## Language and runtime
+## Standard library additions
 
-- Low-punctuation SE syntax with indentation-based blocks.
-- Static checking and type inference.
-- Functions, lexical closures and simplified function helpers.
-- User-defined types, fields and methods.
-- Generic functions.
-- Value-based `match` / `case`.
-- List, Map and Set collections.
-- `filter`, `map`, `reduce`, slicing and sorting helpers.
-- Option and Result helpers.
-- Managed Task-style async / await.
-- File, path, time, math, random and OS support.
-- JSON, HTTP, web routing, process execution and lightweight persistent DB APIs.
-- HTTPS client support through system `curl`.
-- C ABI native interoperability and binding generation.
+SE 0.7.0 adds Python-inspired modules and aliases while keeping SE syntax and runtime behavior:
 
-## Core conversions
+- `statistics`
+- `iter` / `itertools`
+- `regex` / `re`
+- `decimal`
+- `csv`
+- `datetime` plus additional `time` helpers
+- `hash` / `hashlib`
+- `base64`
+- `uuid`
+- safe `pickle`-style JSON serialization
+- `args` / `argparse`
+- `log` / `logging`
+- `shutil` plus additional `file` operations
+- `glob`
+- `zip` / `zipfile`
+- `subprocess`
+- `socket`
+- `threading`
+- `queue`
+- `sqlite` / `sqlite3`
+- `functools` plus additional `function` helpers
+- `operator`
+- `copy`
+- `enum`
+- `typing`
 
-SE 0.6.0 includes beginner-friendly conversion names:
+The new APIs are registered with the type checker and runtime, included in VS Code completion, and exercised by a dedicated standard-library smoke test.
 
-```se
-int "123"
-integer "123"
-num "3.14"
-double "3.14"
-float "3.14"
-text 123
-string 123
-bool "true"
-boolean "false"
-char "A"
-char 65
+## Installation improvements
+
+The Unix installer checks optional host tools required by specific modules:
+
+- `sqlite3` for `sqlite` / `sqlite3`
+- `zip` and `unzip` for archive helpers
+- `sha256sum` or `shasum` for SHA-256 hashing
+
+To let the Unix installer attempt installation of those optional tools:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/funlearnstudio/SE/main/install.sh | SE_INSTALL_STDLIB_DEPS=1 sh
 ```
 
-The canonical SE runtime types remain `Int`, `Num`, `Text` and `Bool`; familiar names such as `string`, `double` and `float` are conversion aliases rather than duplicate runtime types. `char` currently produces one-character Unicode Text.
+Supported package managers include Homebrew, apt, dnf, yum, pacman, apk and zypper.
+
+## Compatibility notes
+
+- `pickle` intentionally uses safe JSON serialization rather than Python's executable pickle format.
+- `threading` uses SE's managed Task model.
+- `decimal` currently uses long-double-backed textual decimal operations and is not arbitrary-precision Python Decimal parity.
+- ZIP and SQLite helpers rely on host command-line tools.
+- `se build` still requires a C++20 compiler; interpreted workflows do not.
 
 ## Distribution
 
-The release pipeline builds and verifies precompiled SE packages on supported GitHub-hosted platforms and publishes SHA-256 checksums with the release assets.
+The release workflow builds and verifies packages for:
 
-A prebuilt SE installation does **not** require CMake or a C++ compiler for normal interpreted workflows such as:
+- Linux x64
+- macOS Intel
+- macOS Apple Silicon
+- Windows x64
+- VS Code extension
 
-```sh
-se run file.se
-se check file.se
-se check-all .
-se test .
-```
-
-`se build` is different: it currently emits C++20 and invokes a system C++ compiler to produce a native executable, so native compilation still requires a C++20 compiler. This limitation is intentionally documented rather than hidden.
+Release assets include SHA-256 checksums.
 
 ## Version
 
-SE 0.6.0
+SE 0.7.0

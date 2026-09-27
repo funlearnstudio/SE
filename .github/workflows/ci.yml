@@ -24,6 +24,9 @@ jobs:
           assert "se" in grammar.get("fileTypes", [])
           assert grammar.get("patterns")
           print("SE TextMate grammar is valid JSON and declares source.se")
+      - name: Validate install.sh syntax
+        if: runner.os != 'Windows'
+        run: sh -n install.sh
       - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build --config Release --parallel
       - run: ctest --test-dir build -C Release --output-on-failure

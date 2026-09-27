@@ -57,7 +57,10 @@ Available built-in/runtime modules depend on the current revision and include ar
 file path time math random os
 json text collections test process
 http web js ts
-function async option result match db https
+function async threading option result match db https
+statistics regex re decimal csv datetime hash hashlib base64 uuid
+iter itertools pickle args argparse log logging shutil glob zip zipfile
+subprocess socket queue sqlite sqlite3 functools operator copy enum typing
 ```
 
 Use the specific module reference/API documents for exact members.

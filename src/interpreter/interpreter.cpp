@@ -8,6 +8,8 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
+#include <ctime>
 #include <limits>
 #include <random>
 #include <sstream>
@@ -178,8 +180,26 @@ std::shared_ptr<ModuleData> Interpreter::builtin_module(const std::string&name){
     m->exports["exists"]=callable("path.exists",1,1,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;auto r=std::filesystem::exists(path_text(a[0],p),ec);return Value(!ec&&r);});
     m->exports["is_file"]=callable("path.is_file",1,1,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;auto r=std::filesystem::is_regular_file(path_text(a[0],p),ec);return Value(!ec&&r);});
     m->exports["is_dir"]=callable("path.is_dir",1,1,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;auto r=std::filesystem::is_directory(path_text(a[0],p),ec);return Value(!ec&&r);});
-  }else if(name=="time")m->exports["now"]=callable("time.now",0,0,[](const std::vector<Value>&,SourcePos){return Value(TimeData{std::chrono::system_clock::now()});});
-  else if(name=="file"){m->exports["read"]=env_->get("read",{});m->exports["write"]=env_->get("write",{});m->exports["append"]=env_->get("append",{});m->exports["open"]=env_->get("open",{});}
+  }else if(name=="time"){
+    m->exports["now"]=callable("time.now",0,0,[](const std::vector<Value>&,SourcePos){return Value(TimeData{std::chrono::system_clock::now()});});
+    m->exports["unix"]=callable("time.unix",1,1,[](const std::vector<Value>&a,SourcePos p){auto t=std::get_if<TimeData>(&a[0].data());if(!t)throw Error(p,"time.unix needs Time.");return Value(static_cast<std::int64_t>(std::chrono::system_clock::to_time_t(t->point)));});
+    m->exports["from_unix"]=callable("time.from_unix",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(TimeData{std::chrono::system_clock::from_time_t(static_cast<std::time_t>(int_value(a[0],p,"time.from_unix")))});});
+    m->exports["iso"]=callable("time.iso",1,1,[](const std::vector<Value>&a,SourcePos p){auto t=std::get_if<TimeData>(&a[0].data());if(!t)throw Error(p,"time.iso needs Time.");auto raw=std::chrono::system_clock::to_time_t(t->point);std::tm tm{};
+#ifdef _WIN32
+      gmtime_s(&tm,&raw);
+#else
+      gmtime_r(&raw,&tm);
+#endif
+      std::ostringstream out;out<<std::put_time(&tm,"%Y-%m-%dT%H:%M:%SZ");return Value(out.str());});
+  }
+  else if(name=="file"){
+    m->exports["read"]=env_->get("read",{});m->exports["write"]=env_->get("write",{});m->exports["append"]=env_->get("append",{});m->exports["open"]=env_->get("open",{});
+    m->exports["copy"]=callable("file.copy",2,2,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;std::filesystem::copy_file(path_text(a[0],p),path_text(a[1],p),std::filesystem::copy_options::overwrite_existing,ec);if(ec)throw Error(p,"file.copy: "+ec.message());return Value{};});
+    m->exports["move"]=callable("file.move",2,2,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;std::filesystem::rename(path_text(a[0],p),path_text(a[1],p),ec);if(ec)throw Error(p,"file.move: "+ec.message());return Value{};});
+    m->exports["copytree"]=callable("file.copytree",2,2,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;std::filesystem::copy(path_text(a[0],p),path_text(a[1],p),std::filesystem::copy_options::recursive|std::filesystem::copy_options::overwrite_existing,ec);if(ec)throw Error(p,"file.copytree: "+ec.message());return Value{};});
+    m->exports["remove"]=callable("file.remove",1,1,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;std::filesystem::remove_all(path_text(a[0],p),ec);if(ec)throw Error(p,"file.remove: "+ec.message());return Value{};});
+    m->exports["mkdir"]=callable("file.mkdir",1,1,[](const std::vector<Value>&a,SourcePos p){std::error_code ec;std::filesystem::create_directories(path_text(a[0],p),ec);if(ec)throw Error(p,"file.mkdir: "+ec.message());return Value{};});
+  }
   else if(name=="math"){
     m->exports["pi"]=Value(3.14159265358979323846);m->exports["sqrt"]=callable("math.sqrt",1,1,[](const std::vector<Value>&a,SourcePos p){auto n=number_value(a[0],p,"math.sqrt");if(n<0)throw Error(p,"math.sqrt needs a non-negative number.");return Value(std::sqrt(n));});m->exports["abs"]=callable("math.abs",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(std::fabs(number_value(a[0],p,"math.abs")));});m->exports["floor"]=callable("math.floor",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(std::floor(number_value(a[0],p,"math.floor")));});m->exports["ceil"]=callable("math.ceil",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(std::ceil(number_value(a[0],p,"math.ceil")));});m->exports["round"]=callable("math.round",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(std::round(number_value(a[0],p,"math.round")));});m->exports["pow"]=callable("math.pow",2,2,[](const std::vector<Value>&a,SourcePos p){return Value(std::pow(number_value(a[0],p,"math.pow"),number_value(a[1],p,"math.pow")));});m->exports["min"]=callable("math.min",2,2,[](const std::vector<Value>&a,SourcePos p){return Value(std::min(number_value(a[0],p,"math.min"),number_value(a[1],p,"math.min")));});m->exports["max"]=callable("math.max",2,2,[](const std::vector<Value>&a,SourcePos p){return Value(std::max(number_value(a[0],p,"math.max"),number_value(a[1],p,"math.max")));});
   }else if(name=="random"){
