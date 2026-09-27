@@ -30,7 +30,7 @@ rows = csv.parse "name,score\nSE,100"
 say rows.len
 
 packed = pickle.dumps ["name": "SE", "version": 1]
-unpacked = pickle.loads packed
+unpacked = try pickle.loads packed
 say typing.type_of unpacked
 
 parsed = args.parse ["--name", "SE", "--debug"]
@@ -39,12 +39,12 @@ say args.flag parsed "debug"
 
 q = queue.new
 queue.put q "first"
-say queue.get q
+say try queue.get q
 say queue.empty q
 
 colors = enum.make ["red", "green", "blue"]
-say enum.value colors "green"
-say enum.name colors 2
+say try enum.value colors "green"
+say try enum.name colors 2
 
 make add a b
     return a + b
@@ -55,4 +55,4 @@ make twice x
     return x * 2
 
 job = threading.run twice 21
-say threading.join job
+say try threading.join job
