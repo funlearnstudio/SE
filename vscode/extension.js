@@ -1,6 +1,15 @@
 const vscode = require('vscode');
+const fs = require('fs/promises');
+const path = require('path');
+const { execFile } = require('child_process');
+const { BUILTIN_MODULES, MODULES, MODULE_DESCRIPTIONS, MODULE_MEMBERS } = require('./language-data');
+const { parseSeCheckOutput } = require('./diagnostics');
 
 let seTerminal;
+let diagnosticCollection;
+let executableWarningShown = false;
+const diagnosticTimers = new Map();
+const diagnosticGenerations = new Map();
 
 const SE_COMPLETIONS = [
   ['say', 'keyword', 'Output a value.'],
@@ -17,145 +26,25 @@ const SE_COMPLETIONS = [
   ['type', 'keyword', 'Define a user type.'],
   ['match', 'keyword', 'Match a value.'],
   ['case', 'keyword', 'Define a match case.'],
-  ['try', 'keyword', 'Handle a recoverable failure.'],
-  ['fail', 'keyword', 'Create a failure.'],
-  ['await', 'keyword', 'Wait for an asynchronous task.'],
+  ['try', 'keyword', 'Handle or propagate a recoverable failure.'],
+  ['fail', 'keyword', 'Create a recoverable failure.'],
+  ['await', 'keyword', 'Wait for asynchronous work where supported.'],
+  ['wait', 'keyword', 'Pause for a Duration.'],
   ['and', 'keyword', 'Logical AND.'],
   ['or', 'keyword', 'Logical OR.'],
   ['not', 'keyword', 'Logical NOT.'],
   ['true', 'value', 'Boolean true.'],
   ['false', 'value', 'Boolean false.'],
-
-  ['http', 'module', 'HTTP client/server utilities.'],
-  ['https', 'module', 'HTTPS client utilities.'],
-  ['json', 'module', 'JSON parsing and serialization.'],
-  ['db', 'module', 'Database utilities and adapters.'],
-  ['math', 'module', 'Mathematics utilities.'],
-  ['collections', 'module', 'Collection helpers.'],
-  ['file', 'module', 'File utilities.'],
-  ['path', 'module', 'Path utilities.'],
-  ['time', 'module', 'Time utilities.'],
-  ['os', 'module', 'Operating-system utilities.'],
-  ['option', 'module', 'Optional-value helpers.'],
-  ['result', 'module', 'Success/failure helpers.'],
-  ['async', 'module', 'Managed task helpers.'],
-  ['function', 'module', 'Function-value helpers.'],
-  ['statistics', 'module', 'Statistics helpers.'],
-  ['regex', 'module', 'Regular-expression helpers.'],
-  ['re', 'module', 'Alias for regex helpers.'],
-  ['decimal', 'module', 'Decimal arithmetic helpers.'],
-  ['csv', 'module', 'CSV parsing and file helpers.'],
-  ['datetime', 'module', 'Date/time formatting helpers.'],
-  ['hash', 'module', 'Hashing helpers.'],
-  ['hashlib', 'module', 'Alias for hashing helpers.'],
-  ['base64', 'module', 'Base64 encoding helpers.'],
-  ['uuid', 'module', 'UUID helpers.'],
-  ['iter', 'module', 'Iterator and combinatorics helpers.'],
-  ['itertools', 'module', 'Alias for iterator helpers.'],
-  ['pickle', 'module', 'Safe JSON-based serialization helpers.'],
-  ['args', 'module', 'Command-line argument parsing helpers.'],
-  ['argparse', 'module', 'Alias for argument parsing helpers.'],
-  ['log', 'module', 'Structured logging helpers.'],
-  ['logging', 'module', 'Alias for logging helpers.'],
-  ['shutil', 'module', 'Filesystem copy/move helpers.'],
-  ['glob', 'module', 'Filesystem wildcard helpers.'],
-  ['zip', 'module', 'ZIP archive helpers.'],
-  ['zipfile', 'module', 'Alias for ZIP archive helpers.'],
-  ['subprocess', 'module', 'External process helpers.'],
-  ['socket', 'module', 'TCP socket helpers.'],
-  ['threading', 'module', 'Managed thread/task helpers.'],
-  ['queue', 'module', 'FIFO queue helpers.'],
-  ['sqlite', 'module', 'SQLite CLI bridge.'],
-  ['sqlite3', 'module', 'Alias for SQLite helpers.'],
-  ['functools', 'module', 'Higher-order function helpers.'],
-  ['operator', 'module', 'Operator functions.'],
-  ['copy', 'module', 'Shallow/deep copy helpers.'],
-  ['enum', 'module', 'Enumeration helpers.'],
-  ['typing', 'module', 'Runtime type inspection helpers.'],
+  ['none', 'value', 'Empty/none literal where accepted.'],
+  ...MODULES.map(([name, description]) => [name, 'module', description]),
 
   ['html', 'web', 'HTML structure inside an SE Web component.'],
   ['css', 'web', 'CSS styles inside an SE Web component.'],
-  ['js', 'web', 'Browser behavior inside an SE Web component.'],
   ['style', 'web', 'Component styling.'],
   ['page', 'web', 'Define a web page.'],
-  ['when', 'web', 'Handle an event.']
+  ['when', 'web', 'Handle an event.'],
+  ['native', 'web', 'Embed native browser content in SE Web.']
 ];
-
-const MODULE_MEMBERS = {
-  collections: [
-    ['filter', 'filter list predicate', 'Return values for which predicate is true.'],
-    ['map', 'map list function', 'Transform every value into a new List.'],
-    ['reduce', 'reduce list initial function', 'Reduce a List into one value.'],
-    ['slice', 'slice list start end', 'Return a List slice.'],
-    ['take', 'take list count', 'Take the first count values.'],
-    ['drop', 'drop list count', 'Drop the first count values.'],
-    ['sort_by', 'sort_by list field', 'Sort by a field/key.'],
-    ['sort_by_desc', 'sort_by_desc list field', 'Sort descending by field/key.'],
-    ['sort_with', 'sort_with list comparator', 'Sort using a comparator function.']
-  ],
-  option: [
-    ['some', 'some value', 'Create an Option containing a value.'],
-    ['none', 'none', 'Create an empty Option.'],
-    ['is_some', 'is_some option', 'Check whether an Option contains a value.'],
-    ['is_none', 'is_none option', 'Check whether an Option is empty.'],
-    ['value', 'value option', 'Get the contained value or fail.'],
-    ['or', 'or option fallback', 'Return the value or a fallback.']
-  ],
-  result: [
-    ['ok', 'ok value', 'Create a successful Result.'],
-    ['err', 'err value', 'Create a failed Result.'],
-    ['is_ok', 'is_ok result', 'Check for success.'],
-    ['is_err', 'is_err result', 'Check for failure.'],
-    ['value', 'value result', 'Get the success value.'],
-    ['error', 'error result', 'Get the error value.'],
-    ['or', 'or result fallback', 'Return success value or fallback.']
-  ],
-  async: [
-    ['run', 'run function args...', 'Start a managed task.'],
-    ['await', 'await task', 'Wait for a managed task.'],
-    ['ready', 'ready task', 'Check whether a task is complete.']
-  ],
-  function: [
-    ['bind', 'bind function args...', 'Partially bind function arguments.'],
-    ['partial', 'partial function args...', 'Create a partially applied function.'],
-    ['call', 'call function args...', 'Call a function value.'],
-    ['pipe', 'pipe value functions...', 'Pass a value through functions.'],
-    ['reduce', 'reduce function list initial?', 'Reduce a List using a function.'],
-    ['map', 'map function list', 'Map a function over a List.'],
-    ['filter', 'filter function list', 'Filter a List using a predicate.']
-  ],
-  threading: [
-    ['run', 'run function args...', 'Start a managed worker task.'],
-    ['join', 'join task', 'Wait for a managed worker task.'],
-    ['ready', 'ready task', 'Check whether a worker task is complete.']
-  ],
-  db: [
-    ['open', 'open path', 'Open a local SE key/value database.'],
-    ['set', 'set store key value', 'Set a Text key/value pair.'],
-    ['get', 'get store key', 'Read a value by key.'],
-    ['has', 'has store key', 'Check whether a key exists.'],
-    ['remove', 'remove store key', 'Remove a key.'],
-    ['keys', 'keys store', 'List keys in the store.'],
-    ['save', 'save store', 'Persist the store.'],
-    ['connect', 'connect adapter target args...', 'Connect to an external database adapter.'],
-    ['exec', 'exec connection action payload', 'Execute an external database action.'],
-    ['adapter', 'adapter connection', 'Return the adapter name for a connection.']
-  ],
-  https: [
-    ['get', 'get url', 'Perform an HTTPS GET request.'],
-    ['post', 'post url body', 'Perform an HTTPS POST request.'],
-    ['post_json', 'post_json url json', 'POST a JSON body over HTTPS.']
-  ],
-  http: [
-    ['get', 'get url', 'Perform an HTTP GET request.'],
-    ['post', 'post url body', 'Perform an HTTP POST request.'],
-    ['post_json', 'post_json url json', 'POST a JSON body.']
-  ],
-  json: [
-    ['parse', 'parse text', 'Parse JSON Text into an SE value.'],
-    ['stringify', 'stringify value', 'Serialize an SE value as JSON Text.']
-  ]
-};
 
 const TYPE_MEMBERS = {
   Text: [
@@ -400,10 +289,10 @@ function makeCompletion(label, kind, detail, documentation, sortText) {
 }
 
 function moduleMemberItems(moduleName) {
-  return (MODULE_MEMBERS[moduleName] || []).map(([name, signature, description]) => {
+  return (MODULE_MEMBERS[moduleName] || []).map(([name, signature, description, kind = 'function']) => {
     const item = makeCompletion(
       name,
-      vscode.CompletionItemKind.Function,
+      completionKind(kind),
       `${moduleName}.${signature}`,
       description,
       `0-${name}`
@@ -455,8 +344,24 @@ function createCompletionProvider() {
   return {
     provideCompletionItems(document, position) {
       const model = analyzeDocument(document);
-      const target = memberTarget(document, position);
+      const prefix = document.lineAt(position.line).text.slice(0, position.character);
+      const useContext = prefix.match(/^\s*use\s+([A-Za-z_][A-Za-z0-9_.]*)?$/);
 
+      if (useContext) {
+        return MODULES.map(([name, description]) => {
+          const item = makeCompletion(
+            name,
+            vscode.CompletionItemKind.Module,
+            'SE built-in module',
+            description,
+            `0-${name}`
+          );
+          item.insertText = name;
+          return item;
+        });
+      }
+
+      const target = memberTarget(document, position);
       if (target) {
         if (model.modules.has(target) || MODULE_MEMBERS[target]) {
           return moduleMemberItems(target);
@@ -551,6 +456,27 @@ function createHoverProvider() {
         return new vscode.Hover(new vscode.MarkdownString(text), range);
       }
 
+      const beforeWord = document.lineAt(position.line).text.slice(0, range.start.character);
+      const moduleMatch = beforeWord.match(/([A-Za-z_][A-Za-z0-9_]*)\.$/);
+      if (moduleMatch) {
+        const moduleName = moduleMatch[1];
+        const member = (MODULE_MEMBERS[moduleName] || []).find(([name]) => name === word);
+        if (member) {
+          const [, signature, description] = member;
+          return new vscode.Hover(
+            new vscode.MarkdownString(`**${moduleName}.${signature}**\n\n${description}`),
+            range
+          );
+        }
+      }
+
+      if (MODULE_DESCRIPTIONS[word]) {
+        return new vscode.Hover(
+          new vscode.MarkdownString(`**SE module ${word}**\n\n${MODULE_DESCRIPTIONS[word]}\n\nUse: \`use ${word}\``),
+          range
+        );
+      }
+
       const builtin = SE_COMPLETIONS.find(([name]) => name === word);
       if (builtin) {
         return new vscode.Hover(new vscode.MarkdownString(`**SE ${builtin[1]}**\n\n${builtin[2]}`), range);
@@ -638,12 +564,38 @@ function createDocumentSymbolProvider() {
   };
 }
 
+function memberSignatureHelp(line) {
+  const match = line.match(/([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s+(.*)$/);
+  if (!match) return null;
+  const [, moduleName, memberName, argsText] = match;
+  const member = (MODULE_MEMBERS[moduleName] || []).find(([name]) => name === memberName);
+  if (!member) return null;
+  const [, signature, description, kind = 'function'] = member;
+  if (kind !== 'function') return null;
+
+  const pieces = signature.split(/\s+/).slice(1);
+  const params = pieces.filter((part) => part && part !== '|' && !part.includes('range'));
+  if (!params.length) return null;
+
+  const args = argsText.trim() ? argsText.trim().split(/\s+/) : [];
+  const activeParameter = Math.max(0, Math.min(params.length - 1, args.length ? args.length - 1 : 0));
+  const help = new vscode.SignatureHelp();
+  const sig = new vscode.SignatureInformation(`${moduleName}.${signature}`, description);
+  sig.parameters = params.map((param) => new vscode.ParameterInformation(param));
+  help.signatures = [sig];
+  help.activeSignature = 0;
+  help.activeParameter = activeParameter;
+  return help;
+}
+
 function createSignatureHelpProvider() {
   return {
     provideSignatureHelp(document, position) {
       const line = document.lineAt(position.line).text.slice(0, position.character);
-      const model = analyzeDocument(document);
+      const moduleHelp = memberSignatureHelp(line);
+      if (moduleHelp) return moduleHelp;
 
+      const model = analyzeDocument(document);
       let best = null;
       for (const [name, fn] of model.functions) {
         const index = line.lastIndexOf(name);
@@ -702,10 +654,128 @@ function createReferenceProvider() {
   };
 }
 
+function execFileAsync(executable, args, options) {
+  return new Promise((resolve, reject) => {
+    execFile(executable, args, options, (error, stdout, stderr) => {
+      if (error) {
+        error.stdout = stdout;
+        error.stderr = stderr;
+        reject(error);
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
+function diagnosticRange(document, parsed) {
+  const line = Math.max(0, Math.min(parsed.line, Math.max(0, document.lineCount - 1)));
+  const text = document.lineAt(line).text;
+  const start = Math.max(0, Math.min(parsed.column, text.length));
+  const end = Math.min(text.length, Math.max(start + 1, start));
+  return new vscode.Range(line, start, line, end);
+}
+
+async function compilerDiagnostics(document, generation) {
+  if (!diagnosticCollection || document.languageId !== 'se' || document.uri.scheme !== 'file') return;
+
+  const config = vscode.workspace.getConfiguration('se');
+  if (!config.get('diagnostics.enabled', true)) {
+    diagnosticCollection.delete(document.uri);
+    return;
+  }
+
+  const executable = config.get('executablePath', 'se');
+  const originalPath = document.uri.fsPath;
+  const cwd = vscode.workspace.getWorkspaceFolder(document.uri)?.uri.fsPath || path.dirname(originalPath);
+  const temporary = document.isDirty;
+  const checkPath = temporary
+    ? path.join(path.dirname(originalPath), `.${path.basename(originalPath)}.vscode-${process.pid}-${Date.now()}.se`)
+    : originalPath;
+
+  try {
+    if (temporary) await fs.writeFile(checkPath, document.getText(), 'utf8');
+    await execFileAsync(executable, ['check', checkPath], {
+      cwd,
+      windowsHide: true,
+      timeout: 15000,
+      maxBuffer: 1024 * 1024
+    });
+
+    if (diagnosticGenerations.get(document.uri.toString()) === generation) {
+      diagnosticCollection.delete(document.uri);
+    }
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      diagnosticCollection.delete(document.uri);
+      if (!executableWarningShown) {
+        executableWarningShown = true;
+        vscode.window.showWarningMessage(
+          `SE diagnostics could not find '${executable}'. Install SE or set SE: Executable Path.`
+        );
+      }
+      return;
+    }
+
+    const output = [error?.stderr, error?.stdout].filter(Boolean).join('\n');
+    const parsed = parseSeCheckOutput(output);
+    if (!parsed) return;
+    if (diagnosticGenerations.get(document.uri.toString()) !== generation) return;
+
+    const diagnostic = new vscode.Diagnostic(
+      diagnosticRange(document, parsed),
+      parsed.message,
+      vscode.DiagnosticSeverity.Error
+    );
+    diagnostic.source = 'SE';
+    diagnostic.code = 'se-check';
+    if (parsed.hint) {
+      diagnostic.message += `\nHint: ${parsed.hint}`;
+    }
+    diagnosticCollection.set(document.uri, [diagnostic]);
+  } finally {
+    if (temporary) {
+      try { await fs.unlink(checkPath); } catch (_) { /* already removed */ }
+    }
+  }
+}
+
+function scheduleDiagnostics(document, immediate = false) {
+  if (!document || document.languageId !== 'se' || document.uri.scheme !== 'file') return;
+  const key = document.uri.toString();
+  const previous = diagnosticTimers.get(key);
+  if (previous) clearTimeout(previous);
+
+  const generation = (diagnosticGenerations.get(key) || 0) + 1;
+  diagnosticGenerations.set(key, generation);
+  const delay = immediate ? 0 : Math.max(100, vscode.workspace.getConfiguration('se').get('diagnostics.delay', 450));
+  const timer = setTimeout(() => {
+    diagnosticTimers.delete(key);
+    compilerDiagnostics(document, generation);
+  }, delay);
+  diagnosticTimers.set(key, timer);
+}
+
+async function checkProblems() {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || editor.document.languageId !== 'se') {
+    vscode.window.showErrorMessage('Open an SE .se file first.');
+    return;
+  }
+  scheduleDiagnostics(editor.document, true);
+}
+
+async function openSyntaxGuide(context) {
+  const guide = vscode.Uri.joinPath(context.extensionUri, 'TUTORIAL-zh-TW.md');
+  await vscode.commands.executeCommand('markdown.showPreview', guide);
+}
+
 function activate(context) {
   const selector = { language: 'se', scheme: 'file' };
+  diagnosticCollection = vscode.languages.createDiagnosticCollection('se');
 
   context.subscriptions.push(
+    diagnosticCollection,
     vscode.languages.registerCompletionItemProvider(selector, createCompletionProvider(), '.'),
     vscode.languages.registerHoverProvider(selector, createHoverProvider()),
     vscode.languages.registerDefinitionProvider(selector, createDefinitionProvider()),
@@ -714,14 +784,40 @@ function activate(context) {
     vscode.languages.registerReferenceProvider(selector, createReferenceProvider()),
     vscode.commands.registerCommand('se.run', () => run('run')),
     vscode.commands.registerCommand('se.check', () => run('check')),
+    vscode.commands.registerCommand('se.checkProblems', checkProblems),
     vscode.commands.registerCommand('se.build', () => run('build')),
+    vscode.commands.registerCommand('se.openGuide', () => openSyntaxGuide(context)),
+    vscode.workspace.onDidOpenTextDocument((document) => scheduleDiagnostics(document, true)),
+    vscode.workspace.onDidSaveTextDocument((document) => scheduleDiagnostics(document, true)),
+    vscode.workspace.onDidChangeTextDocument((event) => scheduleDiagnostics(event.document, false)),
+    vscode.workspace.onDidCloseTextDocument((document) => {
+      const key = document.uri.toString();
+      const timer = diagnosticTimers.get(key);
+      if (timer) clearTimeout(timer);
+      diagnosticTimers.delete(key);
+      diagnosticGenerations.delete(key);
+      diagnosticCollection.delete(document.uri);
+    }),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('se.executablePath')) executableWarningShown = false;
+      if (event.affectsConfiguration('se.diagnostics')) {
+        for (const document of vscode.workspace.textDocuments) scheduleDiagnostics(document, true);
+      }
+    }),
     vscode.window.onDidCloseTerminal((terminal) => {
       if (terminal === seTerminal) seTerminal = undefined;
     })
   );
+
+  for (const document of vscode.workspace.textDocuments) {
+    scheduleDiagnostics(document, true);
+  }
 }
 
 function deactivate() {
+  for (const timer of diagnosticTimers.values()) clearTimeout(timer);
+  diagnosticTimers.clear();
+  if (diagnosticCollection) diagnosticCollection.dispose();
   if (seTerminal) seTerminal.dispose();
 }
 
