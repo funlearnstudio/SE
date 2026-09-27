@@ -57,7 +57,65 @@ const MODULES = [
   ['sqlite3', 'Alias for sqlite.'],
   ['functools', 'Higher-order function helpers.'],
   ['enum', 'Runtime enumeration helpers.'],
-  ['typing', 'Runtime type inspection helpers.']
+  ['typing', 'Runtime type inspection helpers.'],
+  ['url', 'URL percent encoding and query strings.'],
+  ['encoding', 'Hexadecimal encoding and UTF-8 validation.'],
+  ['dotenv', 'Parse simple KEY=VALUE configuration.'],
+  ['config', 'Alias for dotenv configuration helpers.'],
+  ['array', 'Numeric List statistics and slicing.'],
+  ['series', 'Alias for array helpers.'],
+  ['matrix', 'Matrix multiplication, transposition, and dot products.'],
+  ['linear', 'Alias for matrix helpers.'],
+  ['probability', 'Factorial and combination counts.'],
+  ['fraction', 'Reduced fractions and decimal conversion.'],
+  ['complex', 'Complex numbers represented as [real, imaginary].'],
+  ['calculus', 'One-variable polynomial evaluation, derivative, and definite integral.'],
+  ['units', 'Length, time, mass, and temperature conversions.'],
+  ['table', 'Read and project columns from Map rows.'],
+  ['dataset', 'Alias for table helpers.'],
+  ['cookie', 'Parse Cookie headers and create Set-Cookie values.'],
+  ['cors', 'Construct CORS response headers.'],
+  ['template', 'HTML-escaped {{key}} template rendering.'],
+  ['static', 'Read rooted static files and detect MIME types.'],
+  ['upload', 'Save data within an existing root directory.'],
+  ['tilemap', 'Parse and inspect text tile maps.'],
+  ['http_server', 'Alias for the SE web server API.'],
+  ['router', 'Alias for the SE web router API.'],
+  ['dns', 'Alias for socket resolution and TCP helpers.'],
+  ['toml', 'TOML parsing through Python 3.11+.'],
+  ['yaml', 'YAML parsing and serialization (requires PyYAML).'],
+  ['xml', 'XML parsing and escaping through Python.'],
+  ['markdown', 'CommonMark rendering (requires markdown-it-py).'],
+  ['crypto', 'SHA-256, HMAC, secure randomness, and constant-time comparison.'],
+  ['jwt', 'HS256 signing and verification.'],
+  ['session', 'Signed, stateless session claims using HS256.'],
+  ['auth', 'PBKDF2 password hashing and verification.'],
+  ['email', 'Compose and parse email messages.'],
+  ['smtp', 'Send mail with SMTP over TLS.'],
+  ['imap', 'Read mail subjects with IMAP over TLS.'],
+  ['ftp', 'List, download, and upload files through FTPS.'],
+  ['ssh', 'Run a remote command using Paramiko and known_hosts.'],
+  ['websocket', 'One-message WSS exchange (requires websockets).'],
+  ['ai', 'Chat with a compatible HTTPS AI endpoint.'],
+  ['embedding', 'Create vectors through a compatible HTTPS embedding endpoint.'],
+  ['ml', 'One-variable linear regression and prediction.'],
+  ['tensor', 'Numeric tensor shape, addition, and 2D multiplication.'],
+  ['video', 'Add browser video to an SE game scene.'],
+  ['camera', 'Request and display browser camera video.'],
+  ['gui', 'Browser Canvas alias for the game scene API.'],
+  ['window', 'Browser Canvas alias for the game scene API.'],
+  ['canvas', 'Browser Canvas alias for the game scene API.'],
+  ['input', 'Browser input alias for the game scene API.'],
+  ['sprite', 'Browser sprite alias for the game scene API.'],
+  ['physics', 'Browser game physics alias for the game scene API.'],
+  ['sound', 'Browser sound alias for the game scene API.'],
+  ['keyboard', 'Browser keyboard alias for the game scene API.'],
+  ['mouse', 'Browser mouse alias for the game scene API.'],
+  ['animation', 'Browser animation alias for the game scene API.'],
+  ['scene', 'Browser scene alias for the game scene API.'],
+  ['collision', 'Browser collision alias for the game scene API.'],
+  ['image', 'Browser image alias for the game scene API.'],
+  ['audio', 'Browser audio alias for the game scene API.']
 ];
 
 const f = (name, usage, description, kind = 'function') => [name, usage, description, kind];
@@ -307,6 +365,27 @@ const MODULE_MEMBERS = {
     f('save', 'save scene path', 'Save scene HTML. Fallible.'),
     f('show', 'show scene', 'Open scene in a browser. Fallible.')
   ],
+  game_extended: [
+    f('image', 'image scene url x y width height', 'Draw a browser image.'),
+    f('sprite', 'sprite scene name url x y width height', 'Add an image sprite.'),
+    f('sprite_color', 'sprite_color scene name x y width height color', 'Add a colored sprite.'),
+    f('position', 'position scene name x y', 'Set a sprite position.'),
+    f('move', 'move scene name dx dy', 'Move a sprite.'),
+    f('velocity', 'velocity scene name vx vy', 'Set sprite velocity.'),
+    f('animate', 'animate scene fps', 'Start the sprite animation loop.'),
+    f('key_move', 'key_move scene name key dx dy', 'Move a sprite when a key is pressed.'),
+    f('follow_mouse', 'follow_mouse scene name', 'Follow the mouse with a sprite.'),
+    f('sound', 'sound scene name url', 'Register a browser sound.'),
+    f('play', 'play scene name loop volume', 'Play a registered sound.'),
+    f('stop', 'stop scene name', 'Stop a registered sound.'),
+    f('fullscreen', 'fullscreen scene', 'Enable double-click fullscreen.'),
+    f('camera', 'camera scene x y', 'Set the scene camera offset.'),
+    f('particles', 'particles scene x y count color speed', 'Emit particles.'),
+    f('rect_hit', 'rect_hit ax ay aw ah bx by bw bh', 'Test rectangle overlap.'),
+    f('circle_hit', 'circle_hit ax ay ar bx by br', 'Test circle overlap.'),
+    f('distance', 'distance x1 y1 x2 y2', 'Distance between two points.'),
+    f('vector', 'vector x y', 'Create a 2D vector List.')
+  ],
   statistics: [
     f('mean', 'mean list', 'Arithmetic mean.'),
     f('median', 'median list', 'Median.'),
@@ -437,8 +516,151 @@ const MODULE_MEMBERS = {
     f('type_of', 'type_of value', 'Return the runtime SE type name.'),
     f('is', 'is value type_name', 'Check the runtime type name.'),
     f('cast', 'cast value type_name', 'Assert a runtime type and return the value.')
+  ],
+  url: [
+    f('encode', 'encode text', 'Percent-encode URL text.'),
+    f('decode', 'decode text', 'Decode percent-encoded text. Fallible.'),
+    f('query', 'query map', 'Build a URL query string from a Map.'),
+    f('parse_query', 'parse_query text', 'Parse a query string into a Map. Fallible.')
+  ],
+  encoding: [
+    f('hex', 'hex text', 'Encode text as hexadecimal.'),
+    f('unhex', 'unhex text', 'Decode hexadecimal text. Fallible.'),
+    f('utf8_valid', 'utf8_valid text', 'Check UTF-8 validity.')
+  ],
+  dotenv: [
+    f('parse', 'parse text', 'Parse KEY=VALUE lines into a Map. Fallible.'),
+    f('get', 'get config key', 'Read a required key from a configuration Map. Fallible.')
+  ],
+  array: [
+    f('sum', 'sum values', 'Sum a numeric List.'),
+    f('mean', 'mean values', 'Mean of a numeric List. Fallible.'),
+    f('slice', 'slice values start end', 'Slice a List with checked bounds. Fallible.')
+  ],
+  matrix: [
+    f('transpose', 'transpose rows', 'Transpose a matrix. Fallible.'),
+    f('multiply', 'multiply left right', 'Multiply two matrices. Fallible.'),
+    f('dot', 'dot left right', 'Dot product of equal-length vectors. Fallible.')
+  ],
+  probability: [
+    f('factorial', 'factorial n', 'Factorial for 0 to 20. Fallible.'),
+    f('choose', 'choose n k', 'Combination count with bounded inputs. Fallible.')
+  ],
+  fraction: [
+    f('make', 'make numerator denominator', 'Create a reduced fraction List. Fallible.'),
+    f('decimal', 'decimal fraction', 'Convert a fraction List to a number. Fallible.')
+  ],
+  complex: [
+    f('make', 'make real imaginary', 'Create a complex number List.'),
+    f('add', 'add left right', 'Add complex numbers. Fallible.'),
+    f('multiply', 'multiply left right', 'Multiply complex numbers. Fallible.'),
+    f('magnitude', 'magnitude value', 'Magnitude of a complex number. Fallible.')
+  ],
+  calculus: [
+    f('polynomial', 'polynomial coefficients x', 'Evaluate a polynomial with ascending coefficients.'),
+    f('derivative', 'derivative coefficients x', 'Evaluate its derivative.'),
+    f('integral', 'integral coefficients start end', 'Definite integral of a polynomial.')
+  ],
+  units: [
+    f('convert', 'convert value from_unit to_unit', 'Convert compatible length, time, or mass units. Fallible.'),
+    f('celsius_to_fahrenheit', 'celsius_to_fahrenheit value', 'Convert Celsius to Fahrenheit.'),
+    f('fahrenheit_to_celsius', 'fahrenheit_to_celsius value', 'Convert Fahrenheit to Celsius.')
+  ],
+  table: [
+    f('column', 'column rows name', 'Extract a column from Map rows. Fallible.'),
+    f('row_count', 'row_count rows', 'Count table rows.'),
+    f('select', 'select rows columns', 'Project table columns. Fallible.')
+  ],
+  cookie: [
+    f('parse', 'parse header', 'Parse a Cookie header into a Map.'),
+    f('set', 'set name value', 'Create a Set-Cookie header. Fallible.')
+  ],
+  cors: [
+    f('allow_origin', 'allow_origin origin', 'Create CORS origin headers. Fallible.'),
+    f('preflight', 'preflight origin methods', 'Create CORS preflight headers. Fallible.')
+  ],
+  template: [
+    f('escape', 'escape text', 'Escape HTML text.'),
+    f('render', 'render source values', 'Render escaped {{key}} placeholders. Fallible.')
+  ],
+  static: [
+    f('mime', 'mime filename', 'Detect MIME type from an extension.'),
+    f('read', 'read root filename', 'Read a file inside a root directory. Fallible.')
+  ],
+  upload: [
+    f('save', 'save root filename body', 'Save a file within an existing root directory. Fallible.')
+  ],
+  tilemap: [
+    f('parse', 'parse text', 'Parse a rectangular text tilemap. Fallible.'),
+    f('at', 'at map x y', 'Read a tile at coordinates. Fallible.'),
+    f('size', 'size map', 'Return tilemap dimensions.')
+  ],
+  toml: [f('parse', 'parse text', 'Parse TOML using Python 3.11+. Fallible.')],
+  yaml: [
+    f('parse', 'parse text', 'Parse YAML using PyYAML. Fallible.'),
+    f('stringify', 'stringify value', 'Serialize YAML using PyYAML. Fallible.')
+  ],
+  xml: [
+    f('parse', 'parse text', 'Parse XML using Python. Fallible.'),
+    f('escape', 'escape text', 'Escape XML text. Fallible.')
+  ],
+  markdown: [f('render', 'render text', 'Render Markdown using markdown-it-py. Fallible.')],
+  crypto: [
+    f('sha256', 'sha256 text', 'Compute a SHA-256 hex digest. Fallible.'),
+    f('hmac_sha256', 'hmac_sha256 key text', 'Compute an HMAC-SHA256 hex digest. Fallible.'),
+    f('random_hex', 'random_hex byte_count', 'Generate cryptographically random hex. Fallible.'),
+    f('constant_time_equal', 'constant_time_equal left right', 'Compare text in constant time. Fallible.')
+  ],
+  jwt: [
+    f('sign', 'sign claims secret', 'Sign HS256 JSON claims. Fallible.'),
+    f('verify', 'verify token secret', 'Verify an HS256 token and return claims. Fallible.')
+  ],
+  session: [
+    f('encode', 'encode claims secret', 'Encode signed session claims. Fallible.'),
+    f('decode', 'decode token secret', 'Decode signed session claims. Fallible.')
+  ],
+  auth: [
+    f('hash_password', 'hash_password password', 'Create a PBKDF2 password hash. Fallible.'),
+    f('verify_password', 'verify_password password encoded_hash', 'Verify a password hash. Fallible.')
+  ],
+  email: [
+    f('compose', 'compose sender recipient subject body', 'Compose an email message. Fallible.'),
+    f('parse', 'parse message', 'Parse an email message. Fallible.')
+  ],
+  smtp: [f('send', 'send host port username password recipient message', 'Send email over SMTP with TLS. Fallible.')],
+  imap: [f('subjects', 'subjects host username password mailbox limit', 'Read IMAP message subjects over TLS. Fallible.')],
+  ftp: [
+    f('list', 'list host username password directory', 'List files over FTPS. Fallible.'),
+    f('download', 'download host username password filename', 'Download a file over FTPS. Fallible.'),
+    f('upload', 'upload host username password filename body', 'Upload a file over FTPS. Fallible.')
+  ],
+  ssh: [f('run', 'run host username command', 'Run an SSH command using known_hosts. Fallible.')],
+  websocket: [f('exchange', 'exchange url message', 'Exchange a message over WSS. Fallible.')],
+  ai: [f('chat', 'chat endpoint api_key model prompt', 'Request an HTTPS chat completion. Fallible.')],
+  embedding: [f('create', 'create endpoint api_key model text', 'Request an HTTPS embedding vector. Fallible.')],
+  ml: [
+    f('linear_regression', 'linear_regression xs ys', 'Fit a one-variable linear regression. Fallible.'),
+    f('predict', 'predict model x', 'Predict a numeric value. Fallible.')
+  ],
+  tensor: [
+    f('shape', 'shape values', 'Return tensor dimensions. Fallible.'),
+    f('add', 'add left right', 'Add tensors elementwise. Fallible.'),
+    f('matmul', 'matmul left right', 'Multiply 2D tensors. Fallible.')
+  ],
+  video: [
+    f('add', 'add scene url x y width height', 'Add browser video to a scene.'),
+    f('stop', 'stop scene', 'Stop scene video playback.')
+  ],
+  camera: [
+    f('start', 'start scene x y width height', 'Request browser camera for a scene.'),
+    f('stop', 'stop scene', 'Stop browser camera capture.')
   ]
 };
+
+// Game aliases expose the base scene API plus browser sprite, physics, and audio helpers.
+// `use game` itself exposes only the base API in the current runtime.
+const GAME_ALIAS_MEMBERS = [...MODULE_MEMBERS.game, ...MODULE_MEMBERS.game_extended];
+delete MODULE_MEMBERS.game_extended;
 
 const ALIASES = {
   re: 'regex',
@@ -447,11 +669,32 @@ const ALIASES = {
   argparse: 'args',
   logging: 'log',
   zipfile: 'zip',
-  sqlite3: 'sqlite'
+  sqlite3: 'sqlite',
+  config: 'dotenv',
+  series: 'array',
+  linear: 'matrix',
+  dataset: 'table',
+  http_server: 'web',
+  router: 'web',
+  dns: 'socket',
+  gui: 'game',
+  window: 'game',
+  canvas: 'game',
+  input: 'game',
+  sprite: 'game',
+  physics: 'game',
+  sound: 'game',
+  keyboard: 'game',
+  mouse: 'game',
+  animation: 'game',
+  scene: 'game',
+  collision: 'game',
+  image: 'game',
+  audio: 'game'
 };
 
 for (const [alias, target] of Object.entries(ALIASES)) {
-  MODULE_MEMBERS[alias] = MODULE_MEMBERS[target];
+  MODULE_MEMBERS[alias] = target === 'game' ? GAME_ALIAS_MEMBERS : MODULE_MEMBERS[target];
 }
 
 const MODULE_DESCRIPTIONS = Object.fromEntries(MODULES);

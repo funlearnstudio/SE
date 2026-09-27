@@ -15,20 +15,28 @@ function runtimeModules() {
   const ecosystem = read('src/runtime/ecosystem.cpp');
   const platform = read('src/runtime/platform.cpp');
   const advanced = read('src/runtime/advanced.cpp');
+  const expansion = read('src/runtime/expansion.cpp');
+  const formats = read('src/runtime/formats.cpp');
 
   const ecosystemBlock = ecosystem.match(/bool is_ecosystem_builtin[\s\S]*?names=\{([\s\S]*?)\};return names\.contains/);
   const platformBlock = platform.match(/bool is_platform_builtin[\s\S]*?names=\{([\s\S]*?)\};return names\.contains/);
   const advancedBlock = advanced.match(/bool is_advanced_builtin[\s\S]*?\{([\s\S]*?)\n\}/);
+  const expansionBlock = expansion.match(/bool is_expansion_builtin[\s\S]*?names=\{([\s\S]*?)\};return names\.contains/);
+  const formatsBlock = formats.match(/bool is_format_builtin\([^)]*\)\{return ([\s\S]*?);\}/);
 
   assert(ecosystemBlock, 'Could not parse ecosystem built-in module list.');
   assert(platformBlock, 'Could not parse platform built-in module list.');
   assert(advancedBlock, 'Could not parse advanced built-in module list.');
+  assert(expansionBlock, 'Could not parse expansion built-in module list.');
+  assert(formatsBlock, 'Could not parse format built-in module list.');
 
   const names = new Set([
     'file', 'path', 'time', 'math', 'random', 'os',
     ...quotedNames(ecosystemBlock[1]),
     ...quotedNames(platformBlock[1]),
-    ...[...advancedBlock[1].matchAll(/name=="([^"]+)"/g)].map((match) => match[1])
+    ...[...advancedBlock[1].matchAll(/name=="([^"]+)"/g)].map((match) => match[1]),
+    ...quotedNames(expansionBlock[1]),
+    ...[...formatsBlock[1].matchAll(/name=="([^"]+)"/g)].map((match) => match[1])
   ]);
   return [...names].sort();
 }
@@ -45,12 +53,31 @@ assert.strictEqual(new Set(BUILTIN_MODULES).size, BUILTIN_MODULES.length, 'Built
 for (const name of BUILTIN_MODULES) {
   assert(Array.isArray(MODULE_MEMBERS[name]), `Missing MODULE_MEMBERS entry for ${name}.`);
   assert(MODULE_MEMBERS[name].length > 0, `Module ${name} has no IntelliSense members.`);
+  const members = MODULE_MEMBERS[name];
+  assert.strictEqual(new Set(members.map(([member]) => member)).size, members.length, `Duplicate members in ${name}.`);
 }
 
 for (const [alias, target] of Object.entries(ALIASES)) {
   assert(BUILTIN_MODULES.includes(alias), `Alias ${alias} is not a built-in module.`);
   assert(BUILTIN_MODULES.includes(target), `Alias target ${target} is not a built-in module.`);
-  assert.strictEqual(MODULE_MEMBERS[alias], MODULE_MEMBERS[target], `Alias ${alias} does not share ${target} members.`);
+  if (target === 'game') {
+    assert(MODULE_MEMBERS[alias].length > MODULE_MEMBERS.game.length, `Game alias ${alias} lacks extended members.`);
+    assert(MODULE_MEMBERS.game.every(([member]) => MODULE_MEMBERS[alias].some(([entry]) => entry === member)), `Game alias ${alias} lacks base members.`);
+  } else {
+    assert.strictEqual(MODULE_MEMBERS[alias], MODULE_MEMBERS[target], `Alias ${alias} does not share ${target} members.`);
+  }
+}
+
+// Every native expansion operation should appear in the editor's member completions.
+const expansionSource = read('src/runtime/expansion.cpp');
+for (const match of expansionSource.matchAll(/if\(name=="([a-z_]+)"(?:\|\|name=="[a-z_]+")*\)return \{([\s\S]*?)\n \};/g)) {
+  const module = match[1];
+  for (const [, member] of match[2].matchAll(/^  \{"([a-z_]+)",\{/gm)) {
+    assert(MODULE_MEMBERS[module].some(([name]) => name === member), `Missing ${module}.${member} completion.`);
+  }
+}
+for (const [, member] of read('src/runtime/game_ext.cpp').matchAll(/x\["([a-z_]+)"\]=/g)) {
+  assert(MODULE_MEMBERS.canvas.some(([name]) => name === member), `Missing canvas.${member} completion.`);
 }
 
 const grammar = JSON.parse(read('vscode/syntaxes/se.tmLanguage.json'));
@@ -60,9 +87,11 @@ const moduleRegex = new RegExp(modulePattern);
 for (const name of BUILTIN_MODULES) {
   assert(moduleRegex.test(name), `TextMate grammar does not highlight module ${name}.`);
 }
+const grammarNames = modulePattern.match(/\(\?:([^)]*)\)/)[1].split('|').sort();
+assert.deepStrictEqual(grammarNames, runtime, 'TextMate grammar module names differ from runtime.');
 
 const pkg = JSON.parse(read('vscode/package.json'));
-assert.strictEqual(pkg.version, '0.7.1');
+assert.strictEqual(pkg.version, '0.7.2');
 for (const command of ['se.run', 'se.check', 'se.checkProblems', 'se.build', 'se.openGuide']) {
   assert(pkg.contributes.commands.some((entry) => entry.command === command), `Missing VS Code command ${command}.`);
 }

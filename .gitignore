@@ -1,3 +1,6 @@
 /build/
+vscode/node_modules/
+vscode/package-lock.json
+vscode/*.vsix
 *.s.cpp
 .DS_Store

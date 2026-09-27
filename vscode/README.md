@@ -2,14 +2,14 @@
 
 [繁體中文版](README-zh-TW.md)
 
-Official Visual Studio Code support for SE source files (`.se`). Version 0.7.1 adds complete SE 0.7 built-in-module IntelliSense, a bundled syntax guide, and live compiler diagnostics.
+Official Visual Studio Code support for SE source files (`.se`). Version 0.7.2 synchronizes module completion, member signatures, and syntax highlighting with the expanded SE runtime. The bundled syntax guide and live compiler diagnostics are included.
 
 ## Core features
 
 - SE `.se` file recognition and TextMate syntax highlighting
 - indentation support for SE blocks
 - snippets for common language constructs
-- completion for every current SE 0.7 built-in module after `use `
+- completion for every current built-in module after `use `
 - member IntelliSense for all current built-in runtime modules and aliases
 - local completion for variables, functions and user-defined types
 - module/member hover documentation and low-punctuation signatures
@@ -65,6 +65,8 @@ player.
 ```
 
 The extension can suggest `name`, `hp`, and `hit` from the local `Player` definition.
+
+The expanded modules include data (`array`, `matrix`, `table`), formats (`toml`, `yaml`, `xml`, `markdown`), web (`http_server`, `websocket`, `session`), security (`crypto`, `jwt`), AI (`ai`, `ml`, `tensor`, `embedding`), and browser scenes (`canvas`, `sprite`, `camera`). Their editor completions match the functions currently implemented by the runtime. Some runtime operations need Python or an optional Python package; see the [module reference](../docs/expansion-modules-zh-TW.md) for their requirements and signatures.
 
 The current editor analysis is intentionally lightweight and runs inside the extension. A future full LSP can reuse compiler/parser/checker semantics for deeper cross-file analysis without changing the user-facing editor model.
 
