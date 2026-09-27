@@ -57,7 +57,10 @@ a → b → a
 file path time math random os
 json text collections test process
 http web js ts
-function async option result match db https
+function async threading option result match db https
+statistics regex re decimal csv datetime hash hashlib base64 uuid
+iter itertools pickle args argparse log logging shutil glob zip zipfile
+subprocess socket queue sqlite sqlite3 functools operator copy enum typing
 ```
 
 每個 module 的精確 member 以對應 Reference / API 文件為準。
