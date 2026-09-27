@@ -71,7 +71,7 @@ void print_help(){
 
 int doctor_command(){
   std::cout<<"SE doctor\n";
-  std::cout<<"  version: SE 0.6.0\n";
+  std::cout<<"  version: SE 0.7.0\n";
 #ifdef _WIN32
   std::cout<<"  platform: Windows\n";
 #elif __APPLE__
@@ -250,7 +250,7 @@ int bind_command(const std::filesystem::path&definition,const std::filesystem::p
   }catch(const s::Error&e){std::string source;try{source=read_file(definition);}catch(...){ }std::cerr<<s::format_error(e,source);return 1;}
 }
 void repl(){
-  std::cout<<"SE 0.6.0\nType SE code. Use a blank line to finish a block. Ctrl-D exits.\n";
+  std::cout<<"SE 0.7.0\nType SE code. Use a blank line to finish a block. Ctrl-D exits.\n";
   std::string pending,line; s::Checker checker; s::Interpreter vm(std::cin,std::cout);
   auto execute=[&]{if(pending.empty())return;try{s::Lexer lexer(pending);s::Parser parser(lexer.scan());auto program=parser.parse();checker.check(program);vm.run(program);}catch(const s::Error&e){std::cerr<<s::format_error(e,pending);}catch(const s::RuntimeFailure&e){std::cerr<<e.what()<<'\n';}pending.clear();};
   while(true){std::cout<<(pending.empty()?"> ":". ");if(!std::getline(std::cin,line)){execute();break;}if(line.empty()&&!pending.empty()){execute();continue;}pending+=line+'\n';if(line.find_first_not_of(' ')==0&&line.rfind("if ",0)!=0&&line.rfind("for ",0)!=0&&line.rfind("while ",0)!=0&&line.rfind("repeat ",0)!=0&&line.rfind("make ",0)!=0&&line.rfind("type ",0)!=0&&line.rfind("match ",0)!=0&&line!="try")execute();}
@@ -259,7 +259,7 @@ void repl(){
 int main(int argc,char**argv){
   try{
     if(argc==1){repl();return 0;}
-    if(argc==2&&std::string(argv[1])=="--version"){std::cout<<"SE 0.6.0\n";return 0;}
+    if(argc==2&&std::string(argv[1])=="--version"){std::cout<<"SE 0.7.0\n";return 0;}
     if(argc==2&&(std::string(argv[1])=="help"||std::string(argv[1])=="--help"||std::string(argv[1])=="-h")){print_help();return 0;}
     if(argc==2&&std::string(argv[1])=="doctor")return doctor_command();
     if((argc==2||argc==3)&&std::string(argv[1])=="check-all")return check_all_command(argc==3?std::filesystem::path(argv[2]):std::filesystem::path("."));
