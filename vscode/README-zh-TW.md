@@ -2,14 +2,14 @@
 
 [English version](README.md)
 
-這是 SE `.se` source 的官方 Visual Studio Code 支援。0.7.1 加入完整 SE 0.7 built-in module IntelliSense、內建語法教學，以及即時 compiler diagnostics。
+這是 SE `.se` 原始碼的官方 Visual Studio Code 支援。0.7.2 將模組補全、成員簽章和語法上色同步至擴充後的 SE runtime，並提供內建語法教學與即時編譯器診斷。
 
 ## 核心功能
 
 - `.se` file recognition 與 TextMate syntax highlighting
 - SE block 縮排支援
 - 常用語法 snippets
-- 輸入 `use ` 時補齊目前所有 SE 0.7 built-in modules
+- 輸入 `use ` 時補齊目前所有內建模組
 - 所有 current built-in runtime module / alias 的 member IntelliSense
 - current file 內的 variable、function、user-defined type completion
 - module/member hover 說明與 low-punctuation signature help
@@ -67,6 +67,8 @@ player.
 ```
 
 這時 extension 可以根據本機 `Player` definition 建議 `name`、`hp`、`hit`。
+
+新模組涵蓋資料（`array`、`matrix`、`table`）、格式（`toml`、`yaml`、`xml`、`markdown`）、Web（`http_server`、`websocket`、`session`）、安全（`crypto`、`jwt`）、AI（`ai`、`ml`、`tensor`、`embedding`）及瀏覽器場景（`canvas`、`sprite`、`camera`）。編輯器只提示 runtime 已實作的函式。部分函式執行時需要 Python 或其套件，細節與簽章請看[模組參考](../docs/expansion-modules-zh-TW.md)。
 
 目前 editor analysis 刻意保持 lightweight，直接在 extension 內執行。未來完整 LSP 可以重用 compiler/parser/checker 做更深入 cross-file semantic analysis，但不需要改變使用者-facing editor model。
 

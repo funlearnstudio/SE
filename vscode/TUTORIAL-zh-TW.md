@@ -1,4 +1,4 @@
-# SE 0.7 語法教學
+# SE 語法教學
 
 這份教學會隨 SE VS Code extension 一起安裝。你可以從 Command Palette 執行 **SE: Open Syntax Guide** 隨時打開。
 
@@ -194,7 +194,7 @@ use statistics
 use json
 ```
 
-輸入 `use ` 後，VS Code 會列出目前 SE 0.7 所有 built-in modules。
+輸入 `use ` 後，VS Code 會列出目前所有內建模組。
 
 例如：
 
@@ -272,6 +272,28 @@ Web / 外部工具：
 process http https net web
 js ts node next game db
 ```
+
+擴充模組：
+
+```text
+url encoding dotenv config toml yaml xml markdown
+table dataset array series matrix linear calculus complex fraction probability units
+crypto jwt session auth cookie cors http_server router template static upload
+websocket dns ftp smtp imap ssh email
+ai ml tensor embedding image audio video camera
+gui window canvas input sprite physics sound keyboard mouse animation scene collision tilemap
+```
+
+例如計算矩陣乘積，並在輸入 `matrix.` 後查看可用函式：
+
+```se
+use matrix
+
+result = try matrix.multiply [[1, 2], [3, 4]] [[5, 6], [7, 8]]
+say result
+```
+
+`try` 用於可能失敗的函式。`canvas`、`sprite` 等別名含 `game` 的場景函式，並額外提供動畫、碰撞、音效等成員；`video` 與 `camera` 各有專屬的開始／停止函式。各模組目前實作的 API 與執行需求請參閱專案的 `docs/expansion-modules-zh-TW.md`。
 
 常用 aliases：
 
@@ -496,4 +518,4 @@ statistics.
 
 會看到 `mean`、`median`、`variance`、`stdev` 等 API，並顯示呼叫方式與說明。
 
-同樣適用於 `sqlite3.`、`regex.`、`queue.`、`game.` 等 SE 0.7 built-in modules。
+同樣適用於 `sqlite3.`、`regex.`、`queue.`、`game.` 等內建模組。

@@ -171,6 +171,29 @@
     ],
     "description": "Perform an HTTP GET request"
   },
+  "Matrix multiply": {
+    "prefix": "matrix",
+    "body": [
+      "use matrix",
+      "",
+      "${1:product} = try matrix.multiply ${2:[[1, 2], [3, 4]]} ${3:[[5, 6], [7, 8]]}",
+      "say $1"
+    ],
+    "description": "Multiply two numeric matrices"
+  },
+  "Canvas scene": {
+    "prefix": "canvas",
+    "body": [
+      "use canvas",
+      "",
+      "${1:scene} = canvas.new ${2:640} ${3:480} ${4:\"SE Canvas\"}",
+      "canvas.background $1 ${5:\"#111\"}",
+      "canvas.sprite_color $1 ${6:\"player\"} ${7:40} ${8:40} ${9:32} ${10:32} ${11:\"#33ccff\"}",
+      "canvas.animate $1 ${12:60}",
+      "try canvas.show $1"
+    ],
+    "description": "Create an animated browser canvas scene"
+  },
   "Test": {
     "prefix": "test",
     "body": [
