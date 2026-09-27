@@ -58,6 +58,7 @@ file path time math random os
 json text collections test process
 http web js ts
 function async option result match db https
+statistics regex base64 uuid iter copy operator
 ```
 
 Use the specific module reference/API documents for exact members.
