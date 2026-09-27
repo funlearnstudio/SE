@@ -1,8 +1,32 @@
 #!/usr/bin/env sh
 set -eu
 
-VERSION="${SE_VERSION:-0.6.0}"
 REPO="funlearnstudio/SE"
+DEFAULT_VERSION="0.6.0"
+
+latest_release_version() {
+  data=""
+
+  if command -v curl >/dev/null 2>&1; then
+    data="$(curl -fsSL --connect-timeout 10 "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null || true)"
+  elif command -v wget >/dev/null 2>&1; then
+    data="$(wget -qO- "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null || true)"
+  fi
+
+  version="$(printf '%s' "$data" | tr ',' '\n' | sed -n 's/.*"tag_name":[[:space:]]*"v\([^"]*\)".*/\1/p' | head -n 1)"
+  if [ -n "$version" ]; then
+    printf '%s' "$version"
+  else
+    printf '%s' "$DEFAULT_VERSION"
+  fi
+}
+
+if [ -n "${SE_VERSION:-}" ]; then
+  VERSION="$SE_VERSION"
+else
+  VERSION="$(latest_release_version)"
+fi
+
 TAG="v$VERSION"
 BASE_URL="https://github.com/$REPO/releases/download/$TAG"
 INSTALL_ROOT="${SE_INSTALL_ROOT:-$HOME/.local/share/se}"
