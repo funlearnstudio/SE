@@ -29,7 +29,7 @@ say decimal.add "0.1" "0.2"
 rows = csv.parse "name,score\nSE,100"
 say rows.len
 
-packed = pickle.dumps ["name": "SE", "version": 1]
+packed = pickle.dumps ["name": "SE", "version": "1"]
 unpacked = try pickle.loads packed
 say typing.type_of unpacked
 
