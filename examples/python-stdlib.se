@@ -47,12 +47,12 @@ say try enum.value colors "green"
 say try enum.name colors 2
 
 make add a b
-    return a + b
+    give a + b
 
 say functools.reduce add [1, 2, 3]
 
 make twice x
-    return x * 2
+    give x * 2
 
 job = threading.run twice 21
 say try threading.join job
