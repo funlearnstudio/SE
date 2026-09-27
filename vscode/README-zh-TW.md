@@ -2,22 +2,25 @@
 
 [English version](README.md)
 
-這是 SE `.se` source 的官方 Visual Studio Code 支援。
+這是 SE `.se` source 的官方 Visual Studio Code 支援。0.7.1 加入完整 SE 0.7 built-in module IntelliSense、內建語法教學，以及即時 compiler diagnostics。
 
 ## 核心功能
 
 - `.se` file recognition 與 TextMate syntax highlighting
 - SE block 縮排支援
 - 常用語法 snippets
-- keyword / module prefix completion
+- 輸入 `use ` 時補齊目前所有 SE 0.7 built-in modules
+- 所有 current built-in runtime module / alias 的 member IntelliSense
 - current file 內的 variable、function、user-defined type completion
-- 常用 Runtime module 與推斷 value 的 member completion
+- module/member hover 說明與 low-punctuation signature help
 - hover information
 - current file 內的 Go to Definition / Find References
 - Outline / Breadcrumb symbols
 - low-punctuation function signature help
-- Run / Check / Build current file command
-- 可設定 `se` executable path
+- 輸入時自動執行 `se check`，錯誤直接顯示紅線與 Problems
+- Run / Check Problems / Terminal Check / Build command
+- **SE: Open Syntax Guide** 內建繁體中文語法教學
+- 可設定 `se` executable path 與 diagnostics delay
 
 ## Syntax Highlighting
 
@@ -67,14 +70,38 @@ player.
 
 目前 editor analysis 刻意保持 lightweight，直接在 extension 內執行。未來完整 LSP 可以重用 compiler/parser/checker 做更深入 cross-file semantic analysis，但不需要改變使用者-facing editor model。
 
+## 即時自動偵錯
+
+Extension 直接呼叫真正的 SE compiler/checker，不另外在 JavaScript 複製一套語言規則。輸入停止一小段時間後會自動檢查；尚未存檔的內容會暫時寫到原檔案同一個資料夾，因此 local module import 仍能以正確相對位置解析。
+
+錯誤會顯示在：
+
+- editor 紅色波浪線
+- VS Code **Problems** panel
+- diagnostic hover
+
+設定：
+
+- `se.diagnostics.enabled`
+- `se.diagnostics.delay`
+- `se.executablePath`
+
+需要立刻重新檢查時，執行 **SE: Check File Problems**。
+
+## 內建語法教學
+
+Command Palette 執行 **SE: Open Syntax Guide**。Extension 會開啟內建 `TUTORIAL-zh-TW.md`，內容包含基礎語法、function、type、module、`try`、async/threading、SQLite、network、test、IntelliSense 與 diagnostics。
+
 ## Commands
 
 Command Palette：
 
 ```text
 SE: Run File
-SE: Check File
+SE: Check File Problems
+SE: Check File in Terminal
 SE: Build File
+SE: Open Syntax Guide
 ```
 
 Extension 預設期待 `se` 已在 `PATH`。若安裝在其他位置，可設定 **SE: Executable Path**。
