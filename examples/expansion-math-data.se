@@ -1,0 +1,30 @@
+use fraction
+use complex
+use calculus
+use units
+use table
+use cookie
+use cors
+use matrix
+
+f = try fraction.make 6 8
+say f
+say try fraction.decimal f
+z1 = complex.make 2 3
+z2 = complex.make 4 5
+say try complex.multiply z1 z2
+coefficients = [1, 2, 3]
+say calculus.derivative coefficients 2
+say calculus.integral coefficients 0 1
+say try units.convert 2 "km" "m"
+rows = [["name": "SE", "score": "90"], ["name": "MX", "score": "100"]]
+say try table.column rows "name"
+fields = ["name"]
+say try table.select rows fields
+say cookie.parse "name=SE; theme=dark"
+say try cookie.set "name" "SE"
+say try cors.allow_origin "https://example.com"
+vec1 = [1, 2]
+vec2 = [3, 4]
+say try matrix.dot vec1 vec2
+say "SE math data expansion OK"

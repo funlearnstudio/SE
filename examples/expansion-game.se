@@ -1,0 +1,15 @@
+use canvas
+use sprite
+use collision
+use audio
+
+screen = canvas.new 320 240 "SE"
+canvas.background screen "#121212"
+sprite.sprite_color screen "hero" 10 10 20 20 "#00ff00"
+sprite.velocity screen "hero" 5 0
+hit = collision.rect_hit 0 0 20 20 10 10 20 20
+say hit
+audio.sound screen "beep" "beep.mp3"
+markup = canvas.html screen
+say markup.len
+say "SE game expansion OK"

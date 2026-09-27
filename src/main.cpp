@@ -233,7 +233,7 @@ int file_command(const std::string&cmd,const std::filesystem::path&path){
 #else
     std::filesystem::path root=std::filesystem::current_path();
 #endif
-    std::string command=compiler+" -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -Wno-misleading-indentation -I"+shell_quote((root/"include").string())+" "+shell_quote(cpp_path.string())+" "+shell_quote((root/"src/runtime/error.cpp").string())+" "+shell_quote((root/"src/runtime/value.cpp").string())+" "+shell_quote((root/"src/runtime/platform_base.cpp").string())+" "+shell_quote((root/"src/runtime/advanced.cpp").string())+" "+shell_quote((root/"src/runtime/database.cpp").string())+" "+shell_quote((root/"src/runtime/expansion.cpp").string())+" "+shell_quote((root/"src/interpreter/interpreter.cpp").string())+" "+shell_quote((root/"src/ffi/ffi.cpp").string())+" -pthread";
+    std::string command=compiler+" -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -Wno-misleading-indentation -I"+shell_quote((root/"include").string())+" "+shell_quote(cpp_path.string())+" "+shell_quote((root/"src/runtime/error.cpp").string())+" "+shell_quote((root/"src/runtime/value.cpp").string())+" "+shell_quote((root/"src/runtime/platform_base.cpp").string())+" "+shell_quote((root/"src/runtime/advanced.cpp").string())+" "+shell_quote((root/"src/runtime/database.cpp").string())+" "+shell_quote((root/"src/runtime/expansion.cpp").string())+" "+shell_quote((root/"src/runtime/formats.cpp").string())+" "+shell_quote((root/"src/interpreter/interpreter.cpp").string())+" "+shell_quote((root/"src/ffi/ffi.cpp").string())+" -pthread";
 #ifdef __linux__
     command+=" -ldl";
 #endif

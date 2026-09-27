@@ -1,0 +1,4 @@
+use jwt
+claims = ["sub": "SE"]
+token = try jwt.sign claims "right-key"
+say try jwt.verify token "wrong-key"

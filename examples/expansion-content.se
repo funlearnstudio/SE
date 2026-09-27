@@ -1,0 +1,13 @@
+use template
+use static
+use tilemap
+use physics
+
+person = ["name": "<SE>"]
+say try template.render "Hello {{name}}" person
+say static.mime "page.html"
+grid = try tilemap.parse "##.\n#.."
+say try tilemap.size grid
+say try tilemap.at grid 2 0
+say physics.distance 0 0 3 4
+say "SE content expansion OK"
