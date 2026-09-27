@@ -24,6 +24,12 @@ jobs:
           assert "se" in grammar.get("fileTypes", [])
           assert grammar.get("patterns")
           print("SE TextMate grammar is valid JSON and declares source.se")
+      - name: Validate VS Code extension
+        run: |
+          node --check vscode/extension.js
+          node --check vscode/language-data.js
+          node --check vscode/diagnostics.js
+          node vscode/validate.js
       - name: Validate install.sh syntax
         if: runner.os != 'Windows'
         run: sh -n install.sh
