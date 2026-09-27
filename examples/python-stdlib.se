@@ -18,7 +18,7 @@ say statistics.mean stats_values
 say regex.search "[0-9]+" "SE2026"
 
 encoded = base64.encode "SE"
-say base64.decode encoded
+say try base64.decode encoded
 
 id = uuid.v4
 say uuid.valid id
