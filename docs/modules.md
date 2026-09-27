@@ -61,7 +61,6 @@ function async threading option result match db https
 statistics regex re decimal csv datetime hash hashlib base64 uuid
 iter itertools pickle args argparse log logging shutil glob zip zipfile
 subprocess socket queue sqlite sqlite3 functools operator copy enum typing
-statistics regex base64 uuid iter copy operator
 ```
 
 Use the specific module reference/API documents for exact members.
