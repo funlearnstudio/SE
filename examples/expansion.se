@@ -1,0 +1,20 @@
+use url
+use encoding
+use dotenv
+use matrix
+use probability
+use array
+
+say url.encode "a b?"
+say try url.decode "a%20b"
+say encoding.hex "SE"
+say try encoding.unhex "5345"
+settings = try dotenv.parse "NAME=SE\nPORT=8080"
+say try dotenv.get settings "NAME"
+a = [[1, 2], [3, 4]]
+b = [[5, 6], [7, 8]]
+say try matrix.multiply a b
+say try probability.choose 5 2
+values = [1, 2, 3]
+say array.sum values
+say "SE expansion OK"
