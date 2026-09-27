@@ -1,6 +1,6 @@
 # SE Installation / SE 安裝
 
-Current stable release / 目前正式版：**SE 0.6.0**
+Current stable release / 目前正式版：**SE 0.7.0**
 
 SE provides prebuilt packages for normal use. Git, CMake and a C++ compiler are only required when building SE itself from source. `se build` separately requires a C++20 compiler because the native backend currently emits C++20.
 
