@@ -117,8 +117,17 @@ const MODULE_MEMBERS = {
   ],
   function: [
     ['bind', 'bind function args...', 'Partially bind function arguments.'],
+    ['partial', 'partial function args...', 'Create a partially applied function.'],
     ['call', 'call function args...', 'Call a function value.'],
-    ['pipe', 'pipe value functions...', 'Pass a value through functions.']
+    ['pipe', 'pipe value functions...', 'Pass a value through functions.'],
+    ['reduce', 'reduce function list initial?', 'Reduce a List using a function.'],
+    ['map', 'map function list', 'Map a function over a List.'],
+    ['filter', 'filter function list', 'Filter a List using a predicate.']
+  ],
+  threading: [
+    ['run', 'run function args...', 'Start a managed worker task.'],
+    ['join', 'join task', 'Wait for a managed worker task.'],
+    ['ready', 'ready task', 'Check whether a worker task is complete.']
   ],
   db: [
     ['open', 'open path', 'Open a local SE key/value database.'],
