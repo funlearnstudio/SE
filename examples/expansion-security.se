@@ -1,0 +1,18 @@
+use crypto
+use jwt
+use session
+use auth
+
+say try crypto.sha256 "abc"
+say try crypto.hmac_sha256 "key" "hello"
+secret = try crypto.random_hex 32
+say try crypto.constant_time_equal "SE" "SE"
+claims = ["sub": "steve"]
+token = try jwt.sign claims secret
+say try jwt.verify token secret
+state = try session.encode claims secret
+say try session.decode state secret
+hash = try auth.hash_password "safe password"
+say try auth.verify_password "safe password" hash
+say try auth.verify_password "wrong" hash
+say "SE security expansion OK"

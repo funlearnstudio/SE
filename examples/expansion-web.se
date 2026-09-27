@@ -1,0 +1,12 @@
+use http_server
+use router
+
+make hello body
+    give "Hello, " + body
+
+http_server.get "/hello" hello
+say http_server.route_count
+say http_server.handle "GET" "/hello" "SE"
+router.get "/hello" hello
+say router.handle "GET" "/hello" "MX"
+say "SE web expansion OK"

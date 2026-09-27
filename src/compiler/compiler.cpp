@@ -4,7 +4,22 @@
 
 namespace s {
 namespace {
-std::string q(const std::string&s){std::ostringstream o;o<<std::quoted(s);return o.str();}
+std::string q(const std::string& s){
+  std::ostringstream out;out<<'"';
+  for(unsigned char c:s){
+    switch(c){
+      case '"':out<<"\\\"";break;
+      case '\\':out<<"\\\\";break;
+      case '\n':out<<"\\n";break;
+      case '\r':out<<"\\r";break;
+      case '\t':out<<"\\t";break;
+      default:
+        if(c<32||c==127)out<<'\\'<<std::oct<<std::setw(3)<<std::setfill('0')<<static_cast<unsigned>(c)<<std::dec;
+        else out<<c;
+    }
+  }
+  return out.str()+'"';
+}
 std::string pos(SourcePos p){return "SourcePos{"+std::to_string(p.line)+","+std::to_string(p.column)+"}";}
 std::string strings(const std::vector<std::string>&v){std::string r="std::vector<std::string>{";for(std::size_t i=0;i<v.size();++i){if(i)r+=",";r+=q(v[i]);}return r+"}";}
 std::string type_ref(const ast::TypeRef&t){std::string r="ast::TypeRef{"+q(t.name)+",std::vector<ast::TypeRef>{";for(std::size_t i=0;i<t.args.size();++i){if(i)r+=",";r+=type_ref(t.args[i]);}return r+"}}";}

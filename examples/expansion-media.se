@@ -1,0 +1,12 @@
+use game
+use video
+use camera
+use text
+
+screen = game.new 640 360 "Media"
+video.add screen "clip.mp4" 0 0 320 180
+camera.start screen 320 0 320 180
+markup = game.html screen
+say text.contains markup "getUserMedia"
+say text.contains markup "clip.mp4"
+say "SE media expansion OK"

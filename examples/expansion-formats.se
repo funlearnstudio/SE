@@ -1,0 +1,9 @@
+use toml
+use xml
+
+conf = try toml.parse "[app]\nname = 'SE'\nversion = 1"
+say conf
+node = try xml.parse "<root lang=\"zh\"><item>SE</item></root>"
+say node
+say try xml.escape "<SE & friends>"
+say "SE format expansion OK"
