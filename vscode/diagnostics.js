@@ -12,7 +12,8 @@ function parseSeCheckOutput(output) {
   }
 
   const caretMatch = text.match(/\n\s*\|([ \t]*)\^/);
-  const column = caretMatch ? caretMatch[1].replace(/\t/g, '    ').length : 0;
+  const caretPadding = caretMatch ? caretMatch[1].replace(/\t/g, '    ').length : 0;
+  const column = Math.max(0, caretPadding - 1);
   const hintMatch = text.match(/(?:^|\n)Try:\s*(.+)$/im);
   const hint = hintMatch ? hintMatch[1].trim() : '';
 
