@@ -2,7 +2,7 @@
   "name": "se-language",
   "displayName": "SE Language",
   "description": "Official SE language support with syntax highlighting, IntelliSense, symbols, navigation, snippets, and run/check/build commands for .se files",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "publisher": "funlearnstudio",
   "license": "MIT",
   "icon": "icons/se.png",
