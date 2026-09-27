@@ -13,7 +13,8 @@ use enum
 use typing
 use threading
 
-say statistics.mean [1, 2, 3, 4]
+stats_values = [1, 2, 3, 4]
+say statistics.mean stats_values
 say regex.search "[0-9]+" "SE2026"
 
 encoded = base64.encode "SE"
@@ -29,11 +30,13 @@ say decimal.add "0.1" "0.2"
 rows = csv.parse "name,score\nSE,100"
 say rows.len
 
-packed = pickle.dumps ["name": "SE", "version": "1"]
+pickle_value = ["name": "SE", "version": "1"]
+packed = pickle.dumps pickle_value
 unpacked = try pickle.loads packed
 say typing.type_of unpacked
 
-parsed = args.parse ["--name", "SE", "--debug"]
+argv = ["--name", "SE", "--debug"]
+parsed = args.parse argv
 say args.get parsed "name"
 say args.flag parsed "debug"
 
@@ -42,14 +45,16 @@ queue.put q "first"
 say try queue.get q
 say queue.empty q
 
-colors = enum.make ["red", "green", "blue"]
+color_names = ["red", "green", "blue"]
+colors = enum.make color_names
 say try enum.value colors "green"
 say try enum.name colors 2
 
 make add a b
     give a + b
 
-say functools.reduce add [1, 2, 3]
+reduce_values = [1, 2, 3]
+say functools.reduce add reduce_values
 
 make twice x
     give x * 2
