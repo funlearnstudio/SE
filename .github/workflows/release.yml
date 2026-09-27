@@ -111,15 +111,20 @@ jobs:
         run: |
           node -e "const fs=require('fs'); const g=JSON.parse(fs.readFileSync('vscode/syntaxes/se.tmLanguage.json','utf8')); if(g.scopeName!=='source.se') process.exit(1);"
 
+      - name: Read VS Code extension version
+        id: extension-version
+        shell: bash
+        run: echo "version=$(node -p "require('./vscode/package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Package SE VS Code extension
         working-directory: vscode
-        run: npx vsce package --out ../se-language-0.7.0.vsix
+        run: npx vsce package --out "../se-language-${{ steps.extension-version.outputs.version }}.vsix"
 
       - name: Upload VS Code extension artifact
         uses: actions/upload-artifact@v4
         with:
-          name: se-language-0.7.0-vsix
-          path: se-language-0.7.0.vsix
+          name: se-language-${{ steps.extension-version.outputs.version }}-vsix
+          path: se-language-${{ steps.extension-version.outputs.version }}.vsix
           if-no-files-found: error
 
   publish:
@@ -140,16 +145,28 @@ jobs:
           path: release-assets
           merge-multiple: true
 
-      - name: Generate SHA256 checksums
+      - name: Check whether release already exists
+        id: release
+        shell: bash
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate SHA256 checksums for a new SE release
+        if: steps.release.outputs.exists != 'true'
         run: |
           cd release-assets
           sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Create or update SE 0.7.0 release
+        shell: bash
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" release-assets/* --clobber
+          if [ "${{ steps.release.outputs.exists }}" = "true" ]; then
+            gh release upload "$TAG" release-assets/se-language-*.vsix --clobber
           else
             gh release create "$TAG" \
               --target "${{ github.event.workflow_run.head_sha }}" \
