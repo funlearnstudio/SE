@@ -17,7 +17,7 @@ int main(){
 #ifdef S_TEST_ROOT
   const auto root=std::filesystem::path(S_TEST_ROOT);
   s::ModuleLoader loader;
-  auto program=loader.load(root/"examples/native/main.s");
+  auto program=loader.load(root/"examples/native/main.se");
   const s::ast::Module* metadata=nullptr;
   for(const auto& module:program.modules){
     if(module.native){metadata=&module;break;}
