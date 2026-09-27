@@ -24,14 +24,30 @@
 | `crypto` | `sha256`, `hmac_sha256`, `random_hex`, `constant_time_equal` | Python 標準函式庫 hashlib/hmac/secrets |
 | `jwt`, `session` | `sign`/`verify`, `encode`/`decode` | HS256 簽章，驗證時檢查 `exp`；session 為簽章資料而非伺服器儲存 |
 | `auth` | `hash_password`, `verify_password` | PBKDF2-HMAC-SHA256、16 byte 隨機 salt、25 萬次迭代 |
+| `email` | `compose`, `parse` | Python EmailMessage；文字郵件的建構與解析 |
+| `smtp` | `send` | Python SMTP_SSL，驗證後寄送，預設 TLS 憑證驗證 |
+| `imap` | `subjects` | IMAP over TLS；取得指定信箱最近 1–100 封郵件的基本標頭 |
+| `ftp` | `list`, `download`, `upload` | FTPS；下載回傳 Base64，文字上傳以 UTF-8 編碼 |
+| `ssh` | `run` | 需 Paramiko；系統 known_hosts 驗證及 SSH agent／金鑰登入 |
+| `websocket` | `exchange` | 需 websockets；單次 wss:// 連線，送一個訊息並收一個回覆 |
+| `ai` | `chat` | HTTPS 相容的 chat completions API，傳回第一個文字回覆 |
+| `embedding` | `create` | HTTPS 相容的 embeddings API，傳回第一組向量 |
+| `ml` | `linear_regression`, `predict` | 一元線性回歸的訓練與預測 |
+| `tensor` | `shape`, `add`, `matmul` | 等尺寸數值張量相加、形狀、二維矩陣乘法 |
+| `video` | `add`, `stop` | 在瀏覽器 Canvas 上顯示與停止 HTML video |
+| `camera` | `start`, `stop` | 瀏覽器 getUserMedia；需安全來源與使用者授權 |
 | `http_server`, `router` | 與 `web` 相同 | 現有 `web` 執行器的 API：路由註冊、`listen`、`handle`、回應與請求資料。各 `use` 有獨立路由狀態 |
 | `dns` | 與 `socket` 相同 | 現有 `socket.resolve` / `socket.tcp` 的別名 |
 | `template` | `escape`, `render` | HTML 跳脫與 `{{key}}` 佔位符；缺值報錯，不執行程式碼 |
 | `static` | `mime`, `read` | 常見 MIME 辨識、在指定根目錄內讀取檔案 |
 | `upload` | `save` | 將文字／二進位 Text 寫進既有根目錄，拒絕跨目錄路徑 |
 | `tilemap` | `parse`, `at`, `size` | 從等寬字元列讀取地圖、查詢格子與尺寸 |
-| `gui`, `window`, `canvas`, `input`, `sprite`, `physics`, `sound`, `keyboard`, `mouse`, `animation`, `scene`, `collision`, `image`, `audio` | 與 `game` 相同 | 共享現有 game 場景的瀏覽器 HTML Canvas API；相機或本機裝置 API 未實作 |
+| `gui`, `window`, `canvas`, `input`, `sprite`, `physics`, `sound`, `keyboard`, `mouse`, `animation`, `scene`, `collision`, `image`, `audio` | 與 `game` 相同 | 共享現有 game 場景的瀏覽器 HTML Canvas API；桌面原生裝置 API 未實作 |
 
-範例見 [`examples/expansion.se`](../examples/expansion.se)、[`examples/expansion-math-data.se`](../examples/expansion-math-data.se)、[`examples/expansion-web.se`](../examples/expansion-web.se)、[`examples/expansion-content.se`](../examples/expansion-content.se)、[`examples/expansion-game.se`](../examples/expansion-game.se)、[`examples/expansion-formats.se`](../examples/expansion-formats.se)、[`examples/expansion-security.se`](../examples/expansion-security.se)。
+範例見 [`examples/expansion.se`](../examples/expansion.se)、[`examples/expansion-math-data.se`](../examples/expansion-math-data.se)、[`examples/expansion-web.se`](../examples/expansion-web.se)、[`examples/expansion-content.se`](../examples/expansion-content.se)、[`examples/expansion-game.se`](../examples/expansion-game.se)、[`examples/expansion-formats.se`](../examples/expansion-formats.se)、[`examples/expansion-security.se`](../examples/expansion-security.se)、[`examples/expansion-email.se`](../examples/expansion-email.se)、[`examples/expansion-ml.se`](../examples/expansion-ml.se)、[`examples/expansion-media.se`](../examples/expansion-media.se)、[`examples/expansion-all.se`](../examples/expansion-all.se)。
 
-尚未加入的名稱：`websocket`、`smtp`、`email`、`ai`、`ml`、`tensor`、`video`、`camera`、`ftp`、`imap`、`ssh` 等。現有 `game`、`net` 等模組已有部分相近功能。
+## 依賴與可驗證範圍
+
+Python bridge 使用 Python 3.11+ 標準函式庫；`yaml` 需 `pip install PyYAML`，`markdown` 需 `pip install markdown-it-py`，`ssh` 需 `pip install paramiko`，`websocket` 需 `pip install websockets`。缺少 Python 或個別套件時會明確回報錯誤。保密資料放在權限限定的暫存目錄中，呼叫結束會清理。
+
+`http_server` / `router` 共用 `web` API；`gui` 到 `audio` 的別名共用 `game` API 和瀏覽器場景。這是 SE 自訂 API，並不等於 Python 同名套件的所有函式。`video` 和 `camera` 產生瀏覽器程式碼，實際播放、權限提示與裝置存取需在瀏覽器檢查。`smtp`、`imap`、`ftp`、`ssh`、`websocket`、`ai`、`embedding` 要連線到使用者指定的服務；本機測試沒有對外連線。

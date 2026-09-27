@@ -37,6 +37,7 @@ Value matrix_value(const std::vector<std::vector<double>>& a){std::vector<Value>
 std::string percent_encode(const std::string& s){std::ostringstream o;o<<std::uppercase<<std::hex<<std::setfill('0');for(unsigned char c:s){if(std::isalnum(c)||c=='-'||c=='_'||c=='.'||c=='~')o<<c;else o<<'%'<<std::setw(2)<<static_cast<int>(c);}return o.str();}
 std::string percent_decode(const std::string& s,SourcePos p){std::string out;for(std::size_t i=0;i<s.size();++i){if(s[i]=='%'){if(i+2>=s.size()||!std::isxdigit(static_cast<unsigned char>(s[i+1]))||!std::isxdigit(static_cast<unsigned char>(s[i+2])))throw Error(p,"Invalid percent encoding.");out+=static_cast<char>(std::stoi(s.substr(i+1,2),nullptr,16));i+=2;}else out+=s[i];}return out;}
 std::string html_escape(const std::string& s){std::string out;for(char c:s){switch(c){case '&':out+="&amp;";break;case '<':out+="&lt;";break;case '>':out+="&gt;";break;case '"':out+="&quot;";break;case '\'':out+="&#39;";break;default:out+=c;}}return out;}
+std::string js_literal(const std::string& s){std::ostringstream out;out<<'"'<<std::hex<<std::setfill('0');for(unsigned char c:s){if(c=='"'||c=='\\')out<<'\\'<<c;else if(c<32||c=='<'||c=='>'||c=='&')out<<"\\u"<<std::setw(4)<<static_cast<unsigned>(c);else out<<c;}return out.str()+'"';}
 std::filesystem::path safe_file(const std::string& root,const std::string& path,SourcePos p){namespace fs=std::filesystem;auto base=fs::weakly_canonical(fs::path(root));auto raw=fs::path(path);if(raw.empty()||raw.is_absolute())throw Error(p,"Expected a relative file path.");auto file=fs::weakly_canonical(base/raw);auto relative=file.lexically_relative(base);if(relative.empty()||relative=="."||*relative.begin()=="..")throw Error(p,"Path escapes the root directory.");return file;}
 std::vector<Entry> entries(const std::string& name){
  const auto txt=t(TypeKind::Text), n=t(TypeKind::Num), i=t(TypeKind::Int), l=list_t(), m=map_t(), b=t(TypeKind::Bool);
@@ -121,17 +122,34 @@ std::vector<Entry> entries(const std::string& name){
  return {};
 }
 }
-bool is_expansion_builtin(const std::string& name){static const std::set<std::string> names={"url","encoding","dotenv","config","array","series","matrix","linear","probability","fraction","complex","calculus","units","table","dataset","cookie","cors","http_server","router","dns","physics","collision","template","static","upload","tilemap","gui","window","canvas","input","sprite","sound","keyboard","mouse","animation","scene","image","audio"};return names.contains(name);}
+bool is_expansion_builtin(const std::string& name){static const std::set<std::string> names={"url","encoding","dotenv","config","array","series","matrix","linear","probability","fraction","complex","calculus","units","table","dataset","cookie","cors","http_server","router","dns","physics","collision","template","static","upload","tilemap","gui","window","canvas","input","sprite","sound","keyboard","mouse","animation","scene","image","audio","video","camera"};return names.contains(name);}
 TypeInfo expansion_builtin_type(const std::string& name){
  if(name=="http_server"||name=="router"){auto type=platform_builtin_type("web");type.name=name;return type;}
  if(name=="dns"){auto type=ecosystem_builtin_type("socket");type.name=name;return type;}
  if(name=="gui"||name=="window"||name=="canvas"||name=="input"||name=="sprite"||name=="physics"||name=="sound"||name=="keyboard"||name=="mouse"||name=="animation"||name=="scene"||name=="collision"||name=="image"||name=="audio"){auto type=ecosystem_builtin_type("game");extend_game_type(type);type.name=name;return type;}
+ if(name=="video"||name=="camera"){
+  TypeInfo module(TypeKind::Module),int_t(TypeKind::Int),text_t(TypeKind::Text),num_t(TypeKind::Num),none(TypeKind::None);module.name=name;
+  auto signature=[&](std::vector<TypeInfo> params){TypeInfo f(TypeKind::Function);auto sig=std::make_shared<FunctionSig>();sig->params=std::move(params);sig->result=none;f.callable=sig;return f;};
+  module.members[name=="video"?"add":"start"]=name=="video"?signature({int_t,text_t,num_t,num_t,num_t,num_t}):signature({int_t,num_t,num_t,num_t,num_t});
+  module.members["stop"]=signature({int_t});return module;
+ }
  TypeInfo module(TypeKind::Module);module.name=name;for(auto& e:entries(name)){TypeInfo function(TypeKind::Function);auto sig=std::make_shared<FunctionSig>();sig->params=e.params;sig->result=e.result;sig->fallible=e.fallible;function.callable=sig;module.members[e.name]=function;}return module;
 }
 std::shared_ptr<ModuleData> expansion_builtin_module(const std::string& name,Interpreter& vm){
  if(name=="http_server"||name=="router"){auto module=platform_builtin_module("web",vm);module->name=name;return module;}
  if(name=="dns"){auto module=ecosystem_builtin_module("socket",vm);module->name=name;return module;}
  if(name=="gui"||name=="window"||name=="canvas"||name=="input"||name=="sprite"||name=="physics"||name=="sound"||name=="keyboard"||name=="mouse"||name=="animation"||name=="scene"||name=="collision"||name=="image"||name=="audio"){auto module=ecosystem_builtin_module("game",vm);extend_game_module(module,vm);module->name=name;return module;}
+ if(name=="video"||name=="camera"){
+  auto module=std::make_shared<ModuleData>();module->name=name;
+  auto game=ecosystem_builtin_module("game",vm);auto script_fn=std::get<std::shared_ptr<CallableData>>(game->exports.at("script").data());
+  auto add=std::make_shared<CallableData>();add->name=name+(name=="video"?".add":".start");add->min_args=add->max_args=name=="video"?6:5;
+  add->call=[name,script_fn](const Args&a,SourcePos p){auto scene=integer(a[0],p);std::size_t pos=name=="video"?2:1;auto x=num(a[pos],p),y=num(a[pos+1],p),w=num(a[pos+2],p),h=num(a[pos+3],p);if(w<=0||h<=0)throw Error(p,"Video dimensions must be positive.");std::ostringstream js;js<<"{const v=document.createElement('video');v.autoplay=true;v.muted=true;v.playsInline=true;";
+   if(name=="video")js<<"v.src="<<js_literal(str(a[1],p))<<";v.loop=true;v.play().catch(console.error);SEGame.video=v;";
+   else js<<"SEGame.cameraVideo=v;navigator.mediaDevices.getUserMedia({video:true,audio:false}).then(stream=>{v.srcObject=stream;SEGame.cameraStream=stream;v.play();}).catch(console.error);";
+   js<<"function frame(){if(v.readyState>=2)ctx.drawImage(v,"<<x<<','<<y<<','<<w<<','<<h<<");if(SEGame."<<(name=="video"?"video":"cameraVideo")<<"===v)requestAnimationFrame(frame);}requestAnimationFrame(frame);}";
+   script_fn->call({Value(scene),Value(js.str())},p);return Value{};};module->exports[name=="video"?"add":"start"]=Value(add);
+  auto stop=std::make_shared<CallableData>();stop->name=name+".stop";stop->min_args=stop->max_args=1;stop->call=[name,script_fn](const Args&a,SourcePos p){auto scene=integer(a[0],p);std::string js=name=="video"?"if(SEGame.video){SEGame.video.pause();SEGame.video.removeAttribute('src');SEGame.video.load();SEGame.video=null;}":"if(SEGame.cameraStream){SEGame.cameraStream.getTracks().forEach(t=>t.stop());SEGame.cameraStream=null;}if(SEGame.cameraVideo){SEGame.cameraVideo.srcObject=null;SEGame.cameraVideo=null;}";script_fn->call({Value(scene),Value(js)},p);return Value{};};module->exports["stop"]=Value(stop);return module;
+ }
  auto module=std::make_shared<ModuleData>();module->name=name;for(auto& e:entries(name)){auto fn=std::make_shared<CallableData>();fn->name=name+"."+e.name;fn->min_args=fn->max_args=e.params.size();fn->call=e.op;module->exports[e.name]=Value(fn);}return module;
 }
 }

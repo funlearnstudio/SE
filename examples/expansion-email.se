@@ -1,0 +1,7 @@
+use email
+
+message = try email.compose "sender@example.com" "receiver@example.com" "SE test" "Hello SE"
+say message.len
+parsed = try email.parse message
+say parsed
+say "SE email expansion OK"

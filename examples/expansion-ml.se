@@ -1,0 +1,14 @@
+use ml
+use tensor
+
+xs = [1, 2, 3]
+ys = [3, 5, 7]
+model = try ml.linear_regression xs ys
+say model
+say try ml.predict model 4
+matrix1 = [[1, 2], [3, 4]]
+matrix2 = [[5, 6], [7, 8]]
+say try tensor.shape matrix1
+say try tensor.add matrix1 matrix2
+say try tensor.matmul matrix1 matrix2
+say "SE ML expansion OK"

@@ -18,13 +18,22 @@ namespace s {
 namespace {
 const char* script=R"SEPY(import datetime
 import base64
+import email
+import email.policy
+from email.message import EmailMessage
+from email import message_from_string, message_from_bytes
+import ftplib
 import hashlib
 import hmac
 import html
+import imaplib
 import json
 import secrets
+import smtplib
+import ssl
 import sys
 import time
+import urllib.request
 import traceback
 import xml.etree.ElementTree as ET
 
@@ -134,6 +143,159 @@ try:
             value = hmac.compare_digest(actual, bytes.fromhex(expected))
         else:
             raise ValueError('Unknown auth operation')
+    elif name == 'email':
+        if op == 'compose':
+            sender, recipient, subject, body = args
+            message = EmailMessage()
+            message['From'] = sender
+            message['To'] = recipient
+            message['Subject'] = subject
+            message.set_content(body)
+            value = message.as_string()
+        elif op == 'parse':
+            message = message_from_string(args[0], policy=email.policy.default)
+            value = {'from': str(message.get('From', '')), 'to': str(message.get('To', '')), 'subject': str(message.get('Subject', '')), 'body': message.get_body(preferencelist=('plain',)).get_content() if message.get_body(preferencelist=('plain',)) else ''}
+        else:
+            raise ValueError('Unknown email operation')
+    elif name == 'smtp':
+        if op != 'send':
+            raise ValueError('Unknown SMTP operation')
+        host, port, username, password, recipient, message_text = args
+        if not 1 <= port <= 65535:
+            raise ValueError('Invalid SMTP port')
+        with smtplib.SMTP_SSL(host, port, context=ssl.create_default_context(), timeout=15) as connection:
+            connection.login(username, password)
+            connection.sendmail(username, [recipient], message_text)
+        value = True
+    elif name == 'imap':
+        if op != 'subjects':
+            raise ValueError('Unknown IMAP operation')
+        host, username, password, mailbox, limit = args
+        if not 1 <= limit <= 100:
+            raise ValueError('IMAP limit must be 1..100')
+        with imaplib.IMAP4_SSL(host, ssl_context=ssl.create_default_context(), timeout=15) as connection:
+            connection.login(username, password)
+            status, _ = connection.select(mailbox, readonly=True)
+            if status != 'OK':
+                raise RuntimeError('Cannot open mailbox')
+            status, data = connection.search(None, 'ALL')
+            if status != 'OK':
+                raise RuntimeError('IMAP search failed')
+            result = []
+            for uid in data[0].split()[-limit:]:
+                status, fetched = connection.fetch(uid, '(BODY.PEEK[HEADER.FIELDS (SUBJECT FROM DATE)])')
+                if status != 'OK' or not fetched or not isinstance(fetched[0], tuple):
+                    continue
+                headers = message_from_bytes(fetched[0][1], policy=email.policy.default)
+                result.append({'subject': str(headers.get('Subject', '')), 'from': str(headers.get('From', '')), 'date': str(headers.get('Date', ''))})
+            value = result
+    elif name == 'ftp':
+        host, username, password, path = args[:4]
+        with ftplib.FTP_TLS(host, timeout=15, context=ssl.create_default_context()) as connection:
+            connection.login(username, password)
+            connection.prot_p()
+            if op == 'list':
+                value = connection.nlst(path)
+            elif op == 'download':
+                import io
+                buffer = io.BytesIO()
+                connection.retrbinary('RETR ' + path, buffer.write)
+                value = base64.b64encode(buffer.getvalue()).decode('ascii')
+            elif op == 'upload':
+                import io
+                connection.storbinary('STOR ' + path, io.BytesIO(args[4].encode('utf-8')))
+                value = True
+            else:
+                raise ValueError('Unknown FTPS operation')
+    elif name == 'ssh':
+        if op != 'run':
+            raise ValueError('Unknown SSH operation')
+        host, username, command = args
+        try:
+            import paramiko
+        except ImportError as exc:
+            raise RuntimeError('ssh.run requires paramiko installed for the selected Python') from exc
+        client = paramiko.SSHClient()
+        client.load_system_host_keys()
+        client.set_missing_host_key_policy(paramiko.RejectPolicy())
+        try:
+            client.connect(host, username=username, timeout=15, look_for_keys=True, allow_agent=True)
+            _, output, errors = client.exec_command(command, timeout=30)
+            value = {'stdout': output.read().decode('utf-8', 'replace'), 'stderr': errors.read().decode('utf-8', 'replace'), 'status': output.channel.recv_exit_status()}
+        finally:
+            client.close()
+    elif name == 'websocket':
+        if op != 'exchange':
+            raise ValueError('Unknown WebSocket operation')
+        url, message = args
+        if not url.startswith('wss://'):
+            raise ValueError('websocket.exchange requires a wss:// URL')
+        try:
+            from websockets.sync.client import connect
+        except ImportError as exc:
+            raise RuntimeError('websocket.exchange requires websockets installed for the selected Python') from exc
+        with connect(url, open_timeout=15, close_timeout=5) as socket:
+            socket.send(message)
+            reply = socket.recv(timeout=15)
+            value = reply if isinstance(reply, str) else base64.b64encode(reply).decode('ascii')
+    elif name in ('ai', 'embedding'):
+        endpoint, api_key, model, text = args
+        if not endpoint.startswith('https://'):
+            raise ValueError('AI requests require an https:// endpoint')
+        if name == 'ai' and op == 'chat':
+            payload = {'model': model, 'messages': [{'role': 'user', 'content': text}]}
+        elif name == 'embedding' and op == 'create':
+            payload = {'model': model, 'input': text}
+        else:
+            raise ValueError('Unknown AI operation')
+        request = urllib.request.Request(endpoint, data=json.dumps(payload).encode('utf-8'), headers={'Authorization': 'Bearer ' + api_key, 'Content-Type': 'application/json'}, method='POST')
+        with urllib.request.urlopen(request, timeout=30) as response:
+            result = json.load(response)
+        value = result['choices'][0]['message']['content'] if name == 'ai' else result['data'][0]['embedding']
+    elif name == 'ml':
+        if op == 'linear_regression':
+            xs, ys = args
+            if len(xs) != len(ys) or len(xs) < 2 or not all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in xs + ys):
+                raise ValueError('Regression needs matching numeric Lists of length >= 2')
+            mean_x, mean_y = sum(xs) / len(xs), sum(ys) / len(ys)
+            denominator = sum((x-mean_x)**2 for x in xs)
+            if denominator == 0:
+                raise ValueError('All x values are equal')
+            slope = sum((x-mean_x)*(y-mean_y) for x, y in zip(xs, ys)) / denominator
+            value = {'slope': slope, 'intercept': mean_y - slope * mean_x}
+        elif op == 'predict':
+            model, x = args
+            value = model['slope'] * x + model['intercept']
+        else:
+            raise ValueError('Unknown ML operation')
+    elif name == 'tensor':
+        def shape(a):
+            if not isinstance(a, list):
+                if not isinstance(a, (int, float)) or isinstance(a, bool):
+                    raise ValueError('Tensor values must be numeric')
+                return []
+            if not a:
+                return [0]
+            inner = shape(a[0])
+            if any(shape(item) != inner for item in a[1:]):
+                raise ValueError('Tensor must be rectangular')
+            return [len(a)] + inner
+        def add(a, b):
+            return [add(x, y) for x, y in zip(a, b)] if isinstance(a, list) else a + b
+        if op == 'shape':
+            value = shape(args[0])
+        elif op == 'add':
+            if shape(args[0]) != shape(args[1]):
+                raise ValueError('Tensor dimensions do not match')
+            value = add(*args)
+        elif op == 'matmul':
+            a, b = args
+            ashape, bshape = shape(a), shape(b)
+            if len(ashape) != 2 or len(bshape) != 2 or ashape[1] != bshape[0]:
+                raise ValueError('matmul needs compatible 2D tensors')
+            value = [[sum(a[row][k] * b[k][col] for k in range(ashape[1])) for col in range(bshape[1])] for row in range(ashape[0])]
+        else:
+            raise ValueError('Unknown tensor operation')
     else:
         raise ValueError('Unknown format module')
     result = {'ok': True, 'value': value}
@@ -195,7 +357,7 @@ Value invoke_format(const std::string& name,const std::string& op,const std::vec
 }
 TypeInfo fn_type(std::vector<TypeInfo> params,TypeInfo output){TypeInfo t(TypeKind::Function);auto signature=std::make_shared<FunctionSig>();signature->params=std::move(params);signature->result=std::move(output);signature->fallible=true;t.callable=signature;return t;}
 }
-bool is_format_builtin(const std::string& name){return name=="toml"||name=="yaml"||name=="xml"||name=="markdown"||name=="crypto"||name=="jwt"||name=="session"||name=="auth";}
+bool is_format_builtin(const std::string& name){return name=="toml"||name=="yaml"||name=="xml"||name=="markdown"||name=="crypto"||name=="jwt"||name=="session"||name=="auth"||name=="email"||name=="smtp"||name=="imap"||name=="ftp"||name=="ssh"||name=="websocket"||name=="ai"||name=="ml"||name=="tensor"||name=="embedding";}
 TypeInfo format_builtin_type(const std::string& name){TypeInfo module(TypeKind::Module);module.name=name;TypeInfo text_type(TypeKind::Text),unknown,integer(TypeKind::Int),boolean(TypeKind::Bool);
  if(name=="toml"||name=="yaml"||name=="xml")module.members["parse"]=fn_type({text_type},unknown);
  if(name=="yaml")module.members["stringify"]=fn_type({unknown},text_type);
@@ -214,6 +376,30 @@ TypeInfo format_builtin_type(const std::string& name){TypeInfo module(TypeKind::
  if(name=="auth"){
   module.members["hash_password"]=fn_type({text_type},text_type);
   module.members["verify_password"]=fn_type({text_type,text_type},boolean);
+ }
+ if(name=="email"){
+  module.members["compose"]=fn_type({text_type,text_type,text_type,text_type},text_type);
+  module.members["parse"]=fn_type({text_type},unknown);
+ }
+ if(name=="smtp")module.members["send"]=fn_type({text_type,integer,text_type,text_type,text_type,text_type},boolean);
+ if(name=="imap")module.members["subjects"]=fn_type({text_type,text_type,text_type,text_type,integer},unknown);
+ if(name=="ftp"){
+  module.members["list"]=fn_type({text_type,text_type,text_type,text_type},unknown);
+  module.members["download"]=fn_type({text_type,text_type,text_type,text_type},text_type);
+  module.members["upload"]=fn_type({text_type,text_type,text_type,text_type,text_type},boolean);
+ }
+ if(name=="ssh")module.members["run"]=fn_type({text_type,text_type,text_type},unknown);
+ if(name=="websocket")module.members["exchange"]=fn_type({text_type,text_type},text_type);
+ if(name=="ai")module.members["chat"]=fn_type({text_type,text_type,text_type,text_type},text_type);
+ if(name=="embedding")module.members["create"]=fn_type({text_type,text_type,text_type,text_type},unknown);
+ if(name=="ml"){
+  module.members["linear_regression"]=fn_type({unknown,unknown},unknown);
+  module.members["predict"]=fn_type({unknown,TypeInfo(TypeKind::Num)},TypeInfo(TypeKind::Num));
+ }
+ if(name=="tensor"){
+  module.members["shape"]=fn_type({unknown},unknown);
+  module.members["add"]=fn_type({unknown,unknown},unknown);
+  module.members["matmul"]=fn_type({unknown,unknown},unknown);
  }
  return module;
 }
