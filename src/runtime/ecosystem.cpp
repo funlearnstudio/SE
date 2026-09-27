@@ -6,6 +6,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <deque>
+#include <iostream>
 #include <filesystem>
 #include <fstream>
 #include <limits>
@@ -92,6 +94,62 @@ Value response_map(const NetResponse& r){auto m=std::make_shared<MapData>();m->i
 std::vector<double> numbers(const Value& value,SourcePos p,const std::string& name){auto l=list_value(value,p,name);if(l->items.empty())throw Error(p,name+" needs a non-empty List.");std::vector<double> out;for(auto& v:l->items)out.push_back(number(v,p,name));return out;}
 std::int64_t factorial_checked(std::int64_t n,SourcePos p){if(n<0)throw Error(p,"math.factorial needs a non-negative Int.");if(n>20)throw Error(p,"math.factorial is limited to 20 for Int safety.");std::int64_t r=1;for(std::int64_t i=2;i<=n;++i)r*=i;return r;}
 
+
+std::string decimal_text(long double v,int precision=18){
+  std::ostringstream o;o<<std::setprecision(std::clamp(precision,1,36))<<std::fixed<<v;
+  auto s=o.str();while(s.size()>1&&s.back()=='0')s.pop_back();if(!s.empty()&&s.back()=='.')s.pop_back();if(s=="-0")s="0";return s;
+}
+long double decimal_number(const Value& v,SourcePos p,const std::string& name){
+  auto s=text(v,p,name);try{std::size_t used=0;auto x=std::stold(s,&used);if(used!=s.size())throw std::runtime_error("bad");return x;}catch(...){throw Error(p,name+" needs a decimal Text value.");}
+}
+std::string csv_escape_field(const std::string& s){
+  if(s.find_first_of(",\"\r\n")==std::string::npos)return s;std::string out="\"";for(char ch:s){if(ch=='\"')out+="\"\"";else out+=ch;}return out+"\"";
+}
+std::shared_ptr<ListData> csv_parse_rows(const std::string& input){
+  auto rows=std::make_shared<ListData>();auto row=std::make_shared<ListData>();std::string field;bool quoted=false;
+  auto push_field=[&](){row->items.emplace_back(field);field.clear();};
+  auto push_row=[&](){push_field();rows->items.emplace_back(row);row=std::make_shared<ListData>();};
+  for(std::size_t i=0;i<input.size();++i){char ch=input[i];if(quoted){if(ch=='\"'){if(i+1<input.size()&&input[i+1]=='\"'){field+='\"';++i;}else quoted=false;}else field+=ch;continue;}if(ch=='\"'&&field.empty()){quoted=true;continue;}if(ch==','){push_field();continue;}if(ch=='\n'){if(!field.empty()||!row->items.empty())push_row();continue;}if(ch=='\r'){if(i+1<input.size()&&input[i+1]=='\n')continue;if(!field.empty()||!row->items.empty())push_row();continue;}field+=ch;}
+  if(!field.empty()||!row->items.empty())push_row();return rows;
+}
+std::string csv_stringify_rows(const Value& value,SourcePos p,const std::string& name){
+  auto rows=list_value(value,p,name);std::ostringstream out;
+  for(std::size_t r=0;r<rows->items.size();++r){auto row=list_value(rows->items[r],p,name);for(std::size_t i=0;i<row->items.size();++i){if(i)out<<',';out<<csv_escape_field(row->items[i].text());}if(r+1<rows->items.size())out<<'\n';}
+  return out.str();
+}
+std::string wildcard_regex(const std::string& pattern){
+  std::string out="^";for(std::size_t i=0;i<pattern.size();++i){char ch=pattern[i];if(ch=='*'){if(i+1<pattern.size()&&pattern[i+1]=='*'){out+=".*";++i;}else out+="[^/\\\\]*";}else if(ch=='?')out+=".";else if(std::string(".^$|()[]{}+\\").find(ch)!=std::string::npos){out+='\\';out+=ch;}else if(ch=='\\')out+="[/\\\\]";else if(ch=='/')out+="[/\\\\]";else out+=ch;}return out+"$";
+}
+std::string sha256_text(const std::string& input,SourcePos p){
+  auto stamp=std::chrono::high_resolution_clock::now().time_since_epoch().count();
+  auto file=std::filesystem::temp_directory_path()/("se-sha256-"+std::to_string(stamp)+".tmp");
+  {std::ofstream f(file,std::ios::binary|std::ios::trunc);if(!f)throw Error(p,"hash.sha256 could not create a temporary file.");f<<input;}
+#ifdef _WIN32
+  auto output=process_output("certutil -hashfile "+shell_quote(file.string())+" SHA256",p);
+#else
+  auto output=process_output("(command -v sha256sum >/dev/null 2>&1 && sha256sum "+shell_quote(file.string())+") || shasum -a 256 "+shell_quote(file.string()),p);
+#endif
+  std::error_code ec;std::filesystem::remove(file,ec);std::smatch m;std::regex re("[0-9A-Fa-f]{64}");
+  if(!std::regex_search(output,m,re))throw Error(p,"hash.sha256 could not obtain a SHA-256 digest from the host tools.");auto s=m.str();std::transform(s.begin(),s.end(),s.begin(),[](unsigned char ch){return static_cast<char>(std::tolower(ch));});return s;
+}
+std::tm utc_tm(std::time_t t){
+  std::tm tm{};
+#ifdef _WIN32
+  gmtime_s(&tm,&t);
+#else
+  gmtime_r(&t,&tm);
+#endif
+  return tm;
+}
+std::string iso_utc(std::time_t t){auto tm=utc_tm(t);std::ostringstream o;o<<std::put_time(&tm,"%Y-%m-%dT%H:%M:%SZ");return o.str();}
+struct QueueState{std::deque<Value> items;};
+struct SqliteState{std::filesystem::path path;};
+template<class T> Value native_handle(const std::string& tag,std::shared_ptr<T> value){auto h=std::make_shared<NativeHandleData>();h->tag=tag;h->resource=std::move(value);return Value(h);}
+template<class T> std::shared_ptr<T> native_as(const Value& value,const std::string& tag,SourcePos p,const std::string& name){auto h=std::get_if<std::shared_ptr<NativeHandleData>>(&value.data());if(!h||!(*h)||(*h)->tag!=tag)throw Error(p,name+" needs "+tag+".");return std::static_pointer_cast<T>((*h)->resource);}
+int& se_log_level(){static int level=1;return level;}
+int parse_log_level(std::string level){level=lower_ascii(level);if(level=="debug")return 0;if(level=="info")return 1;if(level=="warn"||level=="warning")return 2;if(level=="error")return 3;return 1;}
+void emit_log(int level,const std::string& label,const std::string& msg){if(level<se_log_level())return;auto now=std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());std::clog<<"["<<iso_utc(now)<<"] ["<<label<<"] "<<msg<<'\n';}
+
 std::string html_escape(const std::string& s){std::string o;for(char c:s){if(c=='&')o+="&amp;";else if(c=='<')o+="&lt;";else if(c=='>')o+="&gt;";else if(c=='\"')o+="&quot;";else o+=c;}return o;}
 std::string js_escape(const std::string& s){std::string o;for(char c:s){if(c=='\\')o+="\\\\";else if(c=='\"')o+="\\\"";else if(c=='\n')o+="\\n";else if(c=='\r')o+="\\r";else o+=c;}return o;}
 struct GameScene{int width=800;int height=600;std::string title="SE Game";std::string background="#111";std::vector<std::string> draw;std::vector<std::string> scripts;};
@@ -113,11 +171,15 @@ void open_file(const std::filesystem::path& path){
 
 bool is_ecosystem_builtin(const std::string& name){static const std::set<std::string> names={
   "math","data","net","node","next","game",
-  "statistics","regex","base64","uuid","iter","copy","operator"
+  "statistics","regex","re","base64","uuid","iter","itertools","copy","operator",
+  "decimal","csv","datetime","hash","hashlib","pickle","args","argparse","log","logging",
+  "shutil","glob","zip","zipfile","subprocess","socket","queue","sqlite","sqlite3",
+  "functools","enum","typing"
 };return names.contains(name);}
 
 TypeInfo ecosystem_builtin_type(const std::string& name){
-  auto m=module_type(name);auto& x=m.members;TypeInfo unknown,none(TypeKind::None),num(TypeKind::Num),integer_t(TypeKind::Int),text_t(TypeKind::Text),bool_t(TypeKind::Bool),list_t=list_type(),map_t=map_type();
+  auto m=module_type(name);auto& x=m.members;TypeInfo unknown,none(TypeKind::None),num(TypeKind::Num),integer_t(TypeKind::Int),text_t(TypeKind::Text),bool_t(TypeKind::Bool),list_t=list_type(),map_t=map_type(),func_t(TypeKind::Function);
+  auto handle_t=[](const std::string& n){TypeInfo t(TypeKind::NativeHandle);t.name=n;return t;};
   if(name=="math"){
     x["pi"]=num;x["e"]=num;x["tau"]=num;x["inf"]=num;
     for(auto n:{"sqrt","cbrt","abs","floor","ceil","round","trunc","sin","cos","tan","asin","acos","atan","sinh","cosh","tanh","asinh","acosh","atanh","exp","exp2","expm1","log","log10","log2","log1p","degrees","radians","gamma","lgamma","erf","erfc"})x[n]=fn({num},num);
@@ -126,18 +188,52 @@ TypeInfo ecosystem_builtin_type(const std::string& name){
     x["gcd"]=fn({integer_t,integer_t},integer_t,true,2);x["lcm"]=fn({integer_t,integer_t},integer_t,true,2);x["factorial"]=fn({integer_t},integer_t);x["comb"]=fn({integer_t,integer_t},integer_t);x["perm"]=fn({integer_t,integer_t},integer_t);x["sum"]=fn({list_t},num);x["mean"]=fn({list_t},num);x["median"]=fn({list_t},num);x["variance"]=fn({list_t},num);x["stddev"]=fn({list_t},num);
   }else if(name=="statistics"){
     x["mean"]=fn({list_t},num);x["median"]=fn({list_t},num);x["variance"]=fn({list_t},num);x["pvariance"]=fn({list_t},num);x["stdev"]=fn({list_t},num);x["pstdev"]=fn({list_t},num);
-  }else if(name=="regex"){
+  }else if(name=="regex"||name=="re"){
     x["match"]=fn({text_t,text_t},bool_t);x["search"]=fn({text_t,text_t},bool_t);x["replace"]=fn({text_t,text_t,text_t},text_t);x["split"]=fn({text_t,text_t},list_type(text_t));
   }else if(name=="base64"){
     x["encode"]=fn({text_t},text_t);x["decode"]=fn({text_t},text_t,false,0,true);
   }else if(name=="uuid"){
     x["v4"]=fn({},text_t);x["valid"]=fn({text_t},bool_t);
-  }else if(name=="iter"){
+  }else if(name=="iter"||name=="itertools"){
     x["range"]=fn({integer_t,integer_t},list_type(integer_t),true,1);x["enumerate"]=fn({list_t},list_t);x["zip"]=fn({list_t,list_t},list_t);x["product"]=fn({list_t,list_t},list_t);x["permutations"]=fn({list_t},list_t,true,1);x["combinations"]=fn({list_t,integer_t},list_t);
   }else if(name=="copy"){
     x["shallow"]=fn({unknown},unknown);x["deep"]=fn({unknown},unknown);
   }else if(name=="operator"){
     for(auto n:{"add","sub","mul","div","mod","eq","ne","lt","le","gt","ge"})x[n]=fn({unknown,unknown},unknown);
+  }else if(name=="decimal"){
+    x["parse"]=fn({text_t},text_t);x["add"]=fn({text_t,text_t},text_t);x["sub"]=fn({text_t,text_t},text_t);x["mul"]=fn({text_t,text_t},text_t);x["div"]=fn({text_t,text_t},text_t,true,2);x["quantize"]=fn({text_t,integer_t},text_t);
+  }else if(name=="csv"){
+    x["parse"]=fn({text_t},list_t);x["stringify"]=fn({list_t},text_t);x["read"]=fn({text_t},list_t,false,0,true);x["write"]=fn({text_t,list_t},none,false,0,true);
+  }else if(name=="datetime"){
+    x["now"]=fn({},text_t);x["timestamp"]=fn({},integer_t);x["from_timestamp"]=fn({integer_t},text_t);x["format"]=fn({integer_t,text_t},text_t);x["add_seconds"]=fn({integer_t,integer_t},integer_t);
+  }else if(name=="hash"||name=="hashlib"){
+    x["sha256"]=fn({text_t},text_t,false,0,true);x["file_sha256"]=fn({text_t},text_t,false,0,true);
+  }else if(name=="pickle"){
+    x["dumps"]=fn({unknown},text_t);x["loads"]=fn({text_t},unknown,false,0,true);
+  }else if(name=="args"||name=="argparse"){
+    x["parse"]=fn({list_t},map_t);x["get"]=fn({map_t,text_t},unknown,true,2);x["flag"]=fn({map_t,text_t},bool_t);
+  }else if(name=="log"||name=="logging"){
+    x["level"]=fn({text_t},none);x["debug"]=fn({text_t},none);x["info"]=fn({text_t},none);x["warn"]=fn({text_t},none);x["error"]=fn({text_t},none);
+  }else if(name=="shutil"){
+    x["copy"]=fn({text_t,text_t},none,false,0,true);x["move"]=fn({text_t,text_t},none,false,0,true);x["copytree"]=fn({text_t,text_t},none,false,0,true);x["remove"]=fn({text_t},none,false,0,true);x["mkdir"]=fn({text_t},none,false,0,true);
+  }else if(name=="glob"){
+    x["match"]=fn({text_t,text_t},bool_t);x["find"]=fn({text_t},list_type(text_t),false,0,true);
+  }else if(name=="zip"||name=="zipfile"){
+    x["create"]=fn({text_t,list_t},none,false,0,true);x["extract"]=fn({text_t,text_t},none,false,0,true);x["list"]=fn({text_t},list_type(text_t),false,0,true);
+  }else if(name=="subprocess"){
+    x["run"]=fn({text_t},integer_t,false,0,true);x["output"]=fn({text_t},text_t,false,0,true);
+  }else if(name=="socket"){
+    x["resolve"]=fn({text_t},text_t,false,0,true);x["tcp"]=fn({text_t,integer_t,text_t},text_t,false,0,true);
+  }else if(name=="queue"){
+    x["new"]=fn({},handle_t("Queue"));x["put"]=fn({handle_t("Queue"),unknown},none);x["get"]=fn({handle_t("Queue")},unknown,false,0,true);x["empty"]=fn({handle_t("Queue")},bool_t);x["size"]=fn({handle_t("Queue")},integer_t);
+  }else if(name=="sqlite"||name=="sqlite3"){
+    x["open"]=fn({text_t},handle_t("SQLite"));x["exec"]=fn({handle_t("SQLite"),text_t},integer_t,false,0,true);x["query"]=fn({handle_t("SQLite"),text_t},list_t,false,0,true);
+  }else if(name=="functools"){
+    x["partial"]=fn({func_t,unknown},func_t,true,1);x["reduce"]=fn({func_t,list_t},unknown,true,2);x["map"]=fn({func_t,list_t},list_t);x["filter"]=fn({func_t,list_t},list_t);
+  }else if(name=="enum"){
+    x["make"]=fn({list_type(text_t)},map_t);x["name"]=fn({map_t,integer_t},text_t,false,0,true);x["value"]=fn({map_t,text_t},integer_t,false,0,true);x["has"]=fn({map_t,text_t},bool_t);
+  }else if(name=="typing"){
+    x["type_of"]=fn({unknown},text_t);x["is"]=fn({unknown,text_t},bool_t);x["cast"]=fn({unknown,text_t},unknown);
   }else if(name=="data"){
     x["append"]=fn({list_t,unknown},none);x["extend"]=fn({list_t,list_t},none);x["insert"]=fn({list_t,integer_t,unknown},none);x["pop"]=fn({list_t},unknown,true,1);x["clear"]=fn({unknown},none);x["copy"]=fn({unknown},unknown);x["get"]=fn({map_t,text_t},unknown,true,2);x["set"]=fn({map_t,text_t,unknown},none);x["update"]=fn({map_t,map_t},none);x["delete"]=fn({map_t,text_t},bool_t);x["has"]=fn({unknown,unknown},bool_t);x["keys"]=fn({map_t},list_type(text_t));x["values"]=fn({map_t},list_t);x["items"]=fn({map_t},list_t);
   }else if(name=="net"){
