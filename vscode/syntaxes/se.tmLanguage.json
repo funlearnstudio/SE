@@ -2,24 +2,58 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "SE",
   "scopeName": "source.se",
-  "fileTypes": ["se"],
+  "fileTypes": [
+    "se"
+  ],
   "patterns": [
-    { "include": "#comments" },
-    { "include": "#strings" },
-    { "include": "#function-declarations" },
-    { "include": "#type-declarations" },
-    { "include": "#generic-parameters" },
-    { "include": "#numbers" },
-    { "include": "#constants" },
-    { "include": "#web-keywords" },
-    { "include": "#control-keywords" },
-    { "include": "#declaration-keywords" },
-    { "include": "#builtin-types" },
-    { "include": "#conversion-builtins" },
-    { "include": "#builtin-modules" },
-    { "include": "#builtin-functions" },
-    { "include": "#member-access" },
-    { "include": "#operators" }
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#function-declarations"
+    },
+    {
+      "include": "#type-declarations"
+    },
+    {
+      "include": "#generic-parameters"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#web-keywords"
+    },
+    {
+      "include": "#control-keywords"
+    },
+    {
+      "include": "#declaration-keywords"
+    },
+    {
+      "include": "#builtin-types"
+    },
+    {
+      "include": "#conversion-builtins"
+    },
+    {
+      "include": "#builtin-modules"
+    },
+    {
+      "include": "#builtin-functions"
+    },
+    {
+      "include": "#member-access"
+    },
+    {
+      "include": "#operators"
+    }
   ],
   "repository": {
     "comments": {
@@ -36,11 +70,15 @@
           "name": "string.quoted.double.se",
           "begin": "\"",
           "beginCaptures": {
-            "0": { "name": "punctuation.definition.string.begin.se" }
+            "0": {
+              "name": "punctuation.definition.string.begin.se"
+            }
           },
           "end": "\"",
           "endCaptures": {
-            "0": { "name": "punctuation.definition.string.end.se" }
+            "0": {
+              "name": "punctuation.definition.string.end.se"
+            }
           },
           "patterns": [
             {
@@ -56,8 +94,12 @@
         {
           "match": "\\b(make)(\\s+)([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
-            "1": { "name": "storage.type.function.se" },
-            "3": { "name": "entity.name.function.se" }
+            "1": {
+              "name": "storage.type.function.se"
+            },
+            "3": {
+              "name": "entity.name.function.se"
+            }
           }
         }
       ]
@@ -67,8 +109,12 @@
         {
           "match": "\\b(type)(\\s+)([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
-            "1": { "name": "storage.type.class.se" },
-            "3": { "name": "entity.name.type.se" }
+            "1": {
+              "name": "storage.type.class.se"
+            },
+            "3": {
+              "name": "entity.name.type.se"
+            }
           }
         }
       ]
@@ -79,11 +125,15 @@
           "name": "meta.generic.se",
           "begin": "\\[",
           "beginCaptures": {
-            "0": { "name": "punctuation.definition.generic.begin.se" }
+            "0": {
+              "name": "punctuation.definition.generic.begin.se"
+            }
           },
           "end": "\\]",
           "endCaptures": {
-            "0": { "name": "punctuation.definition.generic.end.se" }
+            "0": {
+              "name": "punctuation.definition.generic.end.se"
+            }
           },
           "patterns": [
             {
@@ -150,7 +200,7 @@
         },
         {
           "name": "keyword.control.flow.se",
-          "match": "\\b(?:give|fail|wait)\\b"
+          "match": "\\\\b(?:give|fail|wait|await)\\\\b"
         },
         {
           "name": "keyword.operator.logical.se",
@@ -194,7 +244,7 @@
       "patterns": [
         {
           "name": "support.namespace.se",
-          "match": "\\b(?:math|random|os|json|collections|function|option|result|async|db|https|http|web|ui|test|process|path|file|time|ts)\\b"
+          "match": "\\\\b(?:file|path|time|math|random|os|json|text|collections|test|process|http|web|js|ts|function|async|threading|option|result|match|db|https|data|net|node|next|game|statistics|regex|re|base64|uuid|iter|itertools|copy|operator|decimal|csv|datetime|hash|hashlib|pickle|args|argparse|log|logging|shutil|glob|zip|zipfile|subprocess|socket|queue|sqlite|sqlite3|functools|enum|typing)\\\\b"
         }
       ]
     },
@@ -211,8 +261,12 @@
         {
           "match": "(\\.)([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
-            "1": { "name": "punctuation.accessor.se" },
-            "2": { "name": "variable.other.member.se" }
+            "1": {
+              "name": "punctuation.accessor.se"
+            },
+            "2": {
+              "name": "variable.other.member.se"
+            }
           }
         }
       ]
