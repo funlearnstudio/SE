@@ -20,7 +20,7 @@ use linear
 say linear.determinant [[2, 1], [1, 3]]
 
 use dataset
-rows = [{name: "Ada"}, {name: "Lin"}]
+rows = [["name": "Ada"], ["name": "Lin"]]
 say dataset.row_count rows
 
 use argparse
