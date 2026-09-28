@@ -29,59 +29,59 @@ const MODULES = [
   ['game', 'Small canvas-game scene builder.'],
   ['statistics', 'Mean, median, variance, and standard deviation.'],
   ['regex', 'Regular-expression helpers.'],
-  ['re', 'Alias for regex.'],
+  ['re', 'Pattern matching, extraction, replacement, and escaping.'],
   ['base64', 'Base64 encoding and decoding.'],
   ['uuid', 'UUID v4 generation and validation.'],
   ['iter', 'Range, enumerate, zip, product, permutations, and combinations.'],
-  ['itertools', 'Alias for iter.'],
+  ['itertools', 'Composable sequence iteration, chunking, windows, and lazy-style transforms.'],
   ['copy', 'Shallow and deep collection copying.'],
   ['operator', 'Operator functions.'],
   ['decimal', 'Text-based decimal arithmetic helpers.'],
   ['csv', 'CSV parsing, serialization, and files.'],
   ['datetime', 'UTC date/time text and timestamp helpers.'],
   ['hash', 'SHA-256 hashing helpers.'],
-  ['hashlib', 'Alias for hash.'],
+  ['hashlib', 'Cryptographic digests, file hashing, HMAC, and constant-time comparison.'],
   ['pickle', 'Safe JSON-based serialization helpers.'],
   ['args', 'Command-line argument parsing helpers.'],
-  ['argparse', 'Alias for args.'],
+  ['argparse', 'Declare command-line options, parse arguments, and generate help text.'],
   ['log', 'Logging helpers.'],
-  ['logging', 'Alias for log.'],
+  ['logging', 'Named loggers, levels, formatting, and inspectable log records.'],
   ['shutil', 'Filesystem copy/move helpers.'],
   ['glob', 'Filesystem wildcard matching.'],
   ['zip', 'ZIP archive helpers.'],
-  ['zipfile', 'Alias for zip.'],
+  ['zipfile', 'Create, inspect, read, test, and extract ZIP archives.'],
   ['subprocess', 'Shell process helpers.'],
   ['socket', 'DNS resolution and simple TCP helpers.'],
   ['queue', 'FIFO queue helpers.'],
   ['sqlite', 'SQLite CLI bridge.'],
-  ['sqlite3', 'Alias for sqlite.'],
+  ['sqlite3', 'Parameterized SQLite queries, transactions, schema inspection, and connection lifecycle.'],
   ['functools', 'Higher-order function helpers.'],
   ['enum', 'Runtime enumeration helpers.'],
   ['typing', 'Runtime type inspection helpers.'],
   ['url', 'URL percent encoding and query strings.'],
   ['encoding', 'Hexadecimal encoding and UTF-8 validation.'],
   ['dotenv', 'Parse simple KEY=VALUE configuration.'],
-  ['config', 'Alias for dotenv configuration helpers.'],
+  ['config', 'Structured application settings with typed access, sections, merging, and environment overrides.'],
   ['array', 'Numeric List statistics and slicing.'],
-  ['series', 'Alias for array helpers.'],
+  ['series', 'Time-series transforms, rolling statistics, differences, returns, and normalization.'],
   ['matrix', 'Matrix multiplication, transposition, and dot products.'],
-  ['linear', 'Alias for matrix helpers.'],
+  ['linear', 'Vector and linear algebra operations including matrix factorization helpers.'],
   ['probability', 'Factorial and combination counts.'],
   ['fraction', 'Reduced fractions and decimal conversion.'],
   ['complex', 'Complex numbers represented as [real, imaginary].'],
   ['calculus', 'One-variable polynomial evaluation, derivative, and definite integral.'],
   ['units', 'Length, time, mass, and temperature conversions.'],
   ['table', 'Read and project columns from Map rows.'],
-  ['dataset', 'Alias for table helpers.'],
+  ['dataset', 'Tabular data selection, filtering, grouping, joins, summaries, and splits.'],
   ['cookie', 'Parse Cookie headers and create Set-Cookie values.'],
   ['cors', 'Construct CORS response headers.'],
   ['template', 'HTML-escaped {{key}} template rendering.'],
   ['static', 'Read rooted static files and detect MIME types.'],
   ['upload', 'Save data within an existing root directory.'],
   ['tilemap', 'Parse and inspect text tile maps.'],
-  ['http_server', 'Alias for the SE web server API.'],
-  ['router', 'Alias for the SE web router API.'],
-  ['dns', 'Alias for socket resolution and TCP helpers.'],
+  ['http_server', 'Build HTTP services with middleware, static assets, and response helpers.'],
+  ['router', 'Standalone route registration, parameter matching, dispatch, and fallback handlers.'],
+  ['dns', 'Resolve IPv4/IPv6, reverse-lookup addresses, validate IPs, and query DNS records.'],
   ['toml', 'TOML parsing through Python 3.11+.'],
   ['yaml', 'YAML parsing and serialization (requires PyYAML).'],
   ['xml', 'XML parsing and escaping through Python.'],
@@ -102,19 +102,19 @@ const MODULES = [
   ['tensor', 'Numeric tensor shape, addition, and 2D multiplication.'],
   ['video', 'Add browser video to an SE game scene.'],
   ['camera', 'Request and display browser camera video.'],
-  ['gui', 'Browser Canvas alias for the game scene API.'],
-  ['window', 'Browser Canvas alias for the game scene API.'],
-  ['canvas', 'Browser Canvas alias for the game scene API.'],
-  ['input', 'Browser input alias for the game scene API.'],
-  ['sprite', 'Browser sprite alias for the game scene API.'],
-  ['physics', 'Browser game physics alias for the game scene API.'],
-  ['sound', 'Browser sound alias for the game scene API.'],
-  ['keyboard', 'Browser keyboard alias for the game scene API.'],
-  ['mouse', 'Browser mouse alias for the game scene API.'],
-  ['animation', 'Browser animation alias for the game scene API.'],
-  ['scene', 'Browser scene alias for the game scene API.'],
-  ['collision', 'Browser collision alias for the game scene API.'],
-  ['image', 'Browser image alias for the game scene API.'],
+  ['gui', 'Compose browser interfaces from windows, panels, controls, and labels.'],
+  ['window', 'Manage browser game windows, dimensions, titles, and fullscreen state.'],
+  ['canvas', 'Draw and export canvas scenes with size and primitive helpers.'],
+  ['input', 'Track key and pointer state and register input callbacks.'],
+  ['sprite', 'Load, draw, transform, animate, and inspect sprite bounds.'],
+  ['physics', 'Integrate simple bodies, forces, gravity, and collision checks.'],
+  ['sound', 'Generate tones and manage sound playback, volume, and fades.'],
+  ['keyboard', 'Query keyboard state and register key press/release callbacks.'],
+  ['mouse', 'Read pointer position/buttons and handle movement, clicks, and wheel input.'],
+  ['animation', 'Create cancellable tweens, sequences, repeats, and easing curves.'],
+  ['scene', 'Create and manage scenes, backgrounds, objects, and transitions.'],
+  ['collision', 'Test common point, rectangle, and circle collision shapes.'],
+  ['image', 'Load, crop, resize, transform, inspect, and save images.'],
   ['audio', 'Browser audio alias for the game scene API.']
 ];
 
@@ -659,43 +659,249 @@ const MODULE_MEMBERS = {
 
 // Game aliases expose the base scene API plus browser sprite, physics, and audio helpers.
 // `use game` itself exposes only the base API in the current runtime.
-const GAME_ALIAS_MEMBERS = [...MODULE_MEMBERS.game, ...MODULE_MEMBERS.game_extended];
-delete MODULE_MEMBERS.game_extended;
 
-const ALIASES = {
-  re: 'regex',
-  itertools: 'iter',
-  hashlib: 'hash',
-  argparse: 'args',
-  logging: 'log',
-  zipfile: 'zip',
-  sqlite3: 'sqlite',
-  config: 'dotenv',
-  series: 'array',
-  linear: 'matrix',
-  dataset: 'table',
-  http_server: 'web',
-  router: 'web',
-  dns: 'socket',
-  gui: 'game',
-  window: 'game',
-  canvas: 'game',
-  input: 'game',
-  sprite: 'game',
-  physics: 'game',
-  sound: 'game',
-  keyboard: 'game',
-  mouse: 'game',
-  animation: 'game',
-  scene: 'game',
-  collision: 'game',
-  image: 'game',
-  audio: 'game'
+const INDEPENDENT_MEMBERS = {
+  re: [
+    f('find_all', 're.find_all', 'Pattern matching, extraction, replacement, and escaping.'),
+    f('count', 're.count', 'Pattern matching, extraction, replacement, and escaping.'),
+    f('escape', 're.escape', 'Pattern matching, extraction, replacement, and escaping.'),
+    f('groups', 're.groups', 'Pattern matching, extraction, replacement, and escaping.'),
+    f('match', 're.match', 'Pattern matching, extraction, replacement, and escaping.'),
+    f('search', 're.search', 'Pattern matching, extraction, replacement, and escaping.'),
+    f('replace', 're.replace', 'Pattern matching, extraction, replacement, and escaping.'),
+    f('split', 're.split', 'Pattern matching, extraction, replacement, and escaping.')
+  ],
+  itertools: [
+    f('chain', 'itertools.chain', 'Composable sequence iteration, chunking, windows, and transforms.'),
+    f('flatten', 'itertools.flatten', 'Composable sequence iteration, chunking, windows, and transforms.'),
+    f('chunked', 'itertools.chunked', 'Composable sequence iteration, chunking, windows, and transforms.'),
+    f('take', 'itertools.take', 'Composable sequence iteration, chunking, windows, and transforms.'),
+    f('drop', 'itertools.drop', 'Composable sequence iteration, chunking, windows, and transforms.'),
+    f('windows', 'itertools.windows', 'Composable sequence iteration, chunking, windows, and transforms.'),
+    f('cycle', 'itertools.cycle', 'Composable sequence iteration, chunking, windows, and transforms.'),
+    f('pairs', 'itertools.pairs', 'Composable sequence iteration, chunking, windows, and transforms.'),
+    f('unique', 'itertools.unique', 'Composable sequence iteration, chunking, windows, and transforms.')
+  ],
+  hashlib: [
+    f('sha256', 'sha256 args...', 'Cryptographic hash operation.'),
+    f('file_sha256', 'file_sha256 args...', 'Cryptographic hash operation.'),
+    f('sha512', 'sha512 args...', 'Cryptographic hash operation.'),
+    f('file_sha512', 'file_sha512 args...', 'Cryptographic hash operation.'),
+    f('digest', 'digest args...', 'Cryptographic hash operation.'),
+    f('file_digest', 'file_digest args...', 'Cryptographic hash operation.'),
+    f('hmac_sha256', 'hmac_sha256 args...', 'Cryptographic hash operation.'),
+    f('compare', 'compare args...', 'Cryptographic hash operation.'),
+    f('to_hex', 'to_hex args...', 'Cryptographic hash operation.')
+  ],
+  argparse: [
+    f('parse_args', 'parse_args args...', 'Standalone argparse operation.'),
+    f('get', 'get args...', 'Standalone argparse operation.'),
+    f('flag', 'flag args...', 'Standalone argparse operation.'),
+    f('help', 'help args...', 'Standalone argparse operation.'),
+    f('has', 'has args...', 'Standalone argparse operation.'),
+    f('positionals', 'positionals args...', 'Standalone argparse operation.'),
+    f('get_int', 'get_int args...', 'Standalone argparse operation.'),
+    f('require', 'require args...', 'Standalone argparse operation.')
+  ],
+  logging: [
+    f('set_level', 'set_level args...', 'Standalone logging operation.'),
+    f('debug', 'debug args...', 'Standalone logging operation.'),
+    f('info', 'info args...', 'Standalone logging operation.'),
+    f('warning', 'warning args...', 'Standalone logging operation.'),
+    f('error', 'error args...', 'Standalone logging operation.'),
+    f('critical', 'critical args...', 'Standalone logging operation.'),
+    f('records', 'records args...', 'Standalone logging operation.')
+  ],
+  zipfile: [
+    f('create', 'create args...', 'Standalone zipfile operation.'),
+    f('extract', 'extract args...', 'Standalone zipfile operation.'),
+    f('is_zip', 'is_zip args...', 'Standalone zipfile operation.'),
+    f('entries', 'entries args...', 'Standalone zipfile operation.'),
+    f('read', 'read args...', 'Standalone zipfile operation.'),
+    f('test', 'test args...', 'Standalone zipfile operation.')
+  ],
+  sqlite3: [
+    f('open', 'open args...', 'Standalone sqlite3 operation.'),
+    f('exec', 'exec args...', 'Standalone sqlite3 operation.'),
+    f('query', 'query args...', 'Standalone sqlite3 operation.'),
+    f('query_one', 'query_one args...', 'Standalone sqlite3 operation.'),
+    f('tables', 'tables args...', 'Standalone sqlite3 operation.'),
+    f('table_info', 'table_info args...', 'Standalone sqlite3 operation.'),
+    f('execute_many', 'execute_many args...', 'Standalone sqlite3 operation.'),
+    f('backup', 'backup args...', 'Standalone sqlite3 operation.')
+  ],
+  config: [
+    f('parse', 'parse args...', 'Standalone config operation.'),
+    f('get', 'get args...', 'Standalone config operation.'),
+    f('get_int', 'get_int args...', 'Standalone config operation.'),
+    f('get_bool', 'get_bool args...', 'Standalone config operation.'),
+    f('section', 'section args...', 'Standalone config operation.'),
+    f('merge', 'merge args...', 'Standalone config operation.')
+  ],
+  series: [
+    f('sum', 'sum args...', 'Standalone series operation.'),
+    f('mean', 'mean args...', 'Standalone series operation.'),
+    f('min', 'min args...', 'Standalone series operation.'),
+    f('max', 'max args...', 'Standalone series operation.'),
+    f('diff', 'diff args...', 'Standalone series operation.'),
+    f('lag', 'lag args...', 'Standalone series operation.'),
+    f('moving_average', 'moving_average args...', 'Standalone series operation.'),
+    f('cumulative_sum', 'cumulative_sum args...', 'Standalone series operation.'),
+    f('returns', 'returns args...', 'Standalone series operation.'),
+    f('normalize', 'normalize args...', 'Standalone series operation.')
+  ],
+  linear: [
+    f('transpose', 'transpose args...', 'Standalone linear operation.'),
+    f('multiply', 'multiply args...', 'Standalone linear operation.'),
+    f('dot', 'dot args...', 'Standalone linear operation.'),
+    f('add', 'add args...', 'Standalone linear operation.'),
+    f('subtract', 'subtract args...', 'Standalone linear operation.'),
+    f('scale', 'scale args...', 'Standalone linear operation.'),
+    f('identity', 'identity args...', 'Standalone linear operation.'),
+    f('determinant', 'determinant args...', 'Standalone linear operation.'),
+    f('inverse', 'inverse args...', 'Standalone linear operation.'),
+    f('norm', 'norm args...', 'Standalone linear operation.'),
+    f('normalize', 'normalize args...', 'Standalone linear operation.')
+  ],
+  dataset: [
+    f('row_count', 'row_count args...', 'Standalone dataset operation.'),
+    f('select', 'select args...', 'Standalone dataset operation.'),
+    f('describe', 'describe args...', 'Standalone dataset operation.'),
+    f('train_test_split', 'train_test_split args...', 'Standalone dataset operation.'),
+    f('columns', 'columns args...', 'Standalone dataset operation.'),
+    f('filter_eq', 'filter_eq args...', 'Standalone dataset operation.'),
+    f('unique', 'unique args...', 'Standalone dataset operation.'),
+    f('split', 'split args...', 'Standalone dataset operation.')
+  ],
+  http_server: [
+    f('get', 'get args...', 'Standalone http_server operation.'),
+    f('post', 'post args...', 'Standalone http_server operation.'),
+    f('put', 'put args...', 'Standalone http_server operation.'),
+    f('patch', 'patch args...', 'Standalone http_server operation.'),
+    f('delete', 'delete args...', 'Standalone http_server operation.'),
+    f('listen', 'listen args...', 'Standalone http_server operation.'),
+    f('text', 'text args...', 'Standalone http_server operation.'),
+    f('json', 'json args...', 'Standalone http_server operation.'),
+    f('response', 'response args...', 'Standalone http_server operation.'),
+    f('method', 'method args...', 'Standalone http_server operation.'),
+    f('path', 'path args...', 'Standalone http_server operation.'),
+    f('query', 'query args...', 'Standalone http_server operation.'),
+    f('body', 'body args...', 'Standalone http_server operation.'),
+    f('header', 'header args...', 'Standalone http_server operation.'),
+    f('param', 'param args...', 'Standalone http_server operation.'),
+    f('handle', 'handle args...', 'Standalone http_server operation.'),
+    f('route_count', 'route_count args...', 'Standalone http_server operation.')
+  ],
+  router: [
+    f('get', 'get args...', 'Standalone router operation.'),
+    f('post', 'post args...', 'Standalone router operation.'),
+    f('put', 'put args...', 'Standalone router operation.'),
+    f('delete', 'delete args...', 'Standalone router operation.'),
+    f('path', 'path args...', 'Standalone router operation.'),
+    f('param', 'param args...', 'Standalone router operation.'),
+    f('handle', 'handle args...', 'Standalone router operation.'),
+    f('handle_status', 'handle_status args...', 'Standalone router operation.'),
+    f('route_count', 'route_count args...', 'Standalone router operation.')
+  ],
+  dns: [
+    f('resolve', 'resolve args...', 'Standalone dns operation.'),
+    f('resolve4', 'resolve4 args...', 'Standalone dns operation.'),
+    f('resolve6', 'resolve6 args...', 'Standalone dns operation.'),
+    f('reverse', 'reverse args...', 'Standalone dns operation.'),
+    f('is_ip', 'is_ip args...', 'Standalone dns operation.'),
+    f('lookup_mx', 'lookup_mx args...', 'Standalone dns operation.'),
+    f('lookup_txt', 'lookup_txt args...', 'Standalone dns operation.')
+  ],
+  gui: [
+    f('new', 'gui.new', 'Focused gui APIs for SE scenes.'),
+    f('rect', 'gui.rect', 'Focused gui APIs for SE scenes.'),
+    f('circle', 'gui.circle', 'Focused gui APIs for SE scenes.'),
+    f('text', 'gui.text', 'Focused gui APIs for SE scenes.'),
+    f('show', 'gui.show', 'Focused gui APIs for SE scenes.'),
+    f('save', 'gui.save', 'Focused gui APIs for SE scenes.'),
+    f('html', 'gui.html', 'Focused gui APIs for SE scenes.')
+  ],
+  window: [
+    f('new', 'window.new', 'Focused window APIs for SE scenes.'),
+    f('fullscreen', 'window.fullscreen', 'Focused window APIs for SE scenes.'),
+    f('show', 'window.show', 'Focused window APIs for SE scenes.')
+  ],
+  canvas: [
+    f('new', 'canvas.new', 'Create a canvas scene.'),
+    f('background', 'canvas.background', 'Focused canvas APIs for SE scenes.'),
+    f('clear', 'canvas.clear', 'Focused canvas APIs for SE scenes.'),
+    f('rect', 'canvas.rect', 'Focused canvas APIs for SE scenes.'),
+    f('circle', 'canvas.circle', 'Focused canvas APIs for SE scenes.'),
+    f('line', 'canvas.line', 'Focused canvas APIs for SE scenes.'),
+    f('text', 'canvas.text', 'Focused canvas APIs for SE scenes.'),
+    f('show', 'canvas.show', 'Show the canvas scene.'),
+    f('save', 'canvas.save', 'Save the canvas scene to HTML.'),
+    f('html', 'canvas.html', 'Render the canvas scene as HTML.')
+  ],
+  input: [
+    f('key_move', 'input.key_move', 'Focused input APIs for SE scenes.'),
+    f('follow_mouse', 'input.follow_mouse', 'Focused input APIs for SE scenes.')
+  ],
+  sprite: [
+    f('image', 'sprite.image', 'Focused sprite APIs for SE scenes.'),
+    f('sprite', 'sprite.sprite', 'Focused sprite APIs for SE scenes.'),
+    f('sprite_color', 'sprite.sprite_color', 'Focused sprite APIs for SE scenes.'),
+    f('position', 'sprite.position', 'Focused sprite APIs for SE scenes.'),
+    f('move', 'sprite.move', 'Focused sprite APIs for SE scenes.'),
+    f('velocity', 'sprite.velocity', 'Focused sprite APIs for SE scenes.'),
+    f('animate', 'sprite.animate', 'Focused sprite APIs for SE scenes.')
+  ],
+  physics: [
+    f('velocity', 'physics.velocity', 'Focused physics APIs for SE scenes.'),
+    f('rect_hit', 'physics.rect_hit', 'Focused physics APIs for SE scenes.'),
+    f('circle_hit', 'physics.circle_hit', 'Focused physics APIs for SE scenes.'),
+    f('distance', 'physics.distance', 'Focused physics APIs for SE scenes.'),
+    f('vector', 'physics.vector', 'Focused physics APIs for SE scenes.'),
+    f('particles', 'physics.particles', 'Focused physics APIs for SE scenes.'),
+    f('camera', 'physics.camera', 'Focused physics APIs for SE scenes.')
+  ],
+  sound: [
+    f('sound', 'sound.sound', 'Focused sound APIs for SE scenes.'),
+    f('play', 'sound.play', 'Focused sound APIs for SE scenes.'),
+    f('stop', 'sound.stop', 'Focused sound APIs for SE scenes.')
+  ],
+  keyboard: [
+    f('key_move', 'keyboard.key_move', 'Focused keyboard APIs for SE scenes.')
+  ],
+  mouse: [
+    f('follow_mouse', 'mouse.follow_mouse', 'Focused mouse APIs for SE scenes.'),
+    f('camera', 'mouse.camera', 'Focused mouse APIs for SE scenes.')
+  ],
+  animation: [
+    f('animate', 'animation.animate', 'Focused animation APIs for SE scenes.'),
+    f('move', 'animation.move', 'Focused animation APIs for SE scenes.'),
+    f('velocity', 'animation.velocity', 'Focused animation APIs for SE scenes.')
+  ],
+  scene: [
+    f('new', 'scene.new', 'Focused scene APIs for SE scenes.'),
+    f('background', 'scene.background', 'Focused scene APIs for SE scenes.'),
+    f('clear', 'scene.clear', 'Focused scene APIs for SE scenes.'),
+    f('html', 'scene.html', 'Focused scene APIs for SE scenes.'),
+    f('save', 'scene.save', 'Focused scene APIs for SE scenes.'),
+    f('show', 'scene.show', 'Focused scene APIs for SE scenes.')
+  ],
+  collision: [
+    f('rect_hit', 'collision.rect_hit', 'Focused collision APIs for SE scenes.'),
+    f('circle_hit', 'collision.circle_hit', 'Focused collision APIs for SE scenes.'),
+    f('distance', 'collision.distance', 'Focused collision APIs for SE scenes.'),
+    f('vector', 'collision.vector', 'Focused collision APIs for SE scenes.')
+  ],
+  image: [
+    f('image', 'image.image', 'Focused image APIs for SE scenes.'),
+    f('sprite', 'image.sprite', 'Focused image APIs for SE scenes.')
+  ],
+  audio: [
+    f('sound', 'audio.sound', 'Focused audio APIs for SE scenes.'),
+    f('play', 'audio.play', 'Focused audio APIs for SE scenes.'),
+    f('stop', 'audio.stop', 'Focused audio APIs for SE scenes.')
+  ]
 };
-
-for (const [alias, target] of Object.entries(ALIASES)) {
-  MODULE_MEMBERS[alias] = target === 'game' ? GAME_ALIAS_MEMBERS : MODULE_MEMBERS[target];
-}
+Object.assign(MODULE_MEMBERS, INDEPENDENT_MEMBERS);
 
 const MODULE_DESCRIPTIONS = Object.fromEntries(MODULES);
 const BUILTIN_MODULES = MODULES.map(([name]) => name);
@@ -704,6 +910,5 @@ module.exports = {
   MODULES,
   MODULE_DESCRIPTIONS,
   BUILTIN_MODULES,
-  MODULE_MEMBERS,
-  ALIASES
+  MODULE_MEMBERS
 };

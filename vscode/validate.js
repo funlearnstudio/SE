@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
-const { BUILTIN_MODULES, MODULE_MEMBERS, ALIASES } = require('./language-data');
+const { BUILTIN_MODULES, MODULE_MEMBERS } = require('./language-data');
 const { parseSeCheckOutput } = require('./diagnostics');
 
 const root = path.resolve(__dirname, '..');
@@ -57,16 +57,22 @@ for (const name of BUILTIN_MODULES) {
   assert.strictEqual(new Set(members.map(([member]) => member)).size, members.length, `Duplicate members in ${name}.`);
 }
 
-for (const [alias, target] of Object.entries(ALIASES)) {
-  assert(BUILTIN_MODULES.includes(alias), `Alias ${alias} is not a built-in module.`);
-  assert(BUILTIN_MODULES.includes(target), `Alias target ${target} is not a built-in module.`);
-  if (target === 'game') {
-    assert(MODULE_MEMBERS[alias].length > MODULE_MEMBERS.game.length, `Game alias ${alias} lacks extended members.`);
-    assert(MODULE_MEMBERS.game.every(([member]) => MODULE_MEMBERS[alias].some(([entry]) => entry === member)), `Game alias ${alias} lacks base members.`);
-  } else {
-    assert.strictEqual(MODULE_MEMBERS[alias], MODULE_MEMBERS[target], `Alias ${alias} does not share ${target} members.`);
-  }
+const independentPackages = {
+  re: 'regex', itertools: 'iter', hashlib: 'hash', argparse: 'args',
+  logging: 'log', zipfile: 'zip', sqlite3: 'sqlite', config: 'dotenv',
+  series: 'array', linear: 'matrix', dataset: 'table',
+  http_server: 'web', router: 'web', dns: 'socket',
+  gui: 'game', window: 'game', canvas: 'game', input: 'game',
+  sprite: 'game', physics: 'game', sound: 'game', keyboard: 'game',
+  mouse: 'game', animation: 'game', scene: 'game', collision: 'game',
+  image: 'game', audio: 'game'
+};
+for (const name of Object.keys(independentPackages)) {
+  assert(BUILTIN_MODULES.includes(name), `Independent package ${name} is not built in.`);
+  assert(MODULE_MEMBERS[name] !== MODULE_MEMBERS[independentPackages[name]], `${name} still shares an alias member array.`);
+  assert(MODULE_MEMBERS[name].length > 0, `${name} needs a standalone API.`);
 }
+assert(!Object.hasOwn(require('./language-data'), 'ALIASES'), 'Alias registry should be removed.');
 
 // Every native expansion operation should appear in the editor's member completions.
 const expansionSource = read('src/runtime/expansion.cpp');
@@ -76,8 +82,18 @@ for (const match of expansionSource.matchAll(/if\(name=="([a-z_]+)"(?:\|\|name==
     assert(MODULE_MEMBERS[module].some(([name]) => name === member), `Missing ${module}.${member} completion.`);
   }
 }
+const gameApiOwners = {
+  image: ['sprite', 'image'], sprite: ['sprite'], sprite_color: ['sprite'],
+  position: ['sprite'], move: ['sprite', 'animation'], velocity: ['sprite', 'physics', 'animation'],
+  animate: ['sprite', 'animation'], key_move: ['input', 'keyboard'], follow_mouse: ['input', 'mouse'],
+  sound: ['sound', 'audio'], play: ['sound', 'audio'], stop: ['sound', 'audio'],
+  fullscreen: ['window'], camera: ['physics', 'mouse'], particles: ['physics'],
+  rect_hit: ['physics', 'collision'], circle_hit: ['physics', 'collision'],
+  distance: ['physics', 'collision'], vector: ['physics', 'collision']
+};
 for (const [, member] of read('src/runtime/game_ext.cpp').matchAll(/x\["([a-z_]+)"\]=/g)) {
-  assert(MODULE_MEMBERS.canvas.some(([name]) => name === member), `Missing canvas.${member} completion.`);
+  const owners = gameApiOwners[member] || [];
+  assert(owners.some((owner) => MODULE_MEMBERS[owner].some(([name]) => name === member)), `No focused game package exposes ${member}.`);
 }
 
 const grammar = JSON.parse(read('vscode/syntaxes/se.tmLanguage.json'));

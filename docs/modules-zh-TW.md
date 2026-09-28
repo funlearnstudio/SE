@@ -78,3 +78,8 @@ use native_test
 ## Source Extension
 
 新的 module 使用 `.se`。舊 `.s` lookup 可暫時保留 migration compatibility，但新專案與文件應一律使用 `.se`。
+
+
+## 獨立擴充包 API
+
+每個 built-in 名稱都是獨立模組。相關模組可以共用內部工具，但公開 API 各自聚焦。例如 `re` 提供正規表示式擷取，`itertools` 提供序列轉換，`config` 解析分區設定，`series` 處理數值序列，`linear` 提供矩陣運算，`dataset` 提供資料列選取與切分。`canvas`、`sprite`、`physics`、`collision` 等遊戲模組則分別提供場景功能。

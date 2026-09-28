@@ -39,8 +39,36 @@ std::string percent_decode(const std::string& s,SourcePos p){std::string out;for
 std::string html_escape(const std::string& s){std::string out;for(char c:s){switch(c){case '&':out+="&amp;";break;case '<':out+="&lt;";break;case '>':out+="&gt;";break;case '"':out+="&quot;";break;case '\'':out+="&#39;";break;default:out+=c;}}return out;}
 std::string js_literal(const std::string& s){std::ostringstream out;out<<'"'<<std::hex<<std::setfill('0');for(unsigned char c:s){if(c=='"'||c=='\\')out<<'\\'<<c;else if(c<32||c=='<'||c=='>'||c=='&')out<<"\\u"<<std::setw(4)<<static_cast<unsigned>(c);else out<<c;}return out.str()+'"';}
 std::filesystem::path safe_file(const std::string& root,const std::string& path,SourcePos p){namespace fs=std::filesystem;auto base=fs::weakly_canonical(fs::path(root));auto raw=fs::path(path);if(raw.empty()||raw.is_absolute())throw Error(p,"Expected a relative file path.");auto file=fs::weakly_canonical(base/raw);auto relative=file.lexically_relative(base);if(relative.empty()||relative=="."||*relative.begin()=="..")throw Error(p,"Path escapes the root directory.");return file;}
+bool is_web_package(const std::string& name){return name=="http_server"||name=="router";}
+const std::set<std::string>& web_package_members(const std::string& name){
+ static const std::map<std::string,std::set<std::string>> members={
+  {"http_server",{"get","post","put","patch","delete","listen","text","json","response","method","path","query","body","header","param","handle","route_count"}},
+  {"router",{"get","post","put","delete","path","param","handle","handle_status","route_count"}}
+ };
+ return members.at(name);
+}
+bool is_game_package(const std::string& name){static const std::set<std::string> names={"gui","window","canvas","input","sprite","physics","sound","keyboard","mouse","animation","scene","collision","image","audio"};return names.contains(name);}
+const std::set<std::string>& game_package_members(const std::string& name){
+ static const std::map<std::string,std::set<std::string>> members={
+  {"gui",{"new","rect","circle","text","show","save","html"}},
+  {"window",{"new","fullscreen","show"}},
+  {"canvas",{"new","background","clear","rect","circle","line","text","show","save","html"}},
+  {"input",{"key_move","follow_mouse"}},
+  {"sprite",{"image","sprite","sprite_color","position","move","velocity","animate"}},
+  {"physics",{"velocity","rect_hit","circle_hit","distance","vector","particles","camera"}},
+  {"sound",{"sound","play","stop"}},
+  {"keyboard",{"key_move"}},
+  {"mouse",{"follow_mouse","camera"}},
+  {"animation",{"animate","move","velocity"}},
+  {"scene",{"new","background","clear","html","save","show"}},
+  {"collision",{"rect_hit","circle_hit","distance","vector"}},
+  {"image",{"image","sprite"}},
+  {"audio",{"sound","play","stop"}}
+ };
+ return members.at(name);
+}
 std::vector<Entry> entries(const std::string& name){
- const auto txt=t(TypeKind::Text), n=t(TypeKind::Num), i=t(TypeKind::Int), l=list_t(), m=map_t(), b=t(TypeKind::Bool);
+ const auto txt=t(TypeKind::Text), n=t(TypeKind::Num), i=t(TypeKind::Int), l=list_t(), m=map_t(), b=t(TypeKind::Bool), unknown=TypeInfo{};
  if(name=="url")return {
   {"encode",{txt},txt,[](const Args&a,SourcePos p){return Value(percent_encode(str(a[0],p)));}},
   {"decode",{txt},txt,[](const Args&a,SourcePos p){return Value(percent_decode(str(a[0],p),p));},true},
@@ -51,6 +79,49 @@ std::vector<Entry> entries(const std::string& name){
   {"hex",{txt},txt,[](const Args&a,SourcePos p){std::ostringstream out;out<<std::hex<<std::setfill('0');for(unsigned char c:str(a[0],p))out<<std::setw(2)<<int(c);return Value(out.str());}},
   {"unhex",{txt},txt,[](const Args&a,SourcePos p){auto s=str(a[0],p);if(s.size()%2)throw Error(p,"Hex needs an even number of digits.");std::string out;for(std::size_t j=0;j<s.size();j+=2){if(!std::isxdigit(static_cast<unsigned char>(s[j]))||!std::isxdigit(static_cast<unsigned char>(s[j+1])))throw Error(p,"Invalid hex digit.");out+=static_cast<char>(std::stoi(s.substr(j,2),nullptr,16));}return Value(out);},true},
   {"utf8_valid",{txt},b,[](const Args&a,SourcePos p){auto s=str(a[0],p);for(std::size_t j=0;j<s.size();){unsigned char c=s[j];std::size_t count=c<0x80?1:(c>=0xC2&&c<=0xDF?2:(c>=0xE0&&c<=0xEF?3:(c>=0xF0&&c<=0xF4?4:0)));if(!count||j+count>s.size())return Value(false);if(count>1){for(std::size_t k=1;k<count;++k)if((static_cast<unsigned char>(s[j+k])&0xC0)!=0x80)return Value(false);unsigned char next=s[j+1];if((c==0xE0&&next<0xA0)||(c==0xED&&next>=0xA0)||(c==0xF0&&next<0x90)||(c==0xF4&&next>=0x90))return Value(false);}j+=count;}return Value(true);}}
+ };
+ if(name=="config")return {
+  {"parse",{txt},m,[](const Args&a,SourcePos p){std::istringstream in(str(a[0],p));std::vector<std::pair<std::string,Value>> out;std::string section,line;while(std::getline(in,line)){line=trim(line);if(line.empty()||line[0]=='#'||line[0]==';')continue;if(line.front()=='['&&line.back()==']'){section=trim(line.substr(1,line.size()-2));if(section.empty())throw Error(p,"Config section name cannot be empty.");continue;}auto pos=line.find('=');if(pos==std::string::npos)throw Error(p,"Expected key = value in config.");auto key=trim(line.substr(0,pos)),value=trim(line.substr(pos+1));if(key.empty())throw Error(p,"Config key cannot be empty.");if(value.size()>=2&&((value.front()=='"'&&value.back()=='"')||(value.front()=='\''&&value.back()=='\'')))value=value.substr(1,value.size()-2);out.emplace_back(section.empty()?key:section+"."+key,Value(value));}return map(std::move(out));},true},
+  {"get",{m,txt},txt,[](const Args&a,SourcePos p){auto q=std::get_if<std::shared_ptr<MapData>>(&a[0].data());if(!q)throw Error(p,"config.get needs a Map.");auto key=str(a[1],p);for(auto& [k,v]:(*q)->items)if(k==key)return v;throw Error(p,"Missing config key: "+key);},true},
+  {"get_int",{m,txt},i,[](const Args&a,SourcePos p){auto q=std::get_if<std::shared_ptr<MapData>>(&a[0].data());if(!q)throw Error(p,"config.get_int needs a Map.");auto key=str(a[1],p);for(auto& [k,v]:(*q)->items)if(k==key){try{std::size_t used=0;auto raw=str(v,p);auto n=std::stoll(raw,&used);if(used!=raw.size())throw std::runtime_error("trailing");return Value(static_cast<std::int64_t>(n));}catch(...){throw Error(p,"Config value is not an Int: "+key);}}throw Error(p,"Missing config key: "+key);},true},
+  {"get_bool",{m,txt},b,[](const Args&a,SourcePos p){auto q=std::get_if<std::shared_ptr<MapData>>(&a[0].data());if(!q)throw Error(p,"config.get_bool needs a Map.");auto key=str(a[1],p);for(auto& [k,v]:(*q)->items)if(k==key){auto x=str(v,p);std::transform(x.begin(),x.end(),x.begin(),[](unsigned char ch){return static_cast<char>(std::tolower(ch));});if(x=="true"||x=="yes"||x=="1")return Value(true);if(x=="false"||x=="no"||x=="0")return Value(false);throw Error(p,"Config value is not a Bool: "+key);}throw Error(p,"Missing config key: "+key);},true},
+  {"section",{m,txt},m,[](const Args&a,SourcePos p){auto q=std::get_if<std::shared_ptr<MapData>>(&a[0].data());if(!q)throw Error(p,"config.section needs a Map.");auto prefix=str(a[1],p)+".";std::vector<std::pair<std::string,Value>> out;for(auto& [k,v]:(*q)->items)if(k.rfind(prefix,0)==0)out.emplace_back(k.substr(prefix.size()),v);return map(std::move(out));}},
+  {"merge",{m,m},m,[](const Args&a,SourcePos p){auto x=std::get_if<std::shared_ptr<MapData>>(&a[0].data()),y=std::get_if<std::shared_ptr<MapData>>(&a[1].data());if(!x||!y)throw Error(p,"config.merge needs two Maps.");auto out=(*x)->items;for(auto& kv:(*y)->items){auto it=std::find_if(out.begin(),out.end(),[&](const auto& item){return item.first==kv.first;});if(it==out.end())out.push_back(kv);else it->second=kv.second;}return map(std::move(out));}}
+ };
+ if(name=="series")return {
+  {"sum",{l},n,[](const Args&a,SourcePos p){auto v=vector_of(a[0],p);return Value(std::accumulate(v.begin(),v.end(),0.0));}},
+  {"mean",{l},n,[](const Args&a,SourcePos p){auto v=vector_of(a[0],p);if(v.empty())throw Error(p,"Mean needs values.");return Value(std::accumulate(v.begin(),v.end(),0.0)/v.size());},true},
+  {"min",{l},n,[](const Args&a,SourcePos p){auto v=vector_of(a[0],p);return Value(*std::min_element(v.begin(),v.end()));}},
+  {"max",{l},n,[](const Args&a,SourcePos p){auto v=vector_of(a[0],p);return Value(*std::max_element(v.begin(),v.end()));}},
+  {"diff",{l},l,[](const Args&a,SourcePos p){auto v=vector_of(a[0],p);std::vector<Value> out;for(std::size_t k=1;k<v.size();++k)out.emplace_back(v[k]-v[k-1]);return list(std::move(out));}},
+  {"lag",{l,i},l,[](const Args&a,SourcePos p){auto& v=items(a[0],p);auto k=integer(a[1],p);if(k<0)throw Error(p,"series.lag needs a non-negative lag.");std::vector<Value> out;for(std::size_t j=static_cast<std::size_t>(k);j<v.size();++j)out.push_back(v[j-static_cast<std::size_t>(k)]);return list(std::move(out));},true},
+  {"moving_average",{l,i},l,[](const Args&a,SourcePos p){auto v=vector_of(a[0],p);auto w=integer(a[1],p);if(w<=0||static_cast<std::size_t>(w)>v.size())throw Error(p,"Window must be between 1 and series length.");std::vector<Value> out;double sum=std::accumulate(v.begin(),v.begin()+w,0.0);out.emplace_back(sum/w);for(std::size_t j=static_cast<std::size_t>(w);j<v.size();++j){sum+=v[j]-v[j-static_cast<std::size_t>(w)];out.emplace_back(sum/w);}return list(std::move(out));},true},
+  {"cumulative_sum",{l},l,[](const Args&a,SourcePos p){auto v=vector_of(a[0],p);std::vector<Value> out;double sum=0;for(auto x:v){sum+=x;out.emplace_back(sum);}return list(std::move(out));}},
+  {"returns",{l},l,[](const Args&a,SourcePos p){auto v=vector_of(a[0],p);std::vector<Value> out;for(std::size_t j=1;j<v.size();++j){if(v[j-1]==0)throw Error(p,"Cannot calculate return from a zero value.");out.emplace_back(v[j]/v[j-1]-1);}return list(std::move(out));},true},
+  {"normalize",{l},l,[](const Args&a,SourcePos p){auto v=vector_of(a[0],p);if(v.empty())return list({});auto lo=*std::min_element(v.begin(),v.end()),hi=*std::max_element(v.begin(),v.end());if(lo==hi)throw Error(p,"Cannot normalize a constant series.");std::vector<Value> out;for(auto x:v)out.emplace_back((x-lo)/(hi-lo));return list(std::move(out));},true}
+ };
+ if(name=="linear")return {
+  {"transpose",{l},l,[](const Args&a,SourcePos p){auto x=matrix_of(a[0],p);std::vector<std::vector<double>> r(x[0].size(),std::vector<double>(x.size()));for(std::size_t y=0;y<x.size();++y)for(std::size_t z=0;z<x[0].size();++z)r[z][y]=x[y][z];return matrix_value(r);},true},
+  {"multiply",{l,l},l,[](const Args&a,SourcePos p){auto x=matrix_of(a[0],p),y=matrix_of(a[1],p);if(x[0].size()!=y.size())throw Error(p,"Matrix dimensions do not match.");std::vector<std::vector<double>> r(x.size(),std::vector<double>(y[0].size()));for(std::size_t row=0;row<x.size();++row)for(std::size_t col=0;col<y[0].size();++col)for(std::size_t k=0;k<y.size();++k)r[row][col]+=x[row][k]*y[k][col];return matrix_value(r);},true},
+  {"dot",{l,l},n,[](const Args&a,SourcePos p){auto x=vector_of(a[0],p),y=vector_of(a[1],p);if(x.size()!=y.size())throw Error(p,"Vector dimensions do not match.");return Value(std::inner_product(x.begin(),x.end(),y.begin(),0.0));},true},
+  {"add",{l,l},l,[](const Args&a,SourcePos p){auto x=matrix_of(a[0],p),y=matrix_of(a[1],p);if(x.size()!=y.size()||x[0].size()!=y[0].size())throw Error(p,"Matrix dimensions do not match.");for(std::size_t r=0;r<x.size();++r)for(std::size_t q=0;q<x[0].size();++q)x[r][q]+=y[r][q];return matrix_value(x);},true},
+  {"subtract",{l,l},l,[](const Args&a,SourcePos p){auto x=matrix_of(a[0],p),y=matrix_of(a[1],p);if(x.size()!=y.size()||x[0].size()!=y[0].size())throw Error(p,"Matrix dimensions do not match.");for(std::size_t r=0;r<x.size();++r)for(std::size_t q=0;q<x[0].size();++q)x[r][q]-=y[r][q];return matrix_value(x);},true},
+  {"scale",{l,n},l,[](const Args&a,SourcePos p){auto x=matrix_of(a[0],p);auto factor=num(a[1],p);for(auto& row:x)for(auto& v:row)v*=factor;return matrix_value(x);}},
+  {"identity",{i},l,[](const Args&a,SourcePos p){auto n=integer(a[0],p);if(n<=0||n>128)throw Error(p,"linear.identity size must be 1..128.");std::vector<std::vector<double>> x(static_cast<std::size_t>(n),std::vector<double>(static_cast<std::size_t>(n)));for(std::size_t j=0;j<x.size();++j)x[j][j]=1;return matrix_value(x);},true},
+  {"determinant",{l},n,[](const Args&a,SourcePos p){auto x=matrix_of(a[0],p);if(x.size()!=x[0].size())throw Error(p,"Determinant needs a square matrix.");double det=1;for(std::size_t c=0;c<x.size();++c){std::size_t pivot=c;for(std::size_t r=c+1;r<x.size();++r)if(std::fabs(x[r][c])>std::fabs(x[pivot][c]))pivot=r;if(std::fabs(x[pivot][c])<1e-12)return Value(0.0);if(pivot!=c){std::swap(x[pivot],x[c]);det=-det;}auto d=x[c][c];det*=d;for(std::size_t r=c+1;r<x.size();++r){auto factor=x[r][c]/d;for(std::size_t k=c+1;k<x.size();++k)x[r][k]-=factor*x[c][k];}}return Value(det);},true},
+  {"inverse",{l},l,[](const Args&a,SourcePos p){auto x=matrix_of(a[0],p);if(x.size()!=x[0].size())throw Error(p,"Inverse needs a square matrix.");auto n=x.size();std::vector<std::vector<double>> y(n,std::vector<double>(n));for(std::size_t j=0;j<n;++j)y[j][j]=1;for(std::size_t c=0;c<n;++c){std::size_t pivot=c;for(std::size_t r=c+1;r<n;++r)if(std::fabs(x[r][c])>std::fabs(x[pivot][c]))pivot=r;if(std::fabs(x[pivot][c])<1e-12)throw Error(p,"Matrix is singular.");std::swap(x[pivot],x[c]);std::swap(y[pivot],y[c]);auto div=x[c][c];for(std::size_t k=0;k<n;++k){x[c][k]/=div;y[c][k]/=div;}for(std::size_t r=0;r<n;++r)if(r!=c){auto factor=x[r][c];for(std::size_t k=0;k<n;++k){x[r][k]-=factor*x[c][k];y[r][k]-=factor*y[c][k];}}}return matrix_value(y);},true},
+  {"norm",{l},n,[](const Args&a,SourcePos p){auto v=vector_of(a[0],p);double q=0;for(auto x:v)q+=x*x;return Value(std::sqrt(q));}},
+  {"normalize",{l},l,[](const Args&a,SourcePos p){auto v=vector_of(a[0],p);double q=0;for(auto x:v)q+=x*x;q=std::sqrt(q);if(q==0)throw Error(p,"Cannot normalize the zero vector.");std::vector<Value> out;for(auto x:v)out.emplace_back(x/q);return list(std::move(out));},true}
+ };
+ if(name=="dataset")return {
+  {"row_count",{l},i,[](const Args&a,SourcePos p){return Value(static_cast<std::int64_t>(items(a[0],p).size()));}},
+  {"select",{l,l},l,[](const Args&a,SourcePos p){std::vector<Value> out;for(auto& row:items(a[0],p)){auto rec=std::get_if<std::shared_ptr<MapData>>(&row.data());if(!rec)throw Error(p,"Dataset rows must be Maps.");std::vector<std::pair<std::string,Value>> fields;for(auto& field:items(a[1],p)){auto key=str(field,p);auto it=std::find_if((*rec)->items.begin(),(*rec)->items.end(),[&](const auto& kv){return kv.first==key;});if(it==(*rec)->items.end())throw Error(p,"Missing dataset column: "+key);fields.push_back(*it);}out.push_back(map(std::move(fields)));}return list(std::move(out));},true},
+  {"describe",{l},m,[](const Args&a,SourcePos p){auto& rows=items(a[0],p);std::vector<Value> cols;if(!rows.empty()){auto rec=std::get_if<std::shared_ptr<MapData>>(&rows[0].data());if(!rec)throw Error(p,"Dataset rows must be Maps.");for(auto&kv:(*rec)->items)cols.emplace_back(kv.first);}return map({{"row_count",Value(static_cast<std::int64_t>(rows.size()))},{"columns",list(std::move(cols))}});}},
+  {"train_test_split",{l,n},l,[](const Args&a,SourcePos p){auto& rows=items(a[0],p);auto ratio=num(a[1],p);if(ratio<=0||ratio>=1)throw Error(p,"Split ratio must be between 0 and 1.");auto cut=static_cast<std::size_t>(rows.size()*ratio);return list({list(std::vector<Value>(rows.begin(),rows.begin()+static_cast<std::ptrdiff_t>(cut))),list(std::vector<Value>(rows.begin()+static_cast<std::ptrdiff_t>(cut),rows.end()))});},true},
+  {"columns",{l},l,[](const Args&a,SourcePos p){auto& rows=items(a[0],p);std::vector<Value> out;if(rows.empty())return list(out);auto row=std::get_if<std::shared_ptr<MapData>>(&rows[0].data());if(!row)throw Error(p,"Dataset rows must be Maps.");for(auto& kv:(*row)->items)out.emplace_back(kv.first);return list(std::move(out));},true},
+  {"filter_eq",{l,txt,unknown},l,[](const Args&a,SourcePos p){auto key=str(a[1],p);std::vector<Value> out;for(auto& row:items(a[0],p)){auto rec=std::get_if<std::shared_ptr<MapData>>(&row.data());if(!rec)throw Error(p,"Dataset rows must be Maps.");for(auto& kv:(*rec)->items)if(kv.first==key&&kv.second.text()==a[2].text())out.push_back(row);}return list(std::move(out));},true},
+  {"unique",{l,txt},l,[](const Args&a,SourcePos p){auto key=str(a[1],p);std::vector<Value> out;std::set<std::string> seen;for(auto& row:items(a[0],p)){auto rec=std::get_if<std::shared_ptr<MapData>>(&row.data());if(!rec)throw Error(p,"Dataset rows must be Maps.");bool kept=false;for(auto& kv:(*rec)->items)if(kv.first==key){auto v=kv.second.text();if(seen.insert(v).second)out.push_back(row);kept=true;break;}if(!kept)throw Error(p,"Missing dataset column: "+key);}return list(std::move(out));},true},
+  {"split",{l,n},l,[](const Args&a,SourcePos p){auto& rows=items(a[0],p);auto ratio=num(a[1],p);if(ratio<=0||ratio>=1)throw Error(p,"Split ratio must be between 0 and 1.");std::size_t cut=static_cast<std::size_t>(rows.size()*ratio);std::vector<Value> first(rows.begin(),rows.begin()+static_cast<std::ptrdiff_t>(cut)),second(rows.begin()+static_cast<std::ptrdiff_t>(cut),rows.end());return list({list(std::move(first)),list(std::move(second))});},true}
  };
  if(name=="dotenv"||name=="config")return {
   {"parse",{txt},m,[](const Args&a,SourcePos p){std::istringstream in(str(a[0],p));std::vector<std::pair<std::string,Value>> out;std::string line;while(std::getline(in,line)){line=trim(line);if(line.empty()||line[0]=='#')continue;if(line.rfind("export ",0)==0)line=trim(line.substr(7));auto pos=line.find('=');if(pos==std::string::npos)throw Error(p,"Expected KEY=VALUE.");auto key=trim(line.substr(0,pos)),val=trim(line.substr(pos+1));if(key.empty()||!(std::isalpha(static_cast<unsigned char>(key[0]))||key[0]=='_')||!std::all_of(key.begin()+1,key.end(),[](unsigned char c){return std::isalnum(c)||c=='_';}))throw Error(p,"Invalid configuration key.");if(val.size()>=2&&((val.front()=='"'&&val.back()=='"')||(val.front()=='\''&&val.back()=='\'')))val=val.substr(1,val.size()-2);out.emplace_back(key,Value(val));}return map(std::move(out));},true},
@@ -124,9 +195,9 @@ std::vector<Entry> entries(const std::string& name){
 }
 bool is_expansion_builtin(const std::string& name){static const std::set<std::string> names={"url","encoding","dotenv","config","array","series","matrix","linear","probability","fraction","complex","calculus","units","table","dataset","cookie","cors","http_server","router","dns","physics","collision","template","static","upload","tilemap","gui","window","canvas","input","sprite","sound","keyboard","mouse","animation","scene","image","audio","video","camera"};return names.contains(name);}
 TypeInfo expansion_builtin_type(const std::string& name){
- if(name=="http_server"||name=="router"){auto type=platform_builtin_type("web");type.name=name;return type;}
- if(name=="dns"){auto type=ecosystem_builtin_type("socket");type.name=name;return type;}
- if(name=="gui"||name=="window"||name=="canvas"||name=="input"||name=="sprite"||name=="physics"||name=="sound"||name=="keyboard"||name=="mouse"||name=="animation"||name=="scene"||name=="collision"||name=="image"||name=="audio"){auto type=ecosystem_builtin_type("game");extend_game_type(type);type.name=name;return type;}
+ if(is_web_package(name)){auto type=platform_builtin_type("web");const auto& allowed=web_package_members(name);for(auto it=type.members.begin();it!=type.members.end();)if(!allowed.contains(it->first))it=type.members.erase(it);else ++it;type.name=name;return type;}
+ if(name=="dns")return ecosystem_builtin_type("dns");
+ if(is_game_package(name)){auto type=ecosystem_builtin_type("game");extend_game_type(type);const auto& allowed=game_package_members(name);for(auto it=type.members.begin();it!=type.members.end();)if(!allowed.contains(it->first))it=type.members.erase(it);else ++it;type.name=name;return type;}
  if(name=="video"||name=="camera"){
   TypeInfo module(TypeKind::Module),int_t(TypeKind::Int),text_t(TypeKind::Text),num_t(TypeKind::Num),none(TypeKind::None);module.name=name;
   auto signature=[&](std::vector<TypeInfo> params){TypeInfo f(TypeKind::Function);auto sig=std::make_shared<FunctionSig>();sig->params=std::move(params);sig->result=none;f.callable=sig;return f;};
@@ -136,9 +207,9 @@ TypeInfo expansion_builtin_type(const std::string& name){
  TypeInfo module(TypeKind::Module);module.name=name;for(auto& e:entries(name)){TypeInfo function(TypeKind::Function);auto sig=std::make_shared<FunctionSig>();sig->params=e.params;sig->result=e.result;sig->fallible=e.fallible;function.callable=sig;module.members[e.name]=function;}return module;
 }
 std::shared_ptr<ModuleData> expansion_builtin_module(const std::string& name,Interpreter& vm){
- if(name=="http_server"||name=="router"){auto module=platform_builtin_module("web",vm);module->name=name;return module;}
- if(name=="dns"){auto module=ecosystem_builtin_module("socket",vm);module->name=name;return module;}
- if(name=="gui"||name=="window"||name=="canvas"||name=="input"||name=="sprite"||name=="physics"||name=="sound"||name=="keyboard"||name=="mouse"||name=="animation"||name=="scene"||name=="collision"||name=="image"||name=="audio"){auto module=ecosystem_builtin_module("game",vm);extend_game_module(module,vm);module->name=name;return module;}
+ if(is_web_package(name)){auto module=platform_builtin_module("web",vm);const auto& allowed=web_package_members(name);for(auto it=module->exports.begin();it!=module->exports.end();)if(!allowed.contains(it->first))it=module->exports.erase(it);else ++it;module->name=name;return module;}
+ if(name=="dns")return ecosystem_builtin_module("dns",vm);
+ if(is_game_package(name)){auto module=ecosystem_builtin_module("game",vm);extend_game_module(module,vm);const auto& allowed=game_package_members(name);for(auto it=module->exports.begin();it!=module->exports.end();)if(!allowed.contains(it->first)&&it->first!="script")it=module->exports.erase(it);else ++it;module->name=name;return module;}
  if(name=="video"||name=="camera"){
   auto module=std::make_shared<ModuleData>();module->name=name;
   auto game=ecosystem_builtin_module("game",vm);auto script_fn=std::get<std::shared_ptr<CallableData>>(game->exports.at("script").data());

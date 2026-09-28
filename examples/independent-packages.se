@@ -1,0 +1,38 @@
+use re
+matches = try re.count "a" "banana"
+say matches
+
+use regex
+say regex.search "[0-9]+" "SE2026"
+
+use itertools
+numbers = [1, 2, 3]
+chunks = itertools.chunked numbers 2
+say chunks.len
+
+use iter
+range_values = iter.range 1 5
+say range_values.len
+
+use series
+values = [1, 2, 3, 4]
+averages = try series.moving_average values 2
+say averages.len
+
+use linear
+matrix = [[2, 1], [1, 3]]
+determinant = try linear.determinant matrix
+say determinant
+
+use dataset
+rows = [["name": "Ada"], ["name": "Lin"]]
+say dataset.row_count rows
+
+use argparse
+argv = ["--mode", "fast", "file.se"]
+options = argparse.parse_args argv
+say argparse.get options "mode"
+positionals = argparse.positionals options
+say positionals.len
+
+say "SE independent packages OK"
