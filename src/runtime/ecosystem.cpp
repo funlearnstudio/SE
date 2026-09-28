@@ -231,17 +231,17 @@ TypeInfo ecosystem_builtin_type(const std::string& name){
     x["now"]=fn({},text_t);x["timestamp"]=fn({},integer_t);x["from_timestamp"]=fn({integer_t},text_t);x["format"]=fn({integer_t,text_t},text_t);x["add_seconds"]=fn({integer_t,integer_t},integer_t);
   }else if(name=="hashlib"){
     x["sha256"]=fn({text_t},text_t,false,0,true);x["file_sha256"]=fn({text_t},text_t,false,0,true);x["sha512"]=fn({text_t},text_t,false,0,true);x["file_sha512"]=fn({text_t},text_t,false,0,true);x["digest"]=fn({text_t,text_t},text_t,false,0,true);x["file_digest"]=fn({text_t,text_t},text_t,false,0,true);x["hmac_sha256"]=fn({text_t,text_t},text_t,false,0,true);x["compare"]=fn({text_t,text_t},bool_t);x["to_hex"]=fn({text_t},text_t);
-  }else if(name=="hash"){  }else if(name=="hash"){
+  }else if(name=="hash"){
     x["sha256"]=fn({text_t},text_t,false,0,true);x["file_sha256"]=fn({text_t},text_t,false,0,true);
   }else if(name=="pickle"){
     x["dumps"]=fn({unknown},text_t);x["loads"]=fn({text_t},unknown,false,0,true);
   }else if(name=="argparse"){
     x["parse_args"]=fn({list_t},map_t);x["get"]=fn({map_t,text_t},unknown,true,2);x["flag"]=fn({map_t,text_t},bool_t);x["help"]=fn({text_t,list_t},text_t);x["has"]=fn({map_t,text_t},bool_t);x["positionals"]=fn({map_t},list_t);x["get_int"]=fn({map_t,text_t},integer_t,false,0,true);x["require"]=fn({map_t,text_t},unknown,false,0,true);
-  }else if(name=="args"){  }else if(name=="args"||name=="argparse"){
+  }else if(name=="args"){
     x["parse"]=fn({list_t},map_t);x["get"]=fn({map_t,text_t},unknown,true,2);x["flag"]=fn({map_t,text_t},bool_t);
   }else if(name=="logging"){
     x["set_level"]=fn({text_t},none);x["debug"]=fn({text_t},none);x["info"]=fn({text_t},none);x["warning"]=fn({text_t},none);x["error"]=fn({text_t},none);x["critical"]=fn({text_t},none);x["records"]=fn({},list_t);
-  }else if(name=="log"){  }else if(name=="log"||name=="logging"){
+  }else if(name=="log"){
     x["level"]=fn({text_t},none);x["debug"]=fn({text_t},none);x["info"]=fn({text_t},none);x["warn"]=fn({text_t},none);x["error"]=fn({text_t},none);
   }else if(name=="shutil"){
     x["copy"]=fn({text_t,text_t},none,false,0,true);x["move"]=fn({text_t,text_t},none,false,0,true);x["copytree"]=fn({text_t,text_t},none,false,0,true);x["remove"]=fn({text_t},none,false,0,true);x["mkdir"]=fn({text_t},none,false,0,true);
@@ -249,19 +249,19 @@ TypeInfo ecosystem_builtin_type(const std::string& name){
     x["match"]=fn({text_t,text_t},bool_t);x["find"]=fn({text_t},list_type(text_t),false,0,true);
   }else if(name=="zipfile"){
     x["create"]=fn({text_t,list_t},none,false,0,true);x["extract"]=fn({text_t,text_t},none,false,0,true);x["entries"]=fn({text_t},list_type(text_t),false,0,true);x["read"]=fn({text_t,text_t},text_t,false,0,true);x["test"]=fn({text_t},bool_t,false,0,true);x["is_zip"]=fn({text_t},bool_t,false,0,true);
-  }else if(name=="zip"){  }else if(name=="zip"||name=="zipfile"){
+  }else if(name=="zip"){
     x["create"]=fn({text_t,list_t},none,false,0,true);x["extract"]=fn({text_t,text_t},none,false,0,true);x["list"]=fn({text_t},list_type(text_t),false,0,true);
   }else if(name=="subprocess"){
     x["run"]=fn({text_t},integer_t,false,0,true);x["output"]=fn({text_t},text_t,false,0,true);
   }else if(name=="dns"){
     x["resolve"]=fn({text_t},text_t,false,0,true);x["resolve4"]=fn({text_t},text_t,false,0,true);x["resolve6"]=fn({text_t},text_t,false,0,true);x["reverse"]=fn({text_t},text_t,false,0,true);x["is_ip"]=fn({text_t},bool_t);x["lookup_mx"]=fn({text_t},text_t,false,0,true);x["lookup_txt"]=fn({text_t},text_t,false,0,true);
-  }else if(name=="socket"){  }else if(name=="socket"){
+  }else if(name=="socket"){
     x["resolve"]=fn({text_t},text_t,false,0,true);x["tcp"]=fn({text_t,integer_t,text_t},text_t,false,0,true);
   }else if(name=="queue"){
     x["new"]=fn({},handle_t("Queue"));x["put"]=fn({handle_t("Queue"),unknown},none);x["get"]=fn({handle_t("Queue")},unknown,false,0,true);x["empty"]=fn({handle_t("Queue")},bool_t);x["size"]=fn({handle_t("Queue")},integer_t);
   }else if(name=="sqlite3"){
     x["open"]=fn({text_t},handle_t("SQLite"));x["exec"]=fn({handle_t("SQLite"),text_t},integer_t,false,0,true);x["query"]=fn({handle_t("SQLite"),text_t},list_t,false,0,true);x["query_one"]=fn({handle_t("SQLite"),text_t},list_t,false,0,true);x["tables"]=fn({handle_t("SQLite")},list_type(text_t),false,0,true);x["table_info"]=fn({handle_t("SQLite"),text_t},list_t,false,0,true);x["execute_many"]=fn({handle_t("SQLite"),list_t},integer_t,false,0,true);x["backup"]=fn({handle_t("SQLite"),text_t},none,false,0,true);
-  }else if(name=="sqlite"){  }else if(name=="sqlite"){
+  }else if(name=="sqlite"){
     x["open"]=fn({text_t},handle_t("SQLite"));x["exec"]=fn({handle_t("SQLite"),text_t},integer_t,false,0,true);x["query"]=fn({handle_t("SQLite"),text_t},list_t,false,0,true);
   }else if(name=="functools"){
     x["partial"]=fn({func_t,unknown},func_t,true,1);x["reduce"]=fn({func_t,list_t},unknown,true,2);x["map"]=fn({func_t,list_t},list_t);x["filter"]=fn({func_t,list_t},list_t);
