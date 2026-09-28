@@ -683,23 +683,16 @@ const INDEPENDENT_MEMBERS = {
     f('unique', 'itertools.unique', 'Composable sequence iteration, chunking, windows, and transforms.')
   ],
   hashlib: [
-    f('sha256', 'hashlib.sha256', 'Cryptographic digests, file hashing, HMAC, and comparisons.'),
-    f('sha512', 'hashlib.sha512', 'Cryptographic digests, file hashing, HMAC, and comparisons.'),
-    f('file_sha256', 'hashlib.file_sha256', 'Cryptographic digests, file hashing, HMAC, and comparisons.'),
-    f('file_sha512', 'hashlib.file_sha512', 'Cryptographic digests, file hashing, HMAC, and comparisons.'),
-    f('hmac_sha256', 'hashlib.hmac_sha256', 'Cryptographic digests, file hashing, HMAC, and comparisons.'),
-    f('compare', 'hashlib.compare', 'Cryptographic digests, file hashing, HMAC, and comparisons.'),
-    f('to_hex', 'hashlib.to_hex', 'Cryptographic digests, file hashing, HMAC, and comparisons.')
+    f('sha256', 'sha256 args...', 'Standalone hashlib operation.'),
+    f('file_sha256', 'file_sha256 args...', 'Standalone hashlib operation.'),
+    f('compare', 'compare args...', 'Standalone hashlib operation.'),
+    f('to_hex', 'to_hex args...', 'Standalone hashlib operation.')
   ],
   argparse: [
-    f('parser', 'argparse.parser', 'Declare command-line options, parse arguments, and generate help.'),
-    f('option', 'argparse.option', 'Declare command-line options, parse arguments, and generate help.'),
-    f('flag', 'argparse.flag', 'Declare command-line options, parse arguments, and generate help.'),
-    f('parse_args', 'argparse.parse_args', 'Declare command-line options, parse arguments, and generate help.'),
-    f('help', 'argparse.help', 'Declare command-line options, parse arguments, and generate help.'),
-    f('get', 'argparse.get', 'Declare command-line options, parse arguments, and generate help.'),
-    f('has', 'argparse.has', 'Declare command-line options, parse arguments, and generate help.'),
-    f('positionals', 'argparse.positionals', 'Declare command-line options, parse arguments, and generate help.')
+    f('parse_args', 'parse_args args...', 'Standalone argparse operation.'),
+    f('get', 'get args...', 'Standalone argparse operation.'),
+    f('flag', 'flag args...', 'Standalone argparse operation.'),
+    f('help', 'help args...', 'Standalone argparse operation.')
   ],
   logging: [
     f('get_logger', 'logging.get_logger', 'Named loggers, levels, formatting, and records.'),
@@ -713,14 +706,12 @@ const INDEPENDENT_MEMBERS = {
     f('records', 'logging.records', 'Named loggers, levels, formatting, and records.')
   ],
   zipfile: [
-    f('create', 'zipfile.create', 'Create, inspect, read, test, and extract ZIP archives.'),
-    f('open', 'zipfile.open', 'Create, inspect, read, test, and extract ZIP archives.'),
-    f('entries', 'zipfile.entries', 'Create, inspect, read, test, and extract ZIP archives.'),
-    f('read', 'zipfile.read', 'Create, inspect, read, test, and extract ZIP archives.'),
-    f('write', 'zipfile.write', 'Create, inspect, read, test, and extract ZIP archives.'),
-    f('extract', 'zipfile.extract', 'Create, inspect, read, test, and extract ZIP archives.'),
-    f('test', 'zipfile.test', 'Create, inspect, read, test, and extract ZIP archives.'),
-    f('is_zip', 'zipfile.is_zip', 'Create, inspect, read, test, and extract ZIP archives.')
+    f('create', 'create args...', 'Standalone zipfile operation.'),
+    f('extract', 'extract args...', 'Standalone zipfile operation.'),
+    f('is_zip', 'is_zip args...', 'Standalone zipfile operation.'),
+    f('entries', 'entries args...', 'Standalone zipfile operation.'),
+    f('read', 'read args...', 'Standalone zipfile operation.'),
+    f('test', 'test args...', 'Standalone zipfile operation.')
   ],
   sqlite3: [
     f('connect', 'sqlite3.connect', 'Parameterized queries, transactions, schema inspection, and connections.'),
@@ -735,86 +726,63 @@ const INDEPENDENT_MEMBERS = {
     f('close', 'sqlite3.close', 'Parameterized queries, transactions, schema inspection, and connections.')
   ],
   config: [
-    f('parse', 'config.parse', 'Typed settings with sections, merges, and environment overrides.'),
-    f('load', 'config.load', 'Typed settings with sections, merges, and environment overrides.'),
-    f('get', 'config.get', 'Typed settings with sections, merges, and environment overrides.'),
-    f('get_int', 'config.get_int', 'Typed settings with sections, merges, and environment overrides.'),
-    f('get_bool', 'config.get_bool', 'Typed settings with sections, merges, and environment overrides.'),
-    f('section', 'config.section', 'Typed settings with sections, merges, and environment overrides.'),
-    f('merge', 'config.merge', 'Typed settings with sections, merges, and environment overrides.'),
-    f('from_env', 'config.from_env', 'Typed settings with sections, merges, and environment overrides.'),
-    f('validate', 'config.validate', 'Typed settings with sections, merges, and environment overrides.')
+    f('parse', 'parse args...', 'Standalone config operation.'),
+    f('get', 'get args...', 'Standalone config operation.'),
+    f('get_int', 'get_int args...', 'Standalone config operation.'),
+    f('get_bool', 'get_bool args...', 'Standalone config operation.'),
+    f('section', 'section args...', 'Standalone config operation.'),
+    f('merge', 'merge args...', 'Standalone config operation.')
   ],
   series: [
-    f('create', 'series.create', 'Time-series transforms, rolling statistics, and normalization.'),
-    f('sum', 'series.sum', 'Time-series transforms, rolling statistics, and normalization.'),
-    f('mean', 'series.mean', 'Time-series transforms, rolling statistics, and normalization.'),
-    f('min', 'series.min', 'Time-series transforms, rolling statistics, and normalization.'),
-    f('max', 'series.max', 'Time-series transforms, rolling statistics, and normalization.'),
-    f('diff', 'series.diff', 'Time-series transforms, rolling statistics, and normalization.'),
-    f('lag', 'series.lag', 'Time-series transforms, rolling statistics, and normalization.'),
-    f('moving_average', 'series.moving_average', 'Time-series transforms, rolling statistics, and normalization.'),
-    f('cumulative_sum', 'series.cumulative_sum', 'Time-series transforms, rolling statistics, and normalization.'),
-    f('returns', 'series.returns', 'Time-series transforms, rolling statistics, and normalization.'),
-    f('normalize', 'series.normalize', 'Time-series transforms, rolling statistics, and normalization.')
+    f('diff', 'diff args...', 'Standalone series operation.'),
+    f('lag', 'lag args...', 'Standalone series operation.'),
+    f('moving_average', 'moving_average args...', 'Standalone series operation.'),
+    f('cumulative_sum', 'cumulative_sum args...', 'Standalone series operation.'),
+    f('returns', 'returns args...', 'Standalone series operation.'),
+    f('normalize', 'normalize args...', 'Standalone series operation.')
   ],
   linear: [
-    f('vector', 'linear.vector', 'Vector and linear algebra operations.'),
-    f('identity', 'linear.identity', 'Vector and linear algebra operations.'),
-    f('add', 'linear.add', 'Vector and linear algebra operations.'),
-    f('subtract', 'linear.subtract', 'Vector and linear algebra operations.'),
-    f('scale', 'linear.scale', 'Vector and linear algebra operations.'),
-    f('transpose', 'linear.transpose', 'Vector and linear algebra operations.'),
-    f('multiply', 'linear.multiply', 'Vector and linear algebra operations.'),
-    f('determinant', 'linear.determinant', 'Vector and linear algebra operations.'),
-    f('inverse', 'linear.inverse', 'Vector and linear algebra operations.'),
-    f('solve', 'linear.solve', 'Vector and linear algebra operations.'),
-    f('dot', 'linear.dot', 'Vector and linear algebra operations.'),
-    f('norm', 'linear.norm', 'Vector and linear algebra operations.'),
-    f('normalize', 'linear.normalize', 'Vector and linear algebra operations.')
+    f('identity', 'identity args...', 'Standalone linear operation.'),
+    f('determinant', 'determinant args...', 'Standalone linear operation.'),
+    f('inverse', 'inverse args...', 'Standalone linear operation.'),
+    f('norm', 'norm args...', 'Standalone linear operation.'),
+    f('normalize', 'normalize args...', 'Standalone linear operation.')
   ],
   dataset: [
-    f('from_rows', 'dataset.from_rows', 'Tabular selection, filtering, grouping, joins, and summaries.'),
-    f('columns', 'dataset.columns', 'Tabular selection, filtering, grouping, joins, and summaries.'),
-    f('select', 'dataset.select', 'Tabular selection, filtering, grouping, joins, and summaries.'),
-    f('filter_eq', 'dataset.filter_eq', 'Tabular selection, filtering, grouping, joins, and summaries.'),
-    f('sort', 'dataset.sort', 'Tabular selection, filtering, grouping, joins, and summaries.'),
-    f('group_by', 'dataset.group_by', 'Tabular selection, filtering, grouping, joins, and summaries.'),
-    f('join', 'dataset.join', 'Tabular selection, filtering, grouping, joins, and summaries.'),
-    f('unique', 'dataset.unique', 'Tabular selection, filtering, grouping, joins, and summaries.'),
-    f('split', 'dataset.split', 'Tabular selection, filtering, grouping, joins, and summaries.'),
-    f('describe', 'dataset.describe', 'Tabular selection, filtering, grouping, joins, and summaries.'),
-    f('train_test_split', 'dataset.train_test_split', 'Tabular selection, filtering, grouping, joins, and summaries.')
+    f('columns', 'columns args...', 'Standalone dataset operation.'),
+    f('filter_eq', 'filter_eq args...', 'Standalone dataset operation.'),
+    f('unique', 'unique args...', 'Standalone dataset operation.'),
+    f('split', 'split args...', 'Standalone dataset operation.')
   ],
   http_server: [
-    f('create', 'http_server.create', 'HTTP services with middleware, static assets, and responses.'),
-    f('route', 'http_server.route', 'HTTP services with middleware, static assets, and responses.'),
-    f('middleware', 'http_server.middleware', 'HTTP services with middleware, static assets, and responses.'),
-    f('static', 'http_server.static', 'HTTP services with middleware, static assets, and responses.'),
-    f('listen', 'http_server.listen', 'HTTP services with middleware, static assets, and responses.'),
-    f('respond', 'http_server.respond', 'HTTP services with middleware, static assets, and responses.'),
-    f('status', 'http_server.status', 'HTTP services with middleware, static assets, and responses.'),
-    f('header', 'http_server.header', 'HTTP services with middleware, static assets, and responses.')
+    f('create', 'create args...', 'Standalone http_server operation.'),
+    f('route', 'route args...', 'Standalone http_server operation.'),
+    f('middleware', 'middleware args...', 'Standalone http_server operation.'),
+    f('static', 'static args...', 'Standalone http_server operation.'),
+    f('listen', 'listen args...', 'Standalone http_server operation.'),
+    f('respond', 'respond args...', 'Standalone http_server operation.'),
+    f('status', 'status args...', 'Standalone http_server operation.'),
+    f('header', 'header args...', 'Standalone http_server operation.')
   ],
   router: [
-    f('add', 'router.add', 'Route registration, parameter matching, dispatch, and fallback handlers.'),
-    f('get', 'router.get', 'Route registration, parameter matching, dispatch, and fallback handlers.'),
-    f('post', 'router.post', 'Route registration, parameter matching, dispatch, and fallback handlers.'),
-    f('put', 'router.put', 'Route registration, parameter matching, dispatch, and fallback handlers.'),
-    f('delete', 'router.delete', 'Route registration, parameter matching, dispatch, and fallback handlers.'),
-    f('match', 'router.match', 'Route registration, parameter matching, dispatch, and fallback handlers.'),
-    f('dispatch', 'router.dispatch', 'Route registration, parameter matching, dispatch, and fallback handlers.'),
-    f('params', 'router.params', 'Route registration, parameter matching, dispatch, and fallback handlers.'),
-    f('not_found', 'router.not_found', 'Route registration, parameter matching, dispatch, and fallback handlers.')
+    f('add', 'add args...', 'Standalone router operation.'),
+    f('get', 'get args...', 'Standalone router operation.'),
+    f('post', 'post args...', 'Standalone router operation.'),
+    f('put', 'put args...', 'Standalone router operation.'),
+    f('delete', 'delete args...', 'Standalone router operation.'),
+    f('match', 'match args...', 'Standalone router operation.'),
+    f('dispatch', 'dispatch args...', 'Standalone router operation.'),
+    f('params', 'params args...', 'Standalone router operation.'),
+    f('not_found', 'not_found args...', 'Standalone router operation.')
   ],
   dns: [
-    f('resolve', 'dns.resolve', 'Address resolution, reverse lookup, IP validation, and DNS records.'),
-    f('resolve4', 'dns.resolve4', 'Address resolution, reverse lookup, IP validation, and DNS records.'),
-    f('resolve6', 'dns.resolve6', 'Address resolution, reverse lookup, IP validation, and DNS records.'),
-    f('reverse', 'dns.reverse', 'Address resolution, reverse lookup, IP validation, and DNS records.'),
-    f('is_ip', 'dns.is_ip', 'Address resolution, reverse lookup, IP validation, and DNS records.'),
-    f('lookup_mx', 'dns.lookup_mx', 'Address resolution, reverse lookup, IP validation, and DNS records.'),
-    f('lookup_txt', 'dns.lookup_txt', 'Address resolution, reverse lookup, IP validation, and DNS records.')
+    f('resolve', 'resolve args...', 'Standalone dns operation.'),
+    f('resolve4', 'resolve4 args...', 'Standalone dns operation.'),
+    f('resolve6', 'resolve6 args...', 'Standalone dns operation.'),
+    f('reverse', 'reverse args...', 'Standalone dns operation.'),
+    f('is_ip', 'is_ip args...', 'Standalone dns operation.'),
+    f('lookup_mx', 'lookup_mx args...', 'Standalone dns operation.'),
+    f('lookup_txt', 'lookup_txt args...', 'Standalone dns operation.')
   ],
   gui: [
     f('new', 'gui.new', 'Focused gui APIs for SE scenes.'),
