@@ -181,7 +181,7 @@ bool is_ecosystem_builtin(const std::string& name){static const std::set<std::st
   "math","data","net","node","next","game",
   "statistics","regex","re","base64","uuid","iter","itertools","copy","operator",
   "decimal","csv","datetime","hash","hashlib","pickle","args","argparse","log","logging",
-  "shutil","glob","zip","zipfile","subprocess","socket","queue","sqlite","sqlite3",
+  "shutil","glob","zip","zipfile","subprocess","socket","dns","queue","sqlite","sqlite3",
   "functools","enum","typing"
 };return names.contains(name);}
 
@@ -272,6 +272,18 @@ TypeInfo ecosystem_builtin_type(const std::string& name){
     x["create"]=fn({text_t,list_t},none,false,0,true);x["extract"]=fn({text_t,text_t},none,false,0,true);x["list"]=fn({text_t},list_type(text_t),false,0,true);
   }else if(name=="subprocess"){
     x["run"]=fn({text_t},integer_t,false,0,true);x["output"]=fn({text_t},text_t,false,0,true);
+  }else if(name=="dns"){
+    x["resolve"]=fn({text_t},text_t,false,0,true);x["resolve4"]=fn({text_t},text_t,false,0,true);x["resolve6"]=fn({text_t},text_t,false,0,true);x["reverse"]=fn({text_t},text_t,false,0,true);x["is_ip"]=fn({text_t},bool_t);x["lookup_mx"]=fn({text_t},text_t,false,0,true);x["lookup_txt"]=fn({text_t},text_t,false,0,true);
+  }else if(name=="dns"){
+    auto lookup=[](const std::string& host,const std::string& mode,SourcePos p,const std::string& fn){if(host.empty()||host.find_first_of(" \\r\\n\\t")!=std::string::npos)throw Error(p,fn+" received an invalid host.");auto output=process_output("getent "+mode+" "+shell_quote(host)+" 2>&1",p);auto end=output.find_first_of(" \\t\\r\\n");if(end!=std::string::npos)output.resize(end);if(output.empty())throw Error(p,fn+" could not resolve the host.");return output;};
+    m->exports["resolve"]=callable("dns.resolve",1,1,[lookup](const std::vector<Value>&a,SourcePos p){auto host=text(a[0],p,"dns.resolve");try{return Value(lookup(host,"ahosts",p,"dns.resolve"));}catch(const Error&){return Value(lookup(host,"ahostsv4",p,"dns.resolve"));}});
+    m->exports["resolve4"]=callable("dns.resolve4",1,1,[lookup](const std::vector<Value>&a,SourcePos p){return Value(lookup(text(a[0],p,"dns.resolve4"),"ahostsv4",p,"dns.resolve4"));});
+    m->exports["resolve6"]=callable("dns.resolve6",1,1,[lookup](const std::vector<Value>&a,SourcePos p){return Value(lookup(text(a[0],p,"dns.resolve6"),"ahostsv6",p,"dns.resolve6"));});
+    m->exports["reverse"]=callable("dns.reverse",1,1,[](const std::vector<Value>&a,SourcePos p){auto ip=text(a[0],p,"dns.reverse");if(ip.find_first_of(" \\r\\n\\t")!=std::string::npos)throw Error(p,"Invalid IP address.");auto out=process_output("getent hosts "+shell_quote(ip)+" 2>&1",p);auto end=out.find_first_of(" \\t\\r\\n");if(end!=std::string::npos)out.resize(end);if(out.empty())throw Error(p,"Reverse DNS lookup failed.");return Value(out);});
+    m->exports["is_ip"]=callable("dns.is_ip",1,1,[](const std::vector<Value>&a,SourcePos p){auto ip=text(a[0],p,"dns.is_ip");static const std::regex v4(R"(^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$)");static const std::regex v6(R"(^[0-9a-fA-F:]{2,39}$)");if(std::regex_match(ip,v4)){std::istringstream s(ip);std::string part;while(std::getline(s,part,'.'))if(std::stoi(part)>255)return Value(false);return Value(true);}return Value(std::regex_match(ip,v6)&&ip.find(':')!=std::string::npos);});
+    auto record=[lookup](const std::vector<Value>&a,SourcePos p,const std::string& kind){auto host=text(a[0],p,"dns.lookup_"+kind);if(host.find_first_of(" \\r\\n\\t")!=std::string::npos)throw Error(p,"Invalid hostname.");return Value(process_output("nslookup -type="+kind+" "+shell_quote(host)+" 2>&1",p));};
+    m->exports["lookup_mx"]=callable("dns.lookup_mx",1,1,[record](const std::vector<Value>&a,SourcePos p){return record(a,p,"MX");});
+    m->exports["lookup_txt"]=callable("dns.lookup_txt",1,1,[record](const std::vector<Value>&a,SourcePos p){return record(a,p,"TXT");});
   }else if(name=="socket"){
     x["resolve"]=fn({text_t},text_t,false,0,true);x["tcp"]=fn({text_t,integer_t,text_t},text_t,false,0,true);
   }else if(name=="queue"){
