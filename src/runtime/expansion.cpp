@@ -209,7 +209,7 @@ TypeInfo expansion_builtin_type(const std::string& name){
 std::shared_ptr<ModuleData> expansion_builtin_module(const std::string& name,Interpreter& vm){
  if(is_web_package(name)){auto module=platform_builtin_module("web",vm);const auto& allowed=web_package_members(name);for(auto it=module->exports.begin();it!=module->exports.end();)if(!allowed.contains(it->first))it=module->exports.erase(it);else ++it;module->name=name;return module;}
  if(name=="dns")return ecosystem_builtin_module("dns",vm);
- if(is_game_package(name)){auto module=ecosystem_builtin_module("game",vm);extend_game_module(module,vm);const auto& allowed=game_package_members(name);for(auto it=module->exports.begin();it!=module->exports.end();)if(!allowed.contains(it->first))it=module->exports.erase(it);else ++it;module->name=name;return module;}
+ if(is_game_package(name)){auto module=ecosystem_builtin_module("game",vm);extend_game_module(module,vm);const auto& allowed=game_package_members(name);for(auto it=module->exports.begin();it!=module->exports.end();)if(!allowed.contains(it->first)&&it->first!="script")it=module->exports.erase(it);else ++it;module->name=name;return module;}
  if(name=="video"||name=="camera"){
   auto module=std::make_shared<ModuleData>();module->name=name;
   auto game=ecosystem_builtin_module("game",vm);auto script_fn=std::get<std::shared_ptr<CallableData>>(game->exports.at("script").data());
