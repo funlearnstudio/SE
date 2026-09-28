@@ -148,6 +148,7 @@ template<class T> Value native_handle(const std::string& tag,std::shared_ptr<T> 
 template<class T> std::shared_ptr<T> native_as(const Value& value,const std::string& tag,SourcePos p,const std::string& name){auto h=std::get_if<std::shared_ptr<NativeHandleData>>(&value.data());if(!h||!(*h)||(*h)->tag!=tag)throw Error(p,name+" needs "+tag+".");return std::static_pointer_cast<T>((*h)->resource);}
 int& se_log_level(){static int level=1;return level;}
 int parse_log_level(std::string level){level=lower_ascii(level);if(level=="debug")return 0;if(level=="info")return 1;if(level=="warn"||level=="warning")return 2;if(level=="error")return 3;return 1;}
+std::vector<std::pair<int,std::string>>& se_log_records(){static std::vector<std::pair<int,std::string>> records;return records;}
 void emit_log(int level,const std::string& label,const std::string& msg){if(level<se_log_level())return;auto now=std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());std::clog<<"["<<iso_utc(now)<<"] ["<<label<<"] "<<msg<<'\n';}
 void finish_socket_write(Socket sock){
 #ifdef _WIN32
@@ -249,15 +250,21 @@ TypeInfo ecosystem_builtin_type(const std::string& name){
     x["sha256"]=fn({text_t},text_t,false,0,true);x["file_sha256"]=fn({text_t},text_t,false,0,true);
   }else if(name=="pickle"){
     x["dumps"]=fn({unknown},text_t);x["loads"]=fn({text_t},unknown,false,0,true);
-  }else if(name=="args"||name=="argparse"){
+  }else if(name=="argparse"){
+    x["parse_args"]=fn({list_t},map_t);x["get"]=fn({map_t,text_t},unknown,true,2);x["flag"]=fn({map_t,text_t},bool_t);x["help"]=fn({text_t,list_t},text_t);
+  }else if(name=="args"){
     x["parse"]=fn({list_t},map_t);x["get"]=fn({map_t,text_t},unknown,true,2);x["flag"]=fn({map_t,text_t},bool_t);
-  }else if(name=="log"||name=="logging"){
+  }else if(name=="logging"){
+    x["set_level"]=fn({text_t},none);x["debug"]=fn({text_t},none);x["info"]=fn({text_t},none);x["warning"]=fn({text_t},none);x["error"]=fn({text_t},none);x["critical"]=fn({text_t},none);x["records"]=fn({},list_t);
+  }else if(name=="log"){
     x["level"]=fn({text_t},none);x["debug"]=fn({text_t},none);x["info"]=fn({text_t},none);x["warn"]=fn({text_t},none);x["error"]=fn({text_t},none);
   }else if(name=="shutil"){
     x["copy"]=fn({text_t,text_t},none,false,0,true);x["move"]=fn({text_t,text_t},none,false,0,true);x["copytree"]=fn({text_t,text_t},none,false,0,true);x["remove"]=fn({text_t},none,false,0,true);x["mkdir"]=fn({text_t},none,false,0,true);
   }else if(name=="glob"){
     x["match"]=fn({text_t,text_t},bool_t);x["find"]=fn({text_t},list_type(text_t),false,0,true);
-  }else if(name=="zip"||name=="zipfile"){
+  }else if(name=="zipfile"){
+    x["create"]=fn({text_t,list_t},none,false,0,true);x["entries"]=fn({text_t},list_type(text_t),false,0,true);x["read"]=fn({text_t,text_t},text_t,false,0,true);x["test"]=fn({text_t},bool_t,false,0,true);
+  }else if(name=="zip"){
     x["create"]=fn({text_t,list_t},none,false,0,true);x["extract"]=fn({text_t,text_t},none,false,0,true);x["list"]=fn({text_t},list_type(text_t),false,0,true);
   }else if(name=="subprocess"){
     x["run"]=fn({text_t},integer_t,false,0,true);x["output"]=fn({text_t},text_t,false,0,true);
@@ -370,13 +377,23 @@ std::shared_ptr<ModuleData> ecosystem_builtin_module(const std::string& name,Int
   }else if(name=="pickle"){
     m->exports["dumps"]=callable("pickle.dumps",1,1,[](const std::vector<Value>&a,SourcePos){return Value(json_stringify(a[0]));});
     m->exports["loads"]=callable("pickle.loads",1,1,[](const std::vector<Value>&a,SourcePos p){return JsonParser(text(a[0],p,"pickle.loads"),p).parse();});
-  }else if(name=="args"||name=="argparse"){
+  }else if(name=="argparse"){
+    m->exports["parse_args"]=callable("argparse.parse_args",1,1,[](const std::vector<Value>&a,SourcePos p){auto l=list_value(a[0],p,"argparse.parse_args");std::vector<std::pair<std::string,Value>> out;for(std::size_t k=0;k<l->items.size();++k){auto token=text(l->items[k],p,"argparse.parse_args");if(token.rfind("--",0)!=0)throw Error(p,"Expected an option beginning with --.");token=token.substr(2);auto eq=token.find('=');if(eq!=std::string::npos){out.emplace_back(token.substr(0,eq),Value(token.substr(eq+1)));continue;}if(k+1<l->items.size()){auto next=text(l->items[k+1],p,"argparse.parse_args");if(next.rfind("--",0)!=0){out.emplace_back(token,Value(next));++k;continue;}}out.emplace_back(token,Value(true));}return Value(std::make_shared<MapData>(MapData{out}));});
+    m->exports["get"]=callable("argparse.get",2,3,[](const std::vector<Value>&a,SourcePos p){auto q=map_value(a[0],p,"argparse.get");auto key=text(a[1],p,"argparse.get");for(auto&[k,v]:q->items)if(k==key)return v;if(a.size()==3)return a[2];throw Error(p,"Missing command-line option: "+key);},true);
+    m->exports["flag"]=callable("argparse.flag",2,2,[](const std::vector<Value>&a,SourcePos p){auto q=map_value(a[0],p,"argparse.flag");auto key=text(a[1],p,"argparse.flag");for(auto&[k,v]:q->items)if(k==key){if(auto b=std::get_if<bool>(&v.data()))return Value(*b);return Value(true);}return Value(false);});
+    m->exports["help"]=callable("argparse.help",2,2,[](const std::vector<Value>&a,SourcePos p){auto title=text(a[0],p,"argparse.help"),l=list_value(a[1],p,"argparse.help");std::ostringstream o;o<<title<<"\\nOptions:\\n";for(auto&v:l)o<<"  --"<<text(v,p,"argparse.help")<<"\\n";return Value(o.str());});
+  }else if(name=="args"){
     m->exports["parse"]=callable(name+".parse",1,1,[](const std::vector<Value>&a,SourcePos p){auto in=list_value(a[0],p,"args.parse");auto out=std::make_shared<MapData>();auto positional=std::make_shared<ListData>();
       auto set=[&](std::string key,Value value){for(auto& kv:out->items)if(kv.first==key){kv.second=std::move(value);return;}out->items.emplace_back(std::move(key),std::move(value));};
       for(std::size_t i=0;i<in->items.size();++i){auto s=text(in->items[i],p,"args.parse");if(s.rfind("--",0)==0&&s.size()>2){auto key=s.substr(2);auto eq=key.find('=');if(eq!=std::string::npos){set(key.substr(0,eq),Value(key.substr(eq+1)));continue;}if(i+1<in->items.size()){auto next=text(in->items[i+1],p,"args.parse");if(next.rfind("-",0)!=0){set(key,Value(next));++i;continue;}}set(key,Value(true));}else if(s.size()>1&&s[0]=='-'){for(std::size_t k=1;k<s.size();++k)set(std::string(1,s[k]),Value(true));}else positional->items.emplace_back(s);}set("_",Value(positional));return Value(out);});
     m->exports["get"]=callable(name+".get",2,3,[](const std::vector<Value>&a,SourcePos p){auto mp=map_value(a[0],p,"args.get");auto key=text(a[1],p,"args.get");for(auto& kv:mp->items)if(kv.first==key)return kv.second;return a.size()==3?a[2]:Value{};},true);
     m->exports["flag"]=callable(name+".flag",2,2,[](const std::vector<Value>&a,SourcePos p){auto mp=map_value(a[0],p,"args.flag");auto key=text(a[1],p,"args.flag");for(auto& kv:mp->items)if(kv.first==key){if(auto b=std::get_if<bool>(&kv.second.data()))return Value(*b);auto s=lower_ascii(kv.second.text());return Value(s=="1"||s=="true"||s=="yes"||s=="on");}return Value(false);});
-  }else if(name=="log"||name=="logging"){
+  }else if(name=="logging"){
+    auto add=[&](const std::string& name,int level){m->exports[name]=callable("logging."+name,1,1,[name,level](const std::vector<Value>&a,SourcePos p){auto msg=text(a[0],p,"logging."+name);auto& records=se_log_records();records.emplace_back(level,msg);if(records.size()>512)records.erase(records.begin());emit_log(level,"logging",msg);return Value{};});};
+    m->exports["set_level"]=callable("logging.set_level",1,1,[](const std::vector<Value>&a,SourcePos p){auto s=text(a[0],p,"logging.set_level");auto l=parse_log_level(s);if(lower_ascii(s)!="debug"&&lower_ascii(s)!="info"&&lower_ascii(s)!="warn"&&lower_ascii(s)!="warning"&&lower_ascii(s)!="error"&&lower_ascii(s)!="critical")throw Error(p,"Unknown logging level.");se_log_level()=l;return Value{};});
+    add("debug",0);add("info",1);add("warning",2);add("error",3);add("critical",4);
+    m->exports["records"]=callable("logging.records",0,0,[](const std::vector<Value>&,SourcePos){auto out=std::make_shared<ListData>();for(auto&[level,message]:se_log_records()){auto row=std::make_shared<MapData>();row->items.emplace_back("level",Value(static_cast<std::int64_t>(level)));row->items.emplace_back("message",Value(message));out->items.emplace_back(row);}return Value(out);});
+  }else if(name=="log"){
     m->exports["level"]=callable(name+".level",1,1,[](const std::vector<Value>&a,SourcePos p){se_log_level()=parse_log_level(text(a[0],p,"log.level"));return Value{};});
     m->exports["debug"]=callable(name+".debug",1,1,[](const std::vector<Value>&a,SourcePos p){emit_log(0,"DEBUG",text(a[0],p,"log.debug"));return Value{};});
     m->exports["info"]=callable(name+".info",1,1,[](const std::vector<Value>&a,SourcePos p){emit_log(1,"INFO",text(a[0],p,"log.info"));return Value{};});
@@ -393,7 +410,12 @@ std::shared_ptr<ModuleData> ecosystem_builtin_module(const std::string& name,Int
     m->exports["find"]=callable("glob.find",1,1,[](const std::vector<Value>&a,SourcePos p){auto pattern=text(a[0],p,"glob.find");auto wild=pattern.find_first_of("*?");std::filesystem::path root=".";if(wild!=std::string::npos){auto prefix=std::filesystem::path(pattern.substr(0,wild));root=prefix.has_parent_path()?prefix.parent_path():std::filesystem::path(".");}else root=std::filesystem::path(pattern).has_parent_path()?std::filesystem::path(pattern).parent_path():std::filesystem::path(".");
       std::regex re(wildcard_regex(std::filesystem::path(pattern).generic_string()));auto out=std::make_shared<ListData>();std::error_code ec;if(!std::filesystem::exists(root,ec))return Value(out);
       for(std::filesystem::recursive_directory_iterator it(root,std::filesystem::directory_options::skip_permission_denied,ec),end;it!=end&&!ec;it.increment(ec)){auto s=it->path().generic_string();if(std::regex_match(s,re))out->items.emplace_back(s);}return Value(out);});
-  }else if(name=="zip"||name=="zipfile"){
+  }else if(name=="zipfile"){
+    m->exports["create"]=callable("zipfile.create",2,2,[](const std::vector<Value>&a,SourcePos p){auto archive=text(a[0],p,"zipfile.create"),files=list_value(a[1],p,"zipfile.create");std::string cmd="zip -q -j "+shell_quote(archive);for(auto&v:files->items)cmd+=" "+shell_quote(text(v,p,"zipfile.create"));if(normalized_system(cmd)!=0)throw Error(p,"Could not create ZIP archive. Install zip and check the source paths.");return Value{};});
+    m->exports["entries"]=callable("zipfile.entries",1,1,[](const std::vector<Value>&a,SourcePos p){auto archive=text(a[0],p,"zipfile.entries");auto output=process_output("unzip -Z1 "+shell_quote(archive)+" 2>&1",p);if(output.find("cannot find")!=std::string::npos)throw Error(p,"Could not read ZIP archive.");auto out=std::make_shared<ListData>();std::istringstream in(output);std::string line;while(std::getline(in,line))if(!line.empty())out->items.emplace_back(line);return Value(out);});
+    m->exports["read"]=callable("zipfile.read",2,2,[](const std::vector<Value>&a,SourcePos p){auto archive=text(a[0],p,"zipfile.read"),entry=text(a[1],p,"zipfile.read");return Value(process_output("unzip -p "+shell_quote(archive)+" "+shell_quote(entry)+" 2>&1",p));});
+    m->exports["test"]=callable("zipfile.test",1,1,[](const std::vector<Value>&a,SourcePos p){auto archive=text(a[0],p,"zipfile.test");return Value(normalized_system("unzip -tqq "+shell_quote(archive)+" >/dev/null 2>&1")==0);});
+  }else if(name=="zip"){
     m->exports["create"]=callable(name+".create",2,2,[](const std::vector<Value>&a,SourcePos p){auto archive=text(a[0],p,"zip.create");auto paths=list_value(a[1],p,"zip.create");if(paths->items.empty())throw Error(p,"zip.create needs at least one path.");std::string cmd="zip -q -r "+shell_quote(archive);for(auto& v:paths->items)cmd+=" "+shell_quote(text(v,p,"zip.create"));if(normalized_system(cmd)!=0)throw Error(p,"zip.create failed; install the host zip utility.");return Value{};});
     m->exports["extract"]=callable(name+".extract",2,2,[](const std::vector<Value>&a,SourcePos p){auto archive=text(a[0],p,"zip.extract"),dest=text(a[1],p,"zip.extract");std::filesystem::create_directories(dest);if(normalized_system("unzip -q -o "+shell_quote(archive)+" -d "+shell_quote(dest))!=0)throw Error(p,"zip.extract failed; install the host unzip utility.");return Value{};});
     m->exports["list"]=callable(name+".list",1,1,[](const std::vector<Value>&a,SourcePos p){auto output=process_output("unzip -Z1 "+shell_quote(text(a[0],p,"zip.list"))+" 2>&1",p);auto out=std::make_shared<ListData>();std::istringstream in(output);std::string line;while(std::getline(in,line)){if(!line.empty()&&line.back()=='\r')line.pop_back();if(!line.empty())out->items.emplace_back(line);}return Value(out);});
