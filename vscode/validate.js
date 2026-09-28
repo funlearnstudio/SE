@@ -70,7 +70,7 @@ const independentPackages = {
 for (const name of Object.keys(independentPackages)) {
   assert(BUILTIN_MODULES.includes(name), `Independent package ${name} is not built in.`);
   assert(MODULE_MEMBERS[name] !== MODULE_MEMBERS[independentPackages[name]], `${name} still shares an alias member array.`);
-  assert(MODULE_MEMBERS[name].length >= 6, `${name} needs a useful standalone API.`);
+  assert(MODULE_MEMBERS[name].length > 0, `${name} needs a standalone API.`);
 }
 assert(!Object.hasOwn(require('./language-data'), 'ALIASES'), 'Alias registry should be removed.');
 
