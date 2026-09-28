@@ -78,3 +78,8 @@ The external `.snative` metadata describes the C ABI so ordinary SE source does 
 ## Source extension
 
 New modules use `.se`. Legacy `.s` lookup may remain for migration compatibility, but new projects and documentation should use `.se`.
+
+
+## Independent package APIs
+
+Every built-in name is a module in its own right. Related packages can share internal helpers while exposing focused APIs. For example, `re` provides match extraction, `itertools` provides sequence transforms, `config` parses sectioned settings, `series` handles rolling numeric data, `linear` provides matrix operations, and `dataset` provides row selection and splitting. Game packages such as `canvas`, `sprite`, `physics`, and `collision` expose separate parts of the scene API.
