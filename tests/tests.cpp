@@ -66,7 +66,7 @@ int main(){
   EXPECT(run("use series\nvalues = series.moving_average [1, 2, 3, 4] 2\nsay values.len\n")=="3\n");
   EXPECT(run("use linear\nsay linear.determinant [[2, 1], [1, 3]]\n")=="5\n");
   EXPECT(run("use dataset\nrows = [{name: \"Ada\"}, {name: \"Lin\"}]\nsay dataset.row_count rows\n")=="2\n");
-  EXPECT(run("use argparse\noptions = argparse.parse_args [\"--mode\", \"fast\", \"file.se\"]\nsay argparse.get options \"mode\"\nsay argparse.positionals options.len\n")=="fast\n1\n");
+  EXPECT(run("use argparse\noptions = argparse.parse_args [\"--mode\", \"fast\", \"file.se\"]\nsay argparse.get options \"mode\"\npositionals = argparse.positionals options\nsay positionals.len\n")=="fast\n1\n");
 
   // Collections.
   EXPECT(run("nums = [1, 2, 3]\nnums.add 4\nnums.remove 2\nfor n in nums\n    say n\n")=="1\n3\n4\n");
