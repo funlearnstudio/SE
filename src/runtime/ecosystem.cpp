@@ -209,7 +209,7 @@ TypeInfo ecosystem_builtin_type(const std::string& name){
     x["mean"]=fn({list_t},num);x["median"]=fn({list_t},num);x["variance"]=fn({list_t},num);x["pvariance"]=fn({list_t},num);x["stdev"]=fn({list_t},num);x["pstdev"]=fn({list_t},num);
   }else if(name=="re"){
     x["find_all"]=fn({text_t,text_t},list_type(text_t),false,0,true);x["count"]=fn({text_t,text_t},integer_t,false,0,true);x["escape"]=fn({text_t},text_t);x["groups"]=fn({text_t,text_t},list_t,false,0,true);x["match"]=fn({text_t,text_t},bool_t);x["search"]=fn({text_t,text_t},bool_t);x["replace"]=fn({text_t,text_t,text_t},text_t);x["split"]=fn({text_t,text_t},list_type(text_t));
-  }else if(name=="regex"){  }else if(name=="regex"||name=="re"){
+  }else if(name=="regex"){
     x["match"]=fn({text_t,text_t},bool_t);x["search"]=fn({text_t,text_t},bool_t);x["replace"]=fn({text_t,text_t,text_t},text_t);x["split"]=fn({text_t,text_t},list_type(text_t));
   }else if(name=="base64"){
     x["encode"]=fn({text_t},text_t);x["decode"]=fn({text_t},text_t,false,0,true);
