@@ -182,7 +182,7 @@ std::vector<Entry> entries(const std::string& name){
 bool is_expansion_builtin(const std::string& name){static const std::set<std::string> names={"url","encoding","dotenv","config","array","series","matrix","linear","probability","fraction","complex","calculus","units","table","dataset","cookie","cors","http_server","router","dns","physics","collision","template","static","upload","tilemap","gui","window","canvas","input","sprite","sound","keyboard","mouse","animation","scene","image","audio","video","camera"};return names.contains(name);}
 TypeInfo expansion_builtin_type(const std::string& name){
  if(is_web_package(name)){auto type=platform_builtin_type("web");const auto& allowed=web_package_members(name);for(auto it=type.members.begin();it!=type.members.end();)if(!allowed.contains(it->first))it=type.members.erase(it);else ++it;type.name=name;return type;}
- if(name=="dns"){auto type=ecosystem_builtin_type("socket");type.name=name;return type;}
+ if(name=="dns")return ecosystem_builtin_type("dns");
  if(is_game_package(name)){auto type=ecosystem_builtin_type("game");extend_game_type(type);const auto& allowed=game_package_members(name);for(auto it=type.members.begin();it!=type.members.end();)if(!allowed.contains(it->first))it=type.members.erase(it);else ++it;type.name=name;return type;}
  if(name=="video"||name=="camera"){
   TypeInfo module(TypeKind::Module),int_t(TypeKind::Int),text_t(TypeKind::Text),num_t(TypeKind::Num),none(TypeKind::None);module.name=name;
@@ -194,7 +194,7 @@ TypeInfo expansion_builtin_type(const std::string& name){
 }
 std::shared_ptr<ModuleData> expansion_builtin_module(const std::string& name,Interpreter& vm){
  if(is_web_package(name)){auto module=platform_builtin_module("web",vm);const auto& allowed=web_package_members(name);for(auto it=module->exports.begin();it!=module->exports.end();)if(!allowed.contains(it->first))it=module->exports.erase(it);else ++it;module->name=name;return module;}
- if(name=="dns"){auto module=ecosystem_builtin_module("socket",vm);module->name=name;return module;}
+ if(name=="dns")return ecosystem_builtin_module("dns",vm);
  if(is_game_package(name)){auto module=ecosystem_builtin_module("game",vm);extend_game_module(module,vm);const auto& allowed=game_package_members(name);for(auto it=module->exports.begin();it!=module->exports.end();)if(!allowed.contains(it->first))it=module->exports.erase(it);else ++it;module->name=name;return module;}
  if(name=="video"||name=="camera"){
   auto module=std::make_shared<ModuleData>();module->name=name;
