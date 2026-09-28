@@ -39,6 +39,14 @@ std::string percent_decode(const std::string& s,SourcePos p){std::string out;for
 std::string html_escape(const std::string& s){std::string out;for(char c:s){switch(c){case '&':out+="&amp;";break;case '<':out+="&lt;";break;case '>':out+="&gt;";break;case '"':out+="&quot;";break;case '\'':out+="&#39;";break;default:out+=c;}}return out;}
 std::string js_literal(const std::string& s){std::ostringstream out;out<<'"'<<std::hex<<std::setfill('0');for(unsigned char c:s){if(c=='"'||c=='\\')out<<'\\'<<c;else if(c<32||c=='<'||c=='>'||c=='&')out<<"\\u"<<std::setw(4)<<static_cast<unsigned>(c);else out<<c;}return out.str()+'"';}
 std::filesystem::path safe_file(const std::string& root,const std::string& path,SourcePos p){namespace fs=std::filesystem;auto base=fs::weakly_canonical(fs::path(root));auto raw=fs::path(path);if(raw.empty()||raw.is_absolute())throw Error(p,"Expected a relative file path.");auto file=fs::weakly_canonical(base/raw);auto relative=file.lexically_relative(base);if(relative.empty()||relative=="."||*relative.begin()=="..")throw Error(p,"Path escapes the root directory.");return file;}
+bool is_web_package(const std::string& name){return name=="http_server"||name=="router";}
+const std::set<std::string>& web_package_members(const std::string& name){
+ static const std::map<std::string,std::set<std::string>> members={
+  {"http_server",{"get","post","put","patch","delete","listen","text","json","response","method","path","query","body","header","param","route_count"}},
+  {"router",{"get","post","put","delete","path","param","handle","handle_status","route_count"}}
+ };
+ return members.at(name);
+}
 bool is_game_package(const std::string& name){static const std::set<std::string> names={"gui","window","canvas","input","sprite","physics","sound","keyboard","mouse","animation","scene","collision","image","audio"};return names.contains(name);}
 const std::set<std::string>& game_package_members(const std::string& name){
  static const std::map<std::string,std::set<std::string>> members={
@@ -173,7 +181,7 @@ std::vector<Entry> entries(const std::string& name){
 }
 bool is_expansion_builtin(const std::string& name){static const std::set<std::string> names={"url","encoding","dotenv","config","array","series","matrix","linear","probability","fraction","complex","calculus","units","table","dataset","cookie","cors","http_server","router","dns","physics","collision","template","static","upload","tilemap","gui","window","canvas","input","sprite","sound","keyboard","mouse","animation","scene","image","audio","video","camera"};return names.contains(name);}
 TypeInfo expansion_builtin_type(const std::string& name){
- if(name=="http_server"||name=="router"){auto type=platform_builtin_type("web");type.name=name;return type;}
+ if(is_web_package(name)){auto type=platform_builtin_type("web");const auto& allowed=web_package_members(name);for(auto it=type.members.begin();it!=type.members.end();)if(!allowed.contains(it->first))it=type.members.erase(it);else ++it;type.name=name;return type;}
  if(name=="dns"){auto type=ecosystem_builtin_type("socket");type.name=name;return type;}
  if(is_game_package(name)){auto type=ecosystem_builtin_type("game");extend_game_type(type);const auto& allowed=game_package_members(name);for(auto it=type.members.begin();it!=type.members.end();)if(!allowed.contains(it->first))it=type.members.erase(it);else ++it;type.name=name;return type;}
  if(name=="video"||name=="camera"){
@@ -185,7 +193,7 @@ TypeInfo expansion_builtin_type(const std::string& name){
  TypeInfo module(TypeKind::Module);module.name=name;for(auto& e:entries(name)){TypeInfo function(TypeKind::Function);auto sig=std::make_shared<FunctionSig>();sig->params=e.params;sig->result=e.result;sig->fallible=e.fallible;function.callable=sig;module.members[e.name]=function;}return module;
 }
 std::shared_ptr<ModuleData> expansion_builtin_module(const std::string& name,Interpreter& vm){
- if(name=="http_server"||name=="router"){auto module=platform_builtin_module("web",vm);module->name=name;return module;}
+ if(is_web_package(name)){auto module=platform_builtin_module("web",vm);const auto& allowed=web_package_members(name);for(auto it=module->exports.begin();it!=module->exports.end();)if(!allowed.contains(it->first))it=module->exports.erase(it);else ++it;module->name=name;return module;}
  if(name=="dns"){auto module=ecosystem_builtin_module("socket",vm);module->name=name;return module;}
  if(is_game_package(name)){auto module=ecosystem_builtin_module("game",vm);extend_game_module(module,vm);const auto& allowed=game_package_members(name);for(auto it=module->exports.begin();it!=module->exports.end();)if(!allowed.contains(it->first))it=module->exports.erase(it);else ++it;module->name=name;return module;}
  if(name=="video"||name=="camera"){
