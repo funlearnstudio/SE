@@ -2,7 +2,7 @@
 set -eu
 
 REPO="funlearnstudio/SE"
-DEFAULT_VERSION="0.7.0"
+DEFAULT_VERSION="0.7.1"
 
 latest_release_version() {
   data=""
@@ -29,12 +29,12 @@ fi
 
 case "$VERSION" in
   *[!0-9A-Za-z.+-]*|.*|*..*|*.)
-    echo "SE installer: invalid version '$VERSION'. Use a release such as 0.7.0 or v0.7.0." >&2
+    echo "SE installer: invalid version '$VERSION'. Use a release such as 0.7.1 or v0.7.1." >&2
     exit 1
     ;;
 esac
 if ! printf '%s\n' "$VERSION" | awk -F '[.+-]' 'NF >= 3 && $1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ && $3 ~ /^[0-9]+$/ { valid = 1 } END { exit !valid }'; then
-  echo "SE installer: invalid version '$VERSION'. Use a release such as 0.7.0 or v0.7.0." >&2
+  echo "SE installer: invalid version '$VERSION'. Use a release such as 0.7.1 or v0.7.1." >&2
   exit 1
 fi
 

@@ -2,7 +2,7 @@
 
 [English version](getting-started.md)
 
-這份文件會帶你完成安裝、確認工具、執行第一支 SE 程式。現在的正式 Release 是 **SE 0.7.0**；如果你直接使用 GitHub `main` 原始碼，可能會包含更新的 compiler / Web 功能，但版本字串為 0.7。
+這份文件會帶你完成安裝、確認工具、執行第一支 SE 程式。現在的正式 Release 是 **SE 0.7.1**；如果你直接使用 GitHub `main` 原始碼，可能會包含更新的 compiler / Web 功能，但版本字串為 0.7。
 
 ## 1. 安裝 SE
 

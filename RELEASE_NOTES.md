@@ -1,6 +1,6 @@
-# SE 0.7.0
+# SE 0.7.1
 
-SE 0.7.0 expands the standard library substantially and improves installation so the prebuilt packages can be used immediately across supported platforms.
+SE 0.7.1 refreshes the prebuilt CLI packages from the current source so installations receive the expanded standard-library modules and runtime fixes. It also verifies release downloads before installing them.
 
 ## Quick install
 
@@ -16,37 +16,17 @@ Windows PowerShell:
 irm https://raw.githubusercontent.com/funlearnstudio/SE/main/install.ps1 | iex
 ```
 
-Both installers now resolve the latest GitHub Release automatically when `SE_VERSION` is not explicitly set.
+Both installers resolve the latest GitHub Release automatically when `SE_VERSION` is not explicitly set. The Unix installer validates the requested version, verifies the package checksum, checks archive paths, and reports optional Python module dependencies.
 
 ## Standard library additions
 
-SE 0.7.0 adds Python-inspired modules and aliases while keeping SE syntax and runtime behavior:
+The refreshed CLI packages include the current expansion APIs, including:
 
-- `statistics`
-- `iter` / `itertools`
-- `regex` / `re`
-- `decimal`
-- `csv`
-- `datetime` plus additional `time` helpers
-- `hash` / `hashlib`
-- `base64`
-- `uuid`
-- safe `pickle`-style JSON serialization
-- `args` / `argparse`
-- `log` / `logging`
-- `shutil` plus additional `file` operations
-- `glob`
-- `zip` / `zipfile`
-- `subprocess`
-- `socket`
-- `threading`
-- `queue`
-- `sqlite` / `sqlite3`
-- `functools` plus additional `function` helpers
-- `operator`
-- `copy`
-- `enum`
-- `typing`
+- data and math: `url`, `encoding`, `series`, `matrix`, `linear`, `dataset`, `table`, `probability`, `fraction`, `complex`, `calculus`, `units`
+- content and security: `toml`, `yaml`, `xml`, `markdown`, `crypto`, `jwt`, `session`, `auth`, `cookie`, `cors`, `template`
+- service and network: `http_server`, `router`, `dns`, `ftp`, `smtp`, `imap`, `ssh`, `websocket`, `ai`, `embedding`
+- machine learning and media: `ml`, `tensor`, `image`, `audio`, `video`, `camera`, `gui`, `canvas`, `sprite`, `physics`, `sound`, `animation`, `scene`, `collision`, `tilemap`
+- existing standard-library modules including `statistics`, `iter`, `itertools`, `regex`, `decimal`, `csv`, `datetime`, `hashlib`, `sqlite3`, and `functools`
 
 The new APIs are registered with the type checker and runtime, included in VS Code completion, and exercised by a dedicated standard-library smoke test.
 
@@ -88,4 +68,4 @@ Release assets include SHA-256 checksums.
 
 ## Version
 
-SE 0.7.0
+SE 0.7.1
