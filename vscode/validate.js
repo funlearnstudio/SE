@@ -83,12 +83,17 @@ for (const match of expansionSource.matchAll(/if\(name=="([a-z_]+)"(?:\|\|name==
   }
 }
 const gameApiOwners = {
-  create: 'window', title: 'window', resize: 'window', fullscreen: 'window',
-  image: 'canvas', text: 'canvas', rect: 'canvas', circle: 'canvas', line: 'canvas'
+  image: ['sprite', 'image'], sprite: ['sprite'], sprite_color: ['sprite'],
+  position: ['sprite'], move: ['sprite', 'animation'], velocity: ['sprite', 'physics', 'animation'],
+  animate: ['sprite', 'animation'], key_move: ['input', 'keyboard'], follow_mouse: ['input', 'mouse'],
+  sound: ['sound', 'audio'], play: ['sound', 'audio'], stop: ['sound', 'audio'],
+  fullscreen: ['window'], camera: ['physics', 'mouse'], particles: ['physics'],
+  rect_hit: ['physics', 'collision'], circle_hit: ['physics', 'collision'],
+  distance: ['physics', 'collision'], vector: ['physics', 'collision']
 };
 for (const [, member] of read('src/runtime/game_ext.cpp').matchAll(/x\["([a-z_]+)"\]=/g)) {
-  const owner = gameApiOwners[member];
-  if (owner) assert(MODULE_MEMBERS[owner].some(([name]) => name === member), `Missing ${owner}.${member} completion.`);
+  const owners = gameApiOwners[member] || [];
+  assert(owners.some((owner) => MODULE_MEMBERS[owner].some(([name]) => name === member)), `No focused game package exposes ${member}.`);
 }
 
 const grammar = JSON.parse(read('vscode/syntaxes/se.tmLanguage.json'));
