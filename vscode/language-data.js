@@ -817,133 +817,88 @@ const INDEPENDENT_MEMBERS = {
     f('lookup_txt', 'dns.lookup_txt', 'Address resolution, reverse lookup, IP validation, and DNS records.')
   ],
   gui: [
-    f('window', 'gui.window', 'Compose browser interfaces from windows, panels, and controls.'),
-    f('panel', 'gui.panel', 'Compose browser interfaces from windows, panels, and controls.'),
-    f('label', 'gui.label', 'Compose browser interfaces from windows, panels, and controls.'),
-    f('button', 'gui.button', 'Compose browser interfaces from windows, panels, and controls.'),
-    f('input', 'gui.input', 'Compose browser interfaces from windows, panels, and controls.'),
-    f('checkbox', 'gui.checkbox', 'Compose browser interfaces from windows, panels, and controls.'),
-    f('show', 'gui.show', 'Compose browser interfaces from windows, panels, and controls.'),
-    f('close', 'gui.close', 'Compose browser interfaces from windows, panels, and controls.')
+    f('new', 'gui.new', 'Focused gui APIs for SE scenes.'),
+    f('rect', 'gui.rect', 'Focused gui APIs for SE scenes.'),
+    f('circle', 'gui.circle', 'Focused gui APIs for SE scenes.'),
+    f('text', 'gui.text', 'Focused gui APIs for SE scenes.'),
+    f('show', 'gui.show', 'Focused gui APIs for SE scenes.'),
+    f('save', 'gui.save', 'Focused gui APIs for SE scenes.'),
+    f('html', 'gui.html', 'Focused gui APIs for SE scenes.')
   ],
   window: [
-    f('create', 'window.create', 'Manage canvas window dimensions, title, and fullscreen state.'),
-    f('title', 'window.title', 'Manage canvas window dimensions, title, and fullscreen state.'),
-    f('resize', 'window.resize', 'Manage canvas window dimensions, title, and fullscreen state.'),
-    f('fullscreen', 'window.fullscreen', 'Manage canvas window dimensions, title, and fullscreen state.'),
-    f('center', 'window.center', 'Manage canvas window dimensions, title, and fullscreen state.'),
-    f('close', 'window.close', 'Manage canvas window dimensions, title, and fullscreen state.'),
-    f('width', 'window.width', 'Manage canvas window dimensions, title, and fullscreen state.'),
-    f('height', 'window.height', 'Manage canvas window dimensions, title, and fullscreen state.')
+    f('new', 'window.new', 'Focused window APIs for SE scenes.'),
+    f('fullscreen', 'window.fullscreen', 'Focused window APIs for SE scenes.'),
+    f('show', 'window.show', 'Focused window APIs for SE scenes.')
   ],
   canvas: [
-    f('size', 'canvas.size', 'Draw and export canvas scenes.'),
-    f('clear', 'canvas.clear', 'Draw and export canvas scenes.'),
-    f('rect', 'canvas.rect', 'Draw and export canvas scenes.'),
-    f('circle', 'canvas.circle', 'Draw and export canvas scenes.'),
-    f('line', 'canvas.line', 'Draw and export canvas scenes.'),
-    f('text', 'canvas.text', 'Draw and export canvas scenes.'),
-    f('image', 'canvas.image', 'Draw and export canvas scenes.'),
-    f('save', 'canvas.save', 'Draw and export canvas scenes.')
+    f('background', 'canvas.background', 'Focused canvas APIs for SE scenes.'),
+    f('clear', 'canvas.clear', 'Focused canvas APIs for SE scenes.'),
+    f('rect', 'canvas.rect', 'Focused canvas APIs for SE scenes.'),
+    f('circle', 'canvas.circle', 'Focused canvas APIs for SE scenes.'),
+    f('line', 'canvas.line', 'Focused canvas APIs for SE scenes.'),
+    f('text', 'canvas.text', 'Focused canvas APIs for SE scenes.')
   ],
   input: [
-    f('key_down', 'input.key_down', 'Track keyboard and pointer input.'),
-    f('key_pressed', 'input.key_pressed', 'Track keyboard and pointer input.'),
-    f('mouse_position', 'input.mouse_position', 'Track keyboard and pointer input.'),
-    f('mouse_down', 'input.mouse_down', 'Track keyboard and pointer input.'),
-    f('on_key', 'input.on_key', 'Track keyboard and pointer input.'),
-    f('on_click', 'input.on_click', 'Track keyboard and pointer input.')
+    f('key_move', 'input.key_move', 'Focused input APIs for SE scenes.'),
+    f('follow_mouse', 'input.follow_mouse', 'Focused input APIs for SE scenes.')
   ],
   sprite: [
-    f('load', 'sprite.load', 'Load, draw, transform, and animate sprites.'),
-    f('draw', 'sprite.draw', 'Load, draw, transform, and animate sprites.'),
-    f('scale', 'sprite.scale', 'Load, draw, transform, and animate sprites.'),
-    f('rotate', 'sprite.rotate', 'Load, draw, transform, and animate sprites.'),
-    f('flip', 'sprite.flip', 'Load, draw, transform, and animate sprites.'),
-    f('animate', 'sprite.animate', 'Load, draw, transform, and animate sprites.'),
-    f('remove', 'sprite.remove', 'Load, draw, transform, and animate sprites.'),
-    f('bounds', 'sprite.bounds', 'Load, draw, transform, and animate sprites.')
+    f('image', 'sprite.image', 'Focused sprite APIs for SE scenes.'),
+    f('sprite', 'sprite.sprite', 'Focused sprite APIs for SE scenes.'),
+    f('sprite_color', 'sprite.sprite_color', 'Focused sprite APIs for SE scenes.'),
+    f('position', 'sprite.position', 'Focused sprite APIs for SE scenes.'),
+    f('move', 'sprite.move', 'Focused sprite APIs for SE scenes.'),
+    f('velocity', 'sprite.velocity', 'Focused sprite APIs for SE scenes.'),
+    f('animate', 'sprite.animate', 'Focused sprite APIs for SE scenes.')
   ],
   physics: [
-    f('body', 'physics.body', 'Integrate bodies, forces, gravity, and collision checks.'),
-    f('velocity', 'physics.velocity', 'Integrate bodies, forces, gravity, and collision checks.'),
-    f('gravity', 'physics.gravity', 'Integrate bodies, forces, gravity, and collision checks.'),
-    f('force', 'physics.force', 'Integrate bodies, forces, gravity, and collision checks.'),
-    f('integrate', 'physics.integrate', 'Integrate bodies, forces, gravity, and collision checks.'),
-    f('collide', 'physics.collide', 'Integrate bodies, forces, gravity, and collision checks.'),
-    f('distance', 'physics.distance', 'Integrate bodies, forces, gravity, and collision checks.'),
-    f('clamp', 'physics.clamp', 'Integrate bodies, forces, gravity, and collision checks.')
+    f('velocity', 'physics.velocity', 'Focused physics APIs for SE scenes.'),
+    f('rect_hit', 'physics.rect_hit', 'Focused physics APIs for SE scenes.'),
+    f('circle_hit', 'physics.circle_hit', 'Focused physics APIs for SE scenes.'),
+    f('distance', 'physics.distance', 'Focused physics APIs for SE scenes.'),
+    f('vector', 'physics.vector', 'Focused physics APIs for SE scenes.'),
+    f('particles', 'physics.particles', 'Focused physics APIs for SE scenes.'),
+    f('camera', 'physics.camera', 'Focused physics APIs for SE scenes.')
   ],
   sound: [
-    f('tone', 'sound.tone', 'Generate tones and control sound playback.'),
-    f('beep', 'sound.beep', 'Generate tones and control sound playback.'),
-    f('noise', 'sound.noise', 'Generate tones and control sound playback.'),
-    f('volume', 'sound.volume', 'Generate tones and control sound playback.'),
-    f('play', 'sound.play', 'Generate tones and control sound playback.'),
-    f('stop', 'sound.stop', 'Generate tones and control sound playback.'),
-    f('fade', 'sound.fade', 'Generate tones and control sound playback.')
+    f('sound', 'sound.sound', 'Focused sound APIs for SE scenes.'),
+    f('play', 'sound.play', 'Focused sound APIs for SE scenes.'),
+    f('stop', 'sound.stop', 'Focused sound APIs for SE scenes.')
   ],
   keyboard: [
-    f('pressed', 'keyboard.pressed', 'Query keyboard state and register callbacks.'),
-    f('just_pressed', 'keyboard.just_pressed', 'Query keyboard state and register callbacks.'),
-    f('just_released', 'keyboard.just_released', 'Query keyboard state and register callbacks.'),
-    f('key_code', 'keyboard.key_code', 'Query keyboard state and register callbacks.'),
-    f('on_press', 'keyboard.on_press', 'Query keyboard state and register callbacks.'),
-    f('on_release', 'keyboard.on_release', 'Query keyboard state and register callbacks.')
+    f('key_move', 'keyboard.key_move', 'Focused keyboard APIs for SE scenes.')
   ],
   mouse: [
-    f('position', 'mouse.position', 'Read pointer state and handle mouse events.'),
-    f('button_down', 'mouse.button_down', 'Read pointer state and handle mouse events.'),
-    f('just_clicked', 'mouse.just_clicked', 'Read pointer state and handle mouse events.'),
-    f('wheel', 'mouse.wheel', 'Read pointer state and handle mouse events.'),
-    f('on_move', 'mouse.on_move', 'Read pointer state and handle mouse events.'),
-    f('on_click', 'mouse.on_click', 'Read pointer state and handle mouse events.')
+    f('follow_mouse', 'mouse.follow_mouse', 'Focused mouse APIs for SE scenes.'),
+    f('camera', 'mouse.camera', 'Focused mouse APIs for SE scenes.')
   ],
   animation: [
-    f('tween', 'animation.tween', 'Create cancellable tweens, sequences, and easing curves.'),
-    f('sequence', 'animation.sequence', 'Create cancellable tweens, sequences, and easing curves.'),
-    f('repeat', 'animation.repeat', 'Create cancellable tweens, sequences, and easing curves.'),
-    f('ease', 'animation.ease', 'Create cancellable tweens, sequences, and easing curves.'),
-    f('cancel', 'animation.cancel', 'Create cancellable tweens, sequences, and easing curves.'),
-    f('is_running', 'animation.is_running', 'Create cancellable tweens, sequences, and easing curves.')
+    f('animate', 'animation.animate', 'Focused animation APIs for SE scenes.'),
+    f('move', 'animation.move', 'Focused animation APIs for SE scenes.'),
+    f('velocity', 'animation.velocity', 'Focused animation APIs for SE scenes.')
   ],
   scene: [
-    f('new', 'scene.new', 'Create, compose, and transition between scenes.'),
-    f('background', 'scene.background', 'Create, compose, and transition between scenes.'),
-    f('clear', 'scene.clear', 'Create, compose, and transition between scenes.'),
-    f('add', 'scene.add', 'Create, compose, and transition between scenes.'),
-    f('remove', 'scene.remove', 'Create, compose, and transition between scenes.'),
-    f('transition', 'scene.transition', 'Create, compose, and transition between scenes.'),
-    f('save', 'scene.save', 'Create, compose, and transition between scenes.'),
-    f('load', 'scene.load', 'Create, compose, and transition between scenes.')
+    f('new', 'scene.new', 'Focused scene APIs for SE scenes.'),
+    f('background', 'scene.background', 'Focused scene APIs for SE scenes.'),
+    f('clear', 'scene.clear', 'Focused scene APIs for SE scenes.'),
+    f('html', 'scene.html', 'Focused scene APIs for SE scenes.'),
+    f('save', 'scene.save', 'Focused scene APIs for SE scenes.'),
+    f('show', 'scene.show', 'Focused scene APIs for SE scenes.')
   ],
   collision: [
-    f('point_rect', 'collision.point_rect', 'Test point, rectangle, and circle collisions.'),
-    f('rect_rect', 'collision.rect_rect', 'Test point, rectangle, and circle collisions.'),
-    f('circle_circle', 'collision.circle_circle', 'Test point, rectangle, and circle collisions.'),
-    f('circle_rect', 'collision.circle_rect', 'Test point, rectangle, and circle collisions.'),
-    f('overlap', 'collision.overlap', 'Test point, rectangle, and circle collisions.'),
-    f('sweep', 'collision.sweep', 'Test point, rectangle, and circle collisions.')
+    f('rect_hit', 'collision.rect_hit', 'Focused collision APIs for SE scenes.'),
+    f('circle_hit', 'collision.circle_hit', 'Focused collision APIs for SE scenes.'),
+    f('distance', 'collision.distance', 'Focused collision APIs for SE scenes.'),
+    f('vector', 'collision.vector', 'Focused collision APIs for SE scenes.')
   ],
   image: [
-    f('load', 'image.load', 'Load, transform, inspect, and save images.'),
-    f('draw', 'image.draw', 'Load, transform, inspect, and save images.'),
-    f('crop', 'image.crop', 'Load, transform, inspect, and save images.'),
-    f('resize', 'image.resize', 'Load, transform, inspect, and save images.'),
-    f('flip', 'image.flip', 'Load, transform, inspect, and save images.'),
-    f('pixel', 'image.pixel', 'Load, transform, inspect, and save images.'),
-    f('dimensions', 'image.dimensions', 'Load, transform, inspect, and save images.'),
-    f('save', 'image.save', 'Load, transform, inspect, and save images.')
+    f('image', 'image.image', 'Focused image APIs for SE scenes.'),
+    f('sprite', 'image.sprite', 'Focused image APIs for SE scenes.')
   ],
   audio: [
-    f('load', 'audio.load', 'Load and control audio playback.'),
-    f('play', 'audio.play', 'Load and control audio playback.'),
-    f('pause', 'audio.pause', 'Load and control audio playback.'),
-    f('stop', 'audio.stop', 'Load and control audio playback.'),
-    f('volume', 'audio.volume', 'Load and control audio playback.'),
-    f('loop', 'audio.loop', 'Load and control audio playback.'),
-    f('duration', 'audio.duration', 'Load and control audio playback.'),
-    f('position', 'audio.position', 'Load and control audio playback.')
+    f('sound', 'audio.sound', 'Focused audio APIs for SE scenes.'),
+    f('play', 'audio.play', 'Focused audio APIs for SE scenes.'),
+    f('stop', 'audio.stop', 'Focused audio APIs for SE scenes.')
   ]
 };
 Object.assign(MODULE_MEMBERS, INDEPENDENT_MEMBERS);
