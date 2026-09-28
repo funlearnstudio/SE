@@ -217,7 +217,7 @@ TypeInfo ecosystem_builtin_type(const std::string& name){
     x["v4"]=fn({},text_t);x["valid"]=fn({text_t},bool_t);
   }else if(name=="itertools"){
     x["chain"]=fn({list_t,list_t},list_t,true,1);x["flatten"]=fn({list_t},list_t);x["chunked"]=fn({list_t,integer_t},list_t);x["take"]=fn({list_t,integer_t},list_t);x["drop"]=fn({list_t,integer_t},list_t);x["windows"]=fn({list_t,integer_t},list_t);x["cycle"]=fn({list_t,integer_t},list_t);x["pairs"]=fn({list_t},list_t);x["unique"]=fn({list_t},list_t);
-  }else if(name=="iter"){  }else if(name=="iter"||name=="itertools"){
+  else if(name=="iter"||name=="itertools"){
     x["range"]=fn({integer_t,integer_t},list_type(integer_t),true,1);x["enumerate"]=fn({list_t},list_t);x["zip"]=fn({list_t,list_t},list_t);x["product"]=fn({list_t,list_t},list_t);x["permutations"]=fn({list_t},list_t,true,1);x["combinations"]=fn({list_t,integer_t},list_t);
   }else if(name=="copy"){
     x["shallow"]=fn({unknown},unknown);x["deep"]=fn({unknown},unknown);
@@ -384,7 +384,7 @@ std::shared_ptr<ModuleData> ecosystem_builtin_module(const std::string& name,Int
   }else if(name=="uuid"){
     m->exports["v4"]=callable("uuid.v4",0,0,[](const std::vector<Value>&,SourcePos){std::random_device rd;std::mt19937_64 g(rd());std::uniform_int_distribution<unsigned long long>d;auto a=d(g),b=d(g);unsigned char x[16];for(int i=0;i<8;++i)x[i]=static_cast<unsigned char>((a>>(56-8*i))&255);for(int i=0;i<8;++i)x[8+i]=static_cast<unsigned char>((b>>(56-8*i))&255);x[6]=(x[6]&0x0f)|0x40;x[8]=(x[8]&0x3f)|0x80;std::ostringstream o;o<<std::hex<<std::setfill('0');for(int i=0;i<16;++i){o<<std::setw(2)<<static_cast<int>(x[i]);if(i==3||i==5||i==7||i==9)o<<'-';}return Value(o.str());});
     m->exports["valid"]=callable("uuid.valid",1,1,[](const std::vector<Value>&a,SourcePos p){auto s=text(a[0],p,"uuid.valid");static const std::regex re("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$");return Value(std::regex_match(s,re));});
-  }else if(name=="iter"||name=="itertools"){
+  }else if(name=="iter"){
     m->exports["range"]=callable("iter.range",1,3,[](const std::vector<Value>&a,SourcePos p){std::int64_t start=0,stop=0,step=1;if(a.size()==1)stop=integer(a[0],p,"iter.range");else{start=integer(a[0],p,"iter.range");stop=integer(a[1],p,"iter.range");if(a.size()==3)step=integer(a[2],p,"iter.range");}if(step==0)throw Error(p,"iter.range step cannot be zero.");auto out=std::make_shared<ListData>();if(step>0)for(auto i=start;i<stop;i+=step)out->items.emplace_back(i);else for(auto i=start;i>stop;i+=step)out->items.emplace_back(i);return Value(out);},true);
     m->exports["enumerate"]=callable("iter.enumerate",1,1,[](const std::vector<Value>&a,SourcePos p){auto l=list_value(a[0],p,"iter.enumerate");auto out=std::make_shared<ListData>();for(std::size_t i=0;i<l->items.size();++i){auto pair=std::make_shared<ListData>();pair->items.emplace_back(static_cast<std::int64_t>(i));pair->items.push_back(l->items[i]);out->items.emplace_back(pair);}return Value(out);});
     m->exports["zip"]=callable("iter.zip",2,2,[](const std::vector<Value>&a,SourcePos p){auto x=list_value(a[0],p,"iter.zip"),y=list_value(a[1],p,"iter.zip");auto out=std::make_shared<ListData>();auto n=std::min(x->items.size(),y->items.size());for(std::size_t i=0;i<n;++i){auto pair=std::make_shared<ListData>();pair->items={x->items[i],y->items[i]};out->items.emplace_back(pair);}return Value(out);});
