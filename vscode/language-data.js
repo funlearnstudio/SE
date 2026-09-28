@@ -704,15 +704,13 @@ const INDEPENDENT_MEMBERS = {
     f('require', 'require args...', 'Standalone argparse operation.')
   ],
   logging: [
-    f('get_logger', 'logging.get_logger', 'Named loggers, levels, formatting, and records.'),
-    f('set_level', 'logging.set_level', 'Named loggers, levels, formatting, and records.'),
-    f('debug', 'logging.debug', 'Named loggers, levels, formatting, and records.'),
-    f('info', 'logging.info', 'Named loggers, levels, formatting, and records.'),
-    f('warning', 'logging.warning', 'Named loggers, levels, formatting, and records.'),
-    f('error', 'logging.error', 'Named loggers, levels, formatting, and records.'),
-    f('critical', 'logging.critical', 'Named loggers, levels, formatting, and records.'),
-    f('format', 'logging.format', 'Named loggers, levels, formatting, and records.'),
-    f('records', 'logging.records', 'Named loggers, levels, formatting, and records.')
+    f('set_level', 'set_level args...', 'Standalone logging operation.'),
+    f('debug', 'debug args...', 'Standalone logging operation.'),
+    f('info', 'info args...', 'Standalone logging operation.'),
+    f('warning', 'warning args...', 'Standalone logging operation.'),
+    f('error', 'error args...', 'Standalone logging operation.'),
+    f('critical', 'critical args...', 'Standalone logging operation.'),
+    f('records', 'records args...', 'Standalone logging operation.')
   ],
   zipfile: [
     f('create', 'create args...', 'Standalone zipfile operation.'),
