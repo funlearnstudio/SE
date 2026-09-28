@@ -42,7 +42,7 @@ std::filesystem::path safe_file(const std::string& root,const std::string& path,
 bool is_web_package(const std::string& name){return name=="http_server"||name=="router";}
 const std::set<std::string>& web_package_members(const std::string& name){
  static const std::map<std::string,std::set<std::string>> members={
-  {"http_server",{"get","post","put","patch","delete","listen","text","json","response","method","path","query","body","header","param","route_count"}},
+  {"http_server",{"get","post","put","patch","delete","listen","text","json","response","method","path","query","body","header","param","handle","route_count"}},
   {"router",{"get","post","put","delete","path","param","handle","handle_status","route_count"}}
  };
  return members.at(name);
@@ -52,7 +52,7 @@ const std::set<std::string>& game_package_members(const std::string& name){
  static const std::map<std::string,std::set<std::string>> members={
   {"gui",{"new","rect","circle","text","show","save","html"}},
   {"window",{"new","fullscreen","show"}},
-  {"canvas",{"background","clear","rect","circle","line","text"}},
+  {"canvas",{"new","background","clear","rect","circle","line","text","show","save","html"}},
   {"input",{"key_move","follow_mouse"}},
   {"sprite",{"image","sprite","sprite_color","position","move","velocity","animate"}},
   {"physics",{"velocity","rect_hit","circle_hit","distance","vector","particles","camera"}},
