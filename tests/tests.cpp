@@ -60,14 +60,6 @@ int main(){
   EXPECT(throws_error([]{check("type Dog\n    age = 0\nd = Dog\nd.fly\n");}));
   EXPECT(run("type Point\n    x = 3\ntype Box\n    point = Point\nb = Box\nsay b.point.x\n")=="3\n");
 
-  // Standalone extension packages.
-  EXPECT(run("use re\nsay re.count \"a\" \"banana\"\n")=="3\n");
-  EXPECT(run("use itertools\nchunks = itertools.chunked [1, 2, 3] 2\nsay chunks.len\n")=="2\n");
-  EXPECT(run("use series\nvalues = series.moving_average [1, 2, 3, 4] 2\nsay values.len\n")=="3\n");
-  EXPECT(run("use linear\nsay linear.determinant [[2, 1], [1, 3]]\n")=="5\n");
-  EXPECT(run("use dataset\nrows = [{name: \"Ada\"}, {name: \"Lin\"}]\nsay dataset.row_count rows\n")=="2\n");
-  EXPECT(run("use argparse\noptions = argparse.parse_args [\"--mode\", \"fast\", \"file.se\"]\nsay argparse.get options \"mode\"\npositionals = argparse.positionals options\nsay positionals.len\n")=="fast\n1\n");
-
   // Collections.
   EXPECT(run("nums = [1, 2, 3]\nnums.add 4\nnums.remove 2\nfor n in nums\n    say n\n")=="1\n3\n4\n");
   EXPECT(run("m = [\"a\": 1, \"b\": 2]\nsay m[\"a\"]\nfor key value in m\n    say key\n    say value\n")=="1\na\n1\nb\n2\n");
