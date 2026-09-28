@@ -217,7 +217,7 @@ TypeInfo ecosystem_builtin_type(const std::string& name){
     x["v4"]=fn({},text_t);x["valid"]=fn({text_t},bool_t);
   }else if(name=="itertools"){
     x["chain"]=fn({list_t,list_t},list_t,true,1);x["flatten"]=fn({list_t},list_t);x["chunked"]=fn({list_t,integer_t},list_t);x["take"]=fn({list_t,integer_t},list_t);x["drop"]=fn({list_t,integer_t},list_t);x["windows"]=fn({list_t,integer_t},list_t);x["cycle"]=fn({list_t,integer_t},list_t);x["pairs"]=fn({list_t},list_t);x["unique"]=fn({list_t},list_t);
-  else if(name=="iter"||name=="itertools"){
+  }else if(name=="iter"){
     x["range"]=fn({integer_t,integer_t},list_type(integer_t),true,1);x["enumerate"]=fn({list_t},list_t);x["zip"]=fn({list_t,list_t},list_t);x["product"]=fn({list_t,list_t},list_t);x["permutations"]=fn({list_t},list_t,true,1);x["combinations"]=fn({list_t,integer_t},list_t);
   }else if(name=="copy"){
     x["shallow"]=fn({unknown},unknown);x["deep"]=fn({unknown},unknown);
