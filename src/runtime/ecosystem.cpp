@@ -132,6 +132,17 @@ std::string sha256_text(const std::string& input,SourcePos p){
   std::error_code ec;std::filesystem::remove(file,ec);std::smatch m;std::regex re("[0-9A-Fa-f]{64}");
   if(!std::regex_search(output,m,re))throw Error(p,"hash.sha256 could not obtain a SHA-256 digest from the host tools.");auto s=m.str();std::transform(s.begin(),s.end(),s.begin(),[](unsigned char ch){return static_cast<char>(std::tolower(ch));});return s;
 }
+std::string openssl_digest(const std::string& input,const std::string& algorithm,SourcePos p,const std::string& key={}){
+  static const std::set<std::string> allowed={"sha1","sha256","sha384","sha512"};
+  if(!allowed.contains(algorithm))throw Error(p,"Unsupported digest algorithm.");
+  auto stamp=std::chrono::high_resolution_clock::now().time_since_epoch().count();
+  auto path=std::filesystem::temp_directory_path()/("se-digest-"+std::to_string(stamp)+".tmp");
+  {std::ofstream out(path,std::ios::binary|std::ios::trunc);if(!out)throw Error(p,"Could not create digest input file.");out.write(input.data(),static_cast<std::streamsize>(input.size()));}
+  auto command="openssl dgst -"+algorithm+(key.empty()?std::string{}:" -hmac "+shell_quote(key))+" "+shell_quote(path.string());
+  auto output=process_output(command,p);std::error_code ec;std::filesystem::remove(path,ec);
+  std::smatch m;if(!std::regex_search(output,m,std::regex("[0-9a-fA-F]{40,128}")))throw Error(p,"OpenSSL could not produce a digest.");
+  auto value=m.str();std::transform(value.begin(),value.end(),value.begin(),[](unsigned char ch){return static_cast<char>(std::tolower(ch));});return value;
+}
 std::tm utc_tm(std::time_t t){
   std::tm tm{};
 #ifdef _WIN32
@@ -201,7 +212,7 @@ TypeInfo ecosystem_builtin_type(const std::string& name){
   }else if(name=="itertools"){
     x["chain"]=fn({list_t,list_t},list_t,true,1);x["flatten"]=fn({list_t},list_t);x["chunked"]=fn({list_t,integer_t},list_t);x["take"]=fn({list_t,integer_t},list_t);x["drop"]=fn({list_t,integer_t},list_t);x["windows"]=fn({list_t,integer_t},list_t);x["cycle"]=fn({list_t,integer_t},list_t);x["pairs"]=fn({list_t},list_t);x["unique"]=fn({list_t},list_t);
   }else if(name=="hashlib"){
-    x["sha256"]=fn({text_t},text_t,false,0,true);x["file_sha256"]=fn({text_t},text_t,false,0,true);x["compare"]=fn({text_t,text_t},bool_t);x["to_hex"]=fn({text_t},text_t);
+    x["sha256"]=fn({text_t},text_t,false,0,true);x["file_sha256"]=fn({text_t},text_t,false,0,true);x["sha512"]=fn({text_t},text_t,false,0,true);x["file_sha512"]=fn({text_t},text_t,false,0,true);x["digest"]=fn({text_t,text_t},text_t,false,0,true);x["file_digest"]=fn({text_t,text_t},text_t,false,0,true);x["hmac_sha256"]=fn({text_t,text_t},text_t,false,0,true);x["compare"]=fn({text_t,text_t},bool_t);x["to_hex"]=fn({text_t},text_t);
   }else if(name=="argparse"){
     x["parse_args"]=fn({list_t},map_t);x["get"]=fn({map_t,text_t},unknown,true,2);x["flag"]=fn({map_t,text_t},bool_t);x["help"]=fn({text_t,list_t},text_t);
   }else if(name=="logging"){
@@ -230,6 +241,11 @@ TypeInfo ecosystem_builtin_type(const std::string& name){
   }else if(name=="hashlib"){
     m->exports["sha256"]=callable("hashlib.sha256",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(sha256_text(text(a[0],p,"hashlib.sha256"),p));});
     m->exports["file_sha256"]=callable("hashlib.file_sha256",1,1,[](const std::vector<Value>&a,SourcePos p){auto path=text(a[0],p,"hashlib.file_sha256");std::ifstream in(path,std::ios::binary);if(!in)throw Error(p,"Could not read file for SHA-256.");std::string s((std::istreambuf_iterator<char>(in)),{});return Value(sha256_text(s,p));});
+    m->exports["sha512"]=callable("hashlib.sha512",1,1,[](const std::vector<Value>&a,SourcePos p){return Value(openssl_digest(text(a[0],p,"hashlib.sha512"),"sha512",p));});
+    m->exports["file_sha512"]=callable("hashlib.file_sha512",1,1,[](const std::vector<Value>&a,SourcePos p){auto path=text(a[0],p,"hashlib.file_sha512");std::ifstream in(path,std::ios::binary);if(!in)throw Error(p,"Could not read file for SHA-512.");std::string data((std::istreambuf_iterator<char>(in)),{});return Value(openssl_digest(data,"sha512",p));});
+    m->exports["digest"]=callable("hashlib.digest",2,2,[](const std::vector<Value>&a,SourcePos p){return Value(openssl_digest(text(a[1],p,"hashlib.digest"),text(a[0],p,"hashlib.digest"),p));});
+    m->exports["file_digest"]=callable("hashlib.file_digest",2,2,[](const std::vector<Value>&a,SourcePos p){auto path=text(a[1],p,"hashlib.file_digest");std::ifstream in(path,std::ios::binary);if(!in)throw Error(p,"Could not read file for digest.");std::string data((std::istreambuf_iterator<char>(in)),{});return Value(openssl_digest(data,text(a[0],p,"hashlib.file_digest"),p));});
+    m->exports["hmac_sha256"]=callable("hashlib.hmac_sha256",2,2,[](const std::vector<Value>&a,SourcePos p){return Value(openssl_digest(text(a[1],p,"hashlib.hmac_sha256"),"sha256",p,text(a[0],p,"hashlib.hmac_sha256")));});
     m->exports["compare"]=callable("hashlib.compare",2,2,[](const std::vector<Value>&a,SourcePos p){auto x=text(a[0],p,"hashlib.compare"),y=text(a[1],p,"hashlib.compare");unsigned char d=static_cast<unsigned char>(x.size()^y.size());for(std::size_t k=0;k<std::max(x.size(),y.size());++k)d|=static_cast<unsigned char>((k<x.size()?x[k]:0)^(k<y.size()?y[k]:0));return Value(d==0);});
     m->exports["to_hex"]=callable("hashlib.to_hex",1,1,[](const std::vector<Value>&a,SourcePos p){std::ostringstream o;o<<std::hex<<std::setfill('0');for(unsigned char ch:text(a[0],p,"hashlib.to_hex"))o<<std::setw(2)<<static_cast<int>(ch);return Value(o.str());});
   }else if(name=="regex"||name=="re"){
