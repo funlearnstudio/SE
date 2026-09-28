@@ -22,9 +22,20 @@ latest_release_version() {
 }
 
 if [ -n "${SE_VERSION:-}" ]; then
-  VERSION="$SE_VERSION"
+  VERSION="${SE_VERSION#v}"
 else
   VERSION="$(latest_release_version)"
+fi
+
+case "$VERSION" in
+  *[!0-9A-Za-z.+-]*|.*|*..*|*.)
+    echo "SE installer: invalid version '$VERSION'. Use a release such as 0.7.0 or v0.7.0." >&2
+    exit 1
+    ;;
+esac
+if ! printf '%s\n' "$VERSION" | awk -F '[.+-]' 'NF >= 3 && $1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ && $3 ~ /^[0-9]+$/ { valid = 1 } END { exit !valid }'; then
+  echo "SE installer: invalid version '$VERSION'. Use a release such as 0.7.0 or v0.7.0." >&2
+  exit 1
 fi
 
 TAG="v$VERSION"
@@ -242,8 +253,96 @@ report_stdlib_dependencies() {
   fi
 }
 
+report_python_dependencies() {
+  echo
+  echo "SE Python-backed module check:"
+
+  python_cmd=""
+  for candidate in python3.14 python3.13 python3.12 python3.11 python3 python; do
+    if have "$candidate"; then
+      python_cmd="$candidate"
+      break
+    fi
+  done
+
+  if [ -z "$python_cmd" ]; then
+    echo "  [--] Python 3.11+    needed by toml, yaml, xml, markdown, crypto, auth, email, and network integrations"
+    echo "  Install Python 3.11 or newer to use these modules."
+    return 0
+  fi
+
+  python_version="$("$python_cmd" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null || true)"
+  if ! printf '%s\n' "$python_version" | awk -F. '$1 > 3 || ($1 == 3 && $2 >= 11) { ok = 1 } END { exit !ok }'; then
+    echo "  [--] $python_cmd $python_version    Python 3.11+ is needed by toml, yaml, xml, markdown, crypto, auth, email, and network integrations"
+    return 0
+  fi
+  echo "  [ok] $python_cmd $python_version"
+
+  missing_python_packages=""
+  for package in 'yaml:PyYAML' 'markdown_it:markdown-it-py' 'paramiko:paramiko' 'websockets:websockets'; do
+    import_name="${package%%:*}"
+    package_name="${package#*:}"
+    if "$python_cmd" -c "import $import_name" >/dev/null 2>&1; then
+      echo "  [ok] $package_name"
+    else
+      echo "  [--] $package_name    needed by the matching SE module"
+      missing_python_packages="$missing_python_packages $package_name"
+    fi
+  done
+
+  if [ -n "$missing_python_packages" ]; then
+    echo "  Optional packages can be installed with: $python_cmd -m pip install$missing_python_packages"
+  fi
+}
+
 echo "Installing SE $VERSION for $platform-$machine..."
 fetch "$url" "$tmp/$archive"
+
+checksum_file="$tmp/SHA256SUMS.txt"
+fetch "$BASE_URL/SHA256SUMS.txt" "$checksum_file"
+
+if ! have sha256sum && ! have shasum; then
+  echo "SE installer: a SHA-256 tool (sha256sum or shasum) is required to verify the release package." >&2
+  exit 1
+fi
+
+expected="$(awk -v file="$archive" '$2 == file || $2 == "*" file { print $1; exit }' "$checksum_file")"
+case "$expected" in
+  *[!0-9A-Fa-f]*|'')
+    echo "SE installer: SHA256SUMS.txt does not contain a valid checksum for $archive." >&2
+    exit 1
+    ;;
+esac
+if [ "${#expected}" -ne 64 ]; then
+  echo "SE installer: SHA256SUMS.txt does not contain a valid checksum for $archive." >&2
+  exit 1
+fi
+
+if have sha256sum; then
+  actual="$(sha256sum "$tmp/$archive" | awk '{ print $1 }')"
+else
+  actual="$(shasum -a 256 "$tmp/$archive" | awk '{ print $1 }')"
+fi
+if [ "$(printf '%s' "$actual" | tr 'A-F' 'a-f')" != "$(printf '%s' "$expected" | tr 'A-F' 'a-f')" ]; then
+  echo "SE installer: release checksum verification failed for $archive." >&2
+  exit 1
+fi
+echo "Verified SHA-256 checksum for $archive."
+
+if ! tar -tzf "$tmp/$archive" > "$tmp/archive-files.txt"; then
+  echo "SE installer: the downloaded release archive is invalid." >&2
+  exit 1
+fi
+while IFS= read -r member || [ -n "$member" ]; do
+  case "$member" in
+    "$asset"|"$asset/"|"$asset"/*) ;;
+    *) echo "SE installer: archive contains an unexpected path: $member" >&2; exit 1 ;;
+  esac
+  case "/$member/" in
+    */../*|//*) echo "SE installer: archive contains an unsafe path: $member" >&2; exit 1 ;;
+  esac
+done < "$tmp/archive-files.txt"
+
 tar -xzf "$tmp/$archive" -C "$tmp"
 
 mkdir -p "$INSTALL_ROOT" "$BIN_DIR"
@@ -267,6 +366,7 @@ echo
 echo "Installed: $BIN_DIR/se"
 "$BIN_DIR/se" --version
 report_stdlib_dependencies
+report_python_dependencies
 
 echo
 printf '%s\n' 'Try: se run hello.se'
