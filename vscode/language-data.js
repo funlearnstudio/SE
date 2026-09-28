@@ -683,10 +683,15 @@ const INDEPENDENT_MEMBERS = {
     f('unique', 'itertools.unique', 'Composable sequence iteration, chunking, windows, and transforms.')
   ],
   hashlib: [
-    f('sha256', 'sha256 args...', 'Standalone hashlib operation.'),
-    f('file_sha256', 'file_sha256 args...', 'Standalone hashlib operation.'),
-    f('compare', 'compare args...', 'Standalone hashlib operation.'),
-    f('to_hex', 'to_hex args...', 'Standalone hashlib operation.')
+    f('sha256', 'sha256 args...', 'Cryptographic hash operation.'),
+    f('file_sha256', 'file_sha256 args...', 'Cryptographic hash operation.'),
+    f('sha512', 'sha512 args...', 'Cryptographic hash operation.'),
+    f('file_sha512', 'file_sha512 args...', 'Cryptographic hash operation.'),
+    f('digest', 'digest args...', 'Cryptographic hash operation.'),
+    f('file_digest', 'file_digest args...', 'Cryptographic hash operation.'),
+    f('hmac_sha256', 'hmac_sha256 args...', 'Cryptographic hash operation.'),
+    f('compare', 'compare args...', 'Cryptographic hash operation.'),
+    f('to_hex', 'to_hex args...', 'Cryptographic hash operation.')
   ],
   argparse: [
     f('parse_args', 'parse_args args...', 'Standalone argparse operation.'),
