@@ -697,7 +697,11 @@ const INDEPENDENT_MEMBERS = {
     f('parse_args', 'parse_args args...', 'Standalone argparse operation.'),
     f('get', 'get args...', 'Standalone argparse operation.'),
     f('flag', 'flag args...', 'Standalone argparse operation.'),
-    f('help', 'help args...', 'Standalone argparse operation.')
+    f('help', 'help args...', 'Standalone argparse operation.'),
+    f('has', 'has args...', 'Standalone argparse operation.'),
+    f('positionals', 'positionals args...', 'Standalone argparse operation.'),
+    f('get_int', 'get_int args...', 'Standalone argparse operation.'),
+    f('require', 'require args...', 'Standalone argparse operation.')
   ],
   logging: [
     f('get_logger', 'logging.get_logger', 'Named loggers, levels, formatting, and records.'),
