@@ -714,16 +714,14 @@ const INDEPENDENT_MEMBERS = {
     f('test', 'test args...', 'Standalone zipfile operation.')
   ],
   sqlite3: [
-    f('connect', 'sqlite3.connect', 'Parameterized queries, transactions, schema inspection, and connections.'),
-    f('execute', 'sqlite3.execute', 'Parameterized queries, transactions, schema inspection, and connections.'),
-    f('executemany', 'sqlite3.executemany', 'Parameterized queries, transactions, schema inspection, and connections.'),
-    f('query', 'sqlite3.query', 'Parameterized queries, transactions, schema inspection, and connections.'),
-    f('query_one', 'sqlite3.query_one', 'Parameterized queries, transactions, schema inspection, and connections.'),
-    f('table_info', 'sqlite3.table_info', 'Parameterized queries, transactions, schema inspection, and connections.'),
-    f('begin', 'sqlite3.begin', 'Parameterized queries, transactions, schema inspection, and connections.'),
-    f('commit', 'sqlite3.commit', 'Parameterized queries, transactions, schema inspection, and connections.'),
-    f('rollback', 'sqlite3.rollback', 'Parameterized queries, transactions, schema inspection, and connections.'),
-    f('close', 'sqlite3.close', 'Parameterized queries, transactions, schema inspection, and connections.')
+    f('open', 'open args...', 'Standalone sqlite3 operation.'),
+    f('exec', 'exec args...', 'Standalone sqlite3 operation.'),
+    f('query', 'query args...', 'Standalone sqlite3 operation.'),
+    f('query_one', 'query_one args...', 'Standalone sqlite3 operation.'),
+    f('tables', 'tables args...', 'Standalone sqlite3 operation.'),
+    f('table_info', 'table_info args...', 'Standalone sqlite3 operation.'),
+    f('execute_many', 'execute_many args...', 'Standalone sqlite3 operation.'),
+    f('backup', 'backup args...', 'Standalone sqlite3 operation.')
   ],
   config: [
     f('parse', 'parse args...', 'Standalone config operation.'),
@@ -734,6 +732,10 @@ const INDEPENDENT_MEMBERS = {
     f('merge', 'merge args...', 'Standalone config operation.')
   ],
   series: [
+    f('sum', 'sum args...', 'Standalone series operation.'),
+    f('mean', 'mean args...', 'Standalone series operation.'),
+    f('min', 'min args...', 'Standalone series operation.'),
+    f('max', 'max args...', 'Standalone series operation.'),
     f('diff', 'diff args...', 'Standalone series operation.'),
     f('lag', 'lag args...', 'Standalone series operation.'),
     f('moving_average', 'moving_average args...', 'Standalone series operation.'),
@@ -742,6 +744,12 @@ const INDEPENDENT_MEMBERS = {
     f('normalize', 'normalize args...', 'Standalone series operation.')
   ],
   linear: [
+    f('transpose', 'transpose args...', 'Standalone linear operation.'),
+    f('multiply', 'multiply args...', 'Standalone linear operation.'),
+    f('dot', 'dot args...', 'Standalone linear operation.'),
+    f('add', 'add args...', 'Standalone linear operation.'),
+    f('subtract', 'subtract args...', 'Standalone linear operation.'),
+    f('scale', 'scale args...', 'Standalone linear operation.'),
     f('identity', 'identity args...', 'Standalone linear operation.'),
     f('determinant', 'determinant args...', 'Standalone linear operation.'),
     f('inverse', 'inverse args...', 'Standalone linear operation.'),
@@ -749,31 +757,43 @@ const INDEPENDENT_MEMBERS = {
     f('normalize', 'normalize args...', 'Standalone linear operation.')
   ],
   dataset: [
+    f('row_count', 'row_count args...', 'Standalone dataset operation.'),
+    f('select', 'select args...', 'Standalone dataset operation.'),
+    f('describe', 'describe args...', 'Standalone dataset operation.'),
+    f('train_test_split', 'train_test_split args...', 'Standalone dataset operation.'),
     f('columns', 'columns args...', 'Standalone dataset operation.'),
     f('filter_eq', 'filter_eq args...', 'Standalone dataset operation.'),
     f('unique', 'unique args...', 'Standalone dataset operation.'),
     f('split', 'split args...', 'Standalone dataset operation.')
   ],
   http_server: [
-    f('create', 'create args...', 'Standalone http_server operation.'),
-    f('route', 'route args...', 'Standalone http_server operation.'),
-    f('middleware', 'middleware args...', 'Standalone http_server operation.'),
-    f('static', 'static args...', 'Standalone http_server operation.'),
+    f('get', 'get args...', 'Standalone http_server operation.'),
+    f('post', 'post args...', 'Standalone http_server operation.'),
+    f('put', 'put args...', 'Standalone http_server operation.'),
+    f('patch', 'patch args...', 'Standalone http_server operation.'),
+    f('delete', 'delete args...', 'Standalone http_server operation.'),
     f('listen', 'listen args...', 'Standalone http_server operation.'),
-    f('respond', 'respond args...', 'Standalone http_server operation.'),
-    f('status', 'status args...', 'Standalone http_server operation.'),
-    f('header', 'header args...', 'Standalone http_server operation.')
+    f('text', 'text args...', 'Standalone http_server operation.'),
+    f('json', 'json args...', 'Standalone http_server operation.'),
+    f('response', 'response args...', 'Standalone http_server operation.'),
+    f('method', 'method args...', 'Standalone http_server operation.'),
+    f('path', 'path args...', 'Standalone http_server operation.'),
+    f('query', 'query args...', 'Standalone http_server operation.'),
+    f('body', 'body args...', 'Standalone http_server operation.'),
+    f('header', 'header args...', 'Standalone http_server operation.'),
+    f('param', 'param args...', 'Standalone http_server operation.'),
+    f('route_count', 'route_count args...', 'Standalone http_server operation.')
   ],
   router: [
-    f('add', 'add args...', 'Standalone router operation.'),
     f('get', 'get args...', 'Standalone router operation.'),
     f('post', 'post args...', 'Standalone router operation.'),
     f('put', 'put args...', 'Standalone router operation.'),
     f('delete', 'delete args...', 'Standalone router operation.'),
-    f('match', 'match args...', 'Standalone router operation.'),
-    f('dispatch', 'dispatch args...', 'Standalone router operation.'),
-    f('params', 'params args...', 'Standalone router operation.'),
-    f('not_found', 'not_found args...', 'Standalone router operation.')
+    f('path', 'path args...', 'Standalone router operation.'),
+    f('param', 'param args...', 'Standalone router operation.'),
+    f('handle', 'handle args...', 'Standalone router operation.'),
+    f('handle_status', 'handle_status args...', 'Standalone router operation.'),
+    f('route_count', 'route_count args...', 'Standalone router operation.')
   ],
   dns: [
     f('resolve', 'resolve args...', 'Standalone dns operation.'),
