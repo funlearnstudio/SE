@@ -789,6 +789,7 @@ const INDEPENDENT_MEMBERS = {
     f('body', 'body args...', 'Standalone http_server operation.'),
     f('header', 'header args...', 'Standalone http_server operation.'),
     f('param', 'param args...', 'Standalone http_server operation.'),
+    f('handle', 'handle args...', 'Standalone http_server operation.'),
     f('route_count', 'route_count args...', 'Standalone http_server operation.')
   ],
   router: [
@@ -826,12 +827,16 @@ const INDEPENDENT_MEMBERS = {
     f('show', 'window.show', 'Focused window APIs for SE scenes.')
   ],
   canvas: [
+    f('new', 'canvas.new', 'Create a canvas scene.'),
     f('background', 'canvas.background', 'Focused canvas APIs for SE scenes.'),
     f('clear', 'canvas.clear', 'Focused canvas APIs for SE scenes.'),
     f('rect', 'canvas.rect', 'Focused canvas APIs for SE scenes.'),
     f('circle', 'canvas.circle', 'Focused canvas APIs for SE scenes.'),
     f('line', 'canvas.line', 'Focused canvas APIs for SE scenes.'),
-    f('text', 'canvas.text', 'Focused canvas APIs for SE scenes.')
+    f('text', 'canvas.text', 'Focused canvas APIs for SE scenes.'),
+    f('show', 'canvas.show', 'Show the canvas scene.'),
+    f('save', 'canvas.save', 'Save the canvas scene to HTML.'),
+    f('html', 'canvas.html', 'Render the canvas scene as HTML.')
   ],
   input: [
     f('key_move', 'input.key_move', 'Focused input APIs for SE scenes.'),
