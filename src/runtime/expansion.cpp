@@ -39,6 +39,26 @@ std::string percent_decode(const std::string& s,SourcePos p){std::string out;for
 std::string html_escape(const std::string& s){std::string out;for(char c:s){switch(c){case '&':out+="&amp;";break;case '<':out+="&lt;";break;case '>':out+="&gt;";break;case '"':out+="&quot;";break;case '\'':out+="&#39;";break;default:out+=c;}}return out;}
 std::string js_literal(const std::string& s){std::ostringstream out;out<<'"'<<std::hex<<std::setfill('0');for(unsigned char c:s){if(c=='"'||c=='\\')out<<'\\'<<c;else if(c<32||c=='<'||c=='>'||c=='&')out<<"\\u"<<std::setw(4)<<static_cast<unsigned>(c);else out<<c;}return out.str()+'"';}
 std::filesystem::path safe_file(const std::string& root,const std::string& path,SourcePos p){namespace fs=std::filesystem;auto base=fs::weakly_canonical(fs::path(root));auto raw=fs::path(path);if(raw.empty()||raw.is_absolute())throw Error(p,"Expected a relative file path.");auto file=fs::weakly_canonical(base/raw);auto relative=file.lexically_relative(base);if(relative.empty()||relative=="."||*relative.begin()=="..")throw Error(p,"Path escapes the root directory.");return file;}
+bool is_game_package(const std::string& name){static const std::set<std::string> names={"gui","window","canvas","input","sprite","physics","sound","keyboard","mouse","animation","scene","collision","image","audio"};return names.contains(name);}
+const std::set<std::string>& game_package_members(const std::string& name){
+ static const std::map<std::string,std::set<std::string>> members={
+  {"gui",{"new","rect","circle","text","show","save","html"}},
+  {"window",{"new","fullscreen","show"}},
+  {"canvas",{"background","clear","rect","circle","line","text"}},
+  {"input",{"key_move","follow_mouse"}},
+  {"sprite",{"image","sprite","sprite_color","position","move","velocity","animate"}},
+  {"physics",{"velocity","rect_hit","circle_hit","distance","vector","particles","camera"}},
+  {"sound",{"sound","play","stop"}},
+  {"keyboard",{"key_move"}},
+  {"mouse",{"follow_mouse","camera"}},
+  {"animation",{"animate","move","velocity"}},
+  {"scene",{"new","background","clear","html","save","show"}},
+  {"collision",{"rect_hit","circle_hit","distance","vector"}},
+  {"image",{"image","sprite"}},
+  {"audio",{"sound","play","stop"}}
+ };
+ return members.at(name);
+}
 std::vector<Entry> entries(const std::string& name){
  const auto txt=t(TypeKind::Text), n=t(TypeKind::Num), i=t(TypeKind::Int), l=list_t(), m=map_t(), b=t(TypeKind::Bool), unknown=TypeInfo{};
  if(name=="url")return {
@@ -155,7 +175,7 @@ bool is_expansion_builtin(const std::string& name){static const std::set<std::st
 TypeInfo expansion_builtin_type(const std::string& name){
  if(name=="http_server"||name=="router"){auto type=platform_builtin_type("web");type.name=name;return type;}
  if(name=="dns"){auto type=ecosystem_builtin_type("socket");type.name=name;return type;}
- if(name=="gui"||name=="window"||name=="canvas"||name=="input"||name=="sprite"||name=="physics"||name=="sound"||name=="keyboard"||name=="mouse"||name=="animation"||name=="scene"||name=="collision"||name=="image"||name=="audio"){auto type=ecosystem_builtin_type("game");extend_game_type(type);type.name=name;return type;}
+ if(is_game_package(name)){auto type=ecosystem_builtin_type("game");extend_game_type(type);const auto& allowed=game_package_members(name);for(auto it=type.members.begin();it!=type.members.end();)if(!allowed.contains(it->first))it=type.members.erase(it);else ++it;type.name=name;return type;}
  if(name=="video"||name=="camera"){
   TypeInfo module(TypeKind::Module),int_t(TypeKind::Int),text_t(TypeKind::Text),num_t(TypeKind::Num),none(TypeKind::None);module.name=name;
   auto signature=[&](std::vector<TypeInfo> params){TypeInfo f(TypeKind::Function);auto sig=std::make_shared<FunctionSig>();sig->params=std::move(params);sig->result=none;f.callable=sig;return f;};
@@ -167,7 +187,7 @@ TypeInfo expansion_builtin_type(const std::string& name){
 std::shared_ptr<ModuleData> expansion_builtin_module(const std::string& name,Interpreter& vm){
  if(name=="http_server"||name=="router"){auto module=platform_builtin_module("web",vm);module->name=name;return module;}
  if(name=="dns"){auto module=ecosystem_builtin_module("socket",vm);module->name=name;return module;}
- if(name=="gui"||name=="window"||name=="canvas"||name=="input"||name=="sprite"||name=="physics"||name=="sound"||name=="keyboard"||name=="mouse"||name=="animation"||name=="scene"||name=="collision"||name=="image"||name=="audio"){auto module=ecosystem_builtin_module("game",vm);extend_game_module(module,vm);module->name=name;return module;}
+ if(is_game_package(name)){auto module=ecosystem_builtin_module("game",vm);extend_game_module(module,vm);const auto& allowed=game_package_members(name);for(auto it=module->exports.begin();it!=module->exports.end();)if(!allowed.contains(it->first))it=module->exports.erase(it);else ++it;module->name=name;return module;}
  if(name=="video"||name=="camera"){
   auto module=std::make_shared<ModuleData>();module->name=name;
   auto game=ecosystem_builtin_module("game",vm);auto script_fn=std::get<std::shared_ptr<CallableData>>(game->exports.at("script").data());
