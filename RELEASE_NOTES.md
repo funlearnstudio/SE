@@ -1,6 +1,10 @@
-# SE 0.7.1
+# SE 0.7.3
 
-SE 0.7.1 refreshes the prebuilt CLI packages from the current source so installations receive the expanded standard-library modules and runtime fixes. It also verifies release downloads before installing them.
+SE 0.7.3 refreshes the prebuilt CLI packages from the current source so installations receive the expanded standard-library modules and runtime fixes. It also verifies release downloads before installing them.
+
+## Windows installer fix
+
+Correct PowerShell quote escaping when generating `se.cmd`, so the Windows installer can be parsed and run. CLI version output, installer fallback versions, and release package names are aligned at 0.7.3.
 
 ## Quick install
 
@@ -68,4 +72,4 @@ Release assets include SHA-256 checksums.
 
 ## Version
 
-SE 0.7.1
+SE 0.7.3
