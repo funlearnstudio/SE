@@ -45,7 +45,7 @@ try {
 
     $Launcher = Join-Path $BinDir 'se.cmd'
     $Exe = Join-Path $VersionDir 'bin\se.exe'
-    "@echo off`r`n\"$Exe\" %*`r`n" | Set-Content -Encoding ASCII $Launcher
+    "@echo off`r`n`"$Exe`" %*`r`n" | Set-Content -Encoding ASCII $Launcher
 
     $UserPath = [Environment]::GetEnvironmentVariable('Path', 'User')
     $Parts = @()
