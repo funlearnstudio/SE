@@ -10,11 +10,20 @@
 #include "s/web_compiler.hpp"
 #include <algorithm>
 #include <cstdlib>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <vector>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#elif defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 namespace {
 std::string read_file(const std::filesystem::path&p){std::ifstream f(p);if(!f)throw std::runtime_error("Could not open "+p.string());return {std::istreambuf_iterator<char>(f),{}};}
@@ -22,6 +31,45 @@ s::ast::Program frontend_file(const std::filesystem::path&path){s::ModuleLoader 
 std::string shell_quote(const std::string&s){std::string r="'";for(char c:s){if(c=='\'')r+="'\\''";else r+=c;}return r+"'";}
 
 bool is_se_source(const std::filesystem::path&path){auto ext=path.extension().string();return ext==".se"||ext==".s";}
+
+std::filesystem::path executable_path(){
+#ifdef __APPLE__
+  std::uint32_t size=0;
+  _NSGetExecutablePath(nullptr,&size);
+  std::vector<char> buffer(size);
+  if(_NSGetExecutablePath(buffer.data(),&size)==0)return std::filesystem::canonical(buffer.data());
+#elif defined(__linux__)
+  return std::filesystem::canonical("/proc/self/exe");
+#elif defined(_WIN32)
+  std::vector<wchar_t> buffer(32768);
+  DWORD size=GetModuleFileNameW(nullptr,buffer.data(),static_cast<DWORD>(buffer.size()));
+  if(size>0&&size<buffer.size())return std::filesystem::canonical(std::filesystem::path(std::wstring(buffer.data(),size)));
+#endif
+  throw std::runtime_error("Could not locate the SE executable to find its native runtime.");
+}
+
+std::filesystem::path native_runtime_root(){
+  const auto executable=executable_path();
+  const auto packaged=executable.parent_path().parent_path()/"share/se/native";
+  auto complete=[](const std::filesystem::path&root){
+    for(const auto*file:{"include/s/interpreter.hpp","src/runtime/error.cpp","src/runtime/value.cpp",
+        "src/runtime/platform_base.cpp","src/runtime/platform.cpp","src/runtime/ecosystem.cpp",
+        "src/runtime/game_ext.cpp","src/runtime/advanced.cpp","src/runtime/database.cpp",
+        "src/runtime/expansion.cpp","src/runtime/formats.cpp","src/interpreter/interpreter.cpp","src/ffi/ffi.cpp"}){
+      if(!std::filesystem::is_regular_file(root/file))return false;
+    }
+    return true;
+  };
+  if(complete(packaged))return packaged;
+#if defined(S_SOURCE_ROOT) && defined(S_NATIVE_BUILD_DIR)
+  // Only a binary in its original build directory may use development sources.
+  // An installed binary must never fall back to the release runner's checkout.
+  const auto build=std::filesystem::weakly_canonical(S_NATIVE_BUILD_DIR);
+  const auto directory=executable.parent_path();
+  if((directory==build||directory.parent_path()==build)&&complete(S_SOURCE_ROOT))return S_SOURCE_ROOT;
+#endif
+  throw std::runtime_error("SE native runtime files are missing from "+packaged.string()+". Reinstall the complete SE package before using 'se build'.");
+}
 
 std::vector<std::filesystem::path> source_files(const std::filesystem::path&root){
   std::vector<std::filesystem::path> out;
@@ -72,7 +120,7 @@ void print_help(){
 
 int doctor_command(){
   std::cout<<"SE doctor\n";
-  std::cout<<"  version: SE 0.7.3\n";
+  std::cout<<"  version: SE 0.7.4\n";
 #ifdef _WIN32
   std::cout<<"  platform: Windows\n";
 #elif __APPLE__
@@ -227,13 +275,9 @@ int new_project(const std::string&kind,const std::filesystem::path&root){
 int file_command(const std::string&cmd,const std::filesystem::path&path){
   auto source=read_file(path);
   try{auto p=frontend_file(path);if(cmd=="check"){std::cout<<path.string()<<" is valid SE.\n";return 0;}if(cmd=="run"){s::Interpreter vm(std::cin,std::cout);vm.run(p);return 0;}
+    const auto root=native_runtime_root();
     auto cpp=s::CppCompiler{}.generate(p);auto cpp_path=path;cpp_path.replace_extension(".se.cpp");auto output=path;output.replace_extension();{std::ofstream f(cpp_path);f<<cpp;}
     const char*cxx=std::getenv("CXX");std::string compiler=cxx?cxx:"c++";
-#ifdef S_SOURCE_ROOT
-    std::filesystem::path root=S_SOURCE_ROOT;
-#else
-    std::filesystem::path root=std::filesystem::current_path();
-#endif
     std::string command=compiler+" -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -Wno-misleading-indentation -I"+shell_quote((root/"include").string())+" "+shell_quote(cpp_path.string())+" "+shell_quote((root/"src/runtime/error.cpp").string())+" "+shell_quote((root/"src/runtime/value.cpp").string())+" "+shell_quote((root/"src/runtime/platform_base.cpp").string())+" "+shell_quote((root/"src/runtime/advanced.cpp").string())+" "+shell_quote((root/"src/runtime/database.cpp").string())+" "+shell_quote((root/"src/runtime/expansion.cpp").string())+" "+shell_quote((root/"src/runtime/formats.cpp").string())+" "+shell_quote((root/"src/interpreter/interpreter.cpp").string())+" "+shell_quote((root/"src/ffi/ffi.cpp").string())+" -pthread";
 #ifdef __linux__
     command+=" -ldl";
@@ -251,7 +295,7 @@ int bind_command(const std::filesystem::path&definition,const std::filesystem::p
   }catch(const s::Error&e){std::string source;try{source=read_file(definition);}catch(...){ }std::cerr<<s::format_error(e,source);return 1;}
 }
 void repl(){
-  std::cout<<"SE 0.7.3\nType SE code. Use a blank line to finish a block. Ctrl-D exits.\n";
+  std::cout<<"SE 0.7.4\nType SE code. Use a blank line to finish a block. Ctrl-D exits.\n";
   std::string pending,line; s::Checker checker; s::Interpreter vm(std::cin,std::cout);
   auto execute=[&]{if(pending.empty())return;try{s::Lexer lexer(pending);s::Parser parser(lexer.scan());auto program=parser.parse();checker.check(program);vm.run(program);}catch(const s::Error&e){std::cerr<<s::format_error(e,pending);}catch(const s::RuntimeFailure&e){std::cerr<<e.what()<<'\n';}pending.clear();};
   while(true){std::cout<<(pending.empty()?"> ":". ");if(!std::getline(std::cin,line)){execute();break;}if(line.empty()&&!pending.empty()){execute();continue;}pending+=line+'\n';if(line.find_first_not_of(' ')==0&&line.rfind("if ",0)!=0&&line.rfind("for ",0)!=0&&line.rfind("while ",0)!=0&&line.rfind("repeat ",0)!=0&&line.rfind("make ",0)!=0&&line.rfind("type ",0)!=0&&line.rfind("match ",0)!=0&&line!="try")execute();}
@@ -260,7 +304,7 @@ void repl(){
 int main(int argc,char**argv){
   try{
     if(argc==1){repl();return 0;}
-    if(argc==2&&std::string(argv[1])=="--version"){std::cout<<"SE 0.7.3\n";return 0;}
+    if(argc==2&&std::string(argv[1])=="--version"){std::cout<<"SE 0.7.4\n";return 0;}
     if(argc==2&&(std::string(argv[1])=="help"||std::string(argv[1])=="--help"||std::string(argv[1])=="-h")){print_help();return 0;}
     if(argc==2&&std::string(argv[1])=="doctor")return doctor_command();
     if((argc==2||argc==3)&&std::string(argv[1])=="check-all")return check_all_command(argc==3?std::filesystem::path(argv[2]):std::filesystem::path("."));

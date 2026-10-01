@@ -10,7 +10,7 @@ SE 是一門以 C++20 實作、低標點、重視安全性的程式語言。它�
 Language / 語言: SE
 CLI / 指令:       se
 Source / 原始碼:  .se
-Release / 正式版: SE 0.7.3
+Release / 正式版: SE 0.7.4
 ```
 
 ```se

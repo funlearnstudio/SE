@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 env:
-  VERSION: 0.7.3
-  TAG: v0.7.3
+  VERSION: 0.7.4
+  TAG: v0.7.4
 
 jobs:
   build-packages:
@@ -22,16 +22,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            asset: se-0.7.3-linux-x64
+            asset: se-0.7.4-linux-x64
             archive: tar.gz
           - os: macos-15-intel
-            asset: se-0.7.3-macos-x64
+            asset: se-0.7.4-macos-x64
             archive: tar.gz
           - os: macos-14
-            asset: se-0.7.3-macos-arm64
+            asset: se-0.7.4-macos-arm64
             archive: tar.gz
           - os: windows-latest
-            asset: se-0.7.3-windows-x64
+            asset: se-0.7.4-windows-x64
             archive: zip
     runs-on: ${{ matrix.os }}
     steps:
@@ -72,6 +72,15 @@ jobs:
           printf 'say "package ok"\n' > package-smoke.se
           ./package/${{ matrix.asset }}/bin/se run package-smoke.se
           ./package/${{ matrix.asset }}/bin/se run examples/expansion-all.se
+
+      - name: Verify relocated archive native build (Unix)
+        if: runner.os != 'Windows'
+        run: >-
+          cmake
+          -DSE_ARCHIVE="$PWD/package/${{ matrix.asset }}.tar.gz"
+          -DSE_ASSET="${{ matrix.asset }}"
+          -DSE_WORK="${{ runner.temp }}/se-native-package-${{ matrix.asset }}"
+          -P tests/package_native.cmake
 
       - name: Verify packaged CLI (Windows)
         if: runner.os == 'Windows'
@@ -165,7 +174,7 @@ jobs:
           sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
-      - name: Create or update SE 0.7.3 release
+      - name: Create or update SE 0.7.4 release
         shell: bash
         run: |
           if [ "${{ steps.release.outputs.exists }}" = "true" ]; then
@@ -173,7 +182,7 @@ jobs:
           else
             gh release create "$TAG" \
               --target "${{ github.event.workflow_run.head_sha }}" \
-              --title "SE 0.7.3" \
+              --title "SE 0.7.4" \
               --notes-file RELEASE_NOTES.md \
               release-assets/*
           fi
