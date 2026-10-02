@@ -2,7 +2,7 @@
 
 [繁體中文版](README-zh-TW.md)
 
-Official Visual Studio Code support for SE source files (`.se`). Version 0.7.4 synchronizes module completion, member signatures, and syntax highlighting with the expanded SE runtime. The bundled syntax guide and live compiler diagnostics are included.
+Official Visual Studio Code support for SE source files (`.se`). Version 0.7.5 synchronizes module completion, member signatures, and syntax highlighting with the expanded SE runtime. The bundled syntax guide and live compiler diagnostics are included.
 
 ## Core features
 
