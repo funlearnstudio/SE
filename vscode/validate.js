@@ -107,7 +107,7 @@ const grammarNames = modulePattern.match(/\(\?:([^)]*)\)/)[1].split('|').sort();
 assert.deepStrictEqual(grammarNames, runtime, 'TextMate grammar module names differ from runtime.');
 
 const pkg = JSON.parse(read('vscode/package.json'));
-assert.strictEqual(pkg.version, '0.7.3');
+assert.strictEqual(pkg.version, '0.7.4');
 for (const command of ['se.run', 'se.check', 'se.checkProblems', 'se.build', 'se.openGuide']) {
   assert(pkg.contributes.commands.some((entry) => entry.command === command), `Missing VS Code command ${command}.`);
 }

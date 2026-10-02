@@ -440,11 +440,31 @@ ast::ExprPtr Parser::postfix(ast::ExprPtr value){
 
   value=attach_members(value);
   if((std::dynamic_pointer_cast<ast::Variable>(value)||std::dynamic_pointer_cast<ast::Member>(value)) && expression_start(peek().kind)){
-    std::vector<ast::ExprPtr> args;
-    while(expression_start(peek().kind)){
+    // Bare calls deliberately allow arithmetic inside each argument:
+    //     func a-1 + func a-2
+    // means:
+    //     func(a - 1) + func(a - 2)
+    //
+    // Whitespace is not significant, so `a-1` and `a - 1` behave the same.
+    // An additive operator starts the outer expression when its right side
+    // clearly begins another bare call (identifier followed by a value).
+    auto starts_bare_call=[&](int offset){
+      return peek(offset).kind==TokenKind::Identifier&&expression_start(peek(offset+1).kind);
+    };
+    auto bare_argument=[&](){
       auto arg=attach_members(prefix());
-      args.push_back(arg);
-    }
+      while(true){
+        int p=precedence(peek().kind);
+        if(p<6)break; // Keep comparisons/ranges/logical operators outside the call.
+        if((peek().kind==TokenKind::Plus||peek().kind==TokenKind::Minus)&&starts_bare_call(1))break;
+        Token op=tokens_[at_++];
+        auto right=expression(p+(op.kind==TokenKind::Power?0:1));
+        arg=std::make_shared<ast::Binary>(op.pos,arg,op.kind,right);
+      }
+      return arg;
+    };
+    std::vector<ast::ExprPtr> args;
+    while(expression_start(peek().kind)) args.push_back(bare_argument());
     value=std::make_shared<ast::Call>(value->pos,value,std::move(args));
   }
   return value;
