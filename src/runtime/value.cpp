@@ -100,7 +100,7 @@ Value binary(TokenKind op,const Value&a,const Value&b,SourcePos p){
     if(auto s=std::get_if<std::string>(&b.data())){if(!std::holds_alternative<std::string>(a.data()))throw Error(p,"Text membership needs Text.");return s->find(std::get<std::string>(a.data()))!=std::string::npos;}
     throw Error(p,"'in' works with List, Set, Map, or Text.");
   }
-  if(op==TokenKind::Plus&&std::holds_alternative<std::string>(a.data())&&std::holds_alternative<std::string>(b.data()))return std::get<std::string>(a.data())+std::get<std::string>(b.data());
+  if(op==TokenKind::Plus&&(std::holds_alternative<std::string>(a.data())||std::holds_alternative<std::string>(b.data())))return a.text()+b.text();
   if(op==TokenKind::Greater||op==TokenKind::Less||op==TokenKind::GreaterEqual||op==TokenKind::LessEqual){double x=number(a,p),y=number(b,p);if(op==TokenKind::Greater)return x>y;if(op==TokenKind::Less)return x<y;if(op==TokenKind::GreaterEqual)return x>=y;return x<=y;}
   bool ints=std::holds_alternative<std::int64_t>(a.data())&&std::holds_alternative<std::int64_t>(b.data()); double x=number(a,p),y=number(b,p);
   if(op==TokenKind::Plus)return ints?Value(std::get<std::int64_t>(a.data())+std::get<std::int64_t>(b.data())):Value(x+y);
