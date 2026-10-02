@@ -2,7 +2,7 @@
 
 [English version](README.md)
 
-這是 SE `.se` 原始碼的官方 Visual Studio Code 支援。0.7.4 將模組補全、成員簽章和語法上色同步至擴充後的 SE runtime，並提供內建語法教學與即時編譯器診斷。
+這是 SE `.se` 原始碼的官方 Visual Studio Code 支援。0.7.5 將模組補全、成員簽章和語法上色同步至擴充後的 SE runtime，並提供內建語法教學與即時編譯器診斷。
 
 ## 核心功能
 
