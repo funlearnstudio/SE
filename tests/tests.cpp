@@ -31,23 +31,23 @@ int main(){
   EXPECT(run("make add a b\n    give a + b\nsay add 4 5\n")=="9\n");
   // Arithmetic belongs to bare-call arguments, independent of whitespace.
   const std::string fib_compact=
-    "s = 5\\n"
-    "make func a\\n"
-    "    if a <= 1\\n"
-    "        give a\\n"
-    "    ans = func a-1 + func a-2\\n"
-    "    give ans\\n"
-    "say func s\\n";
+    "s = 5\n"
+    "make func a\n"
+    "    if a <= 1\n"
+    "        give a\n"
+    "    ans = func a-1 + func a-2\n"
+    "    give ans\n"
+    "say func s\n";
   const std::string fib_spaced=
-    "s = 5\\n"
-    "make func a\\n"
-    "    if a <= 1\\n"
-    "        give a\\n"
-    "    ans = func a - 1 + func a - 2\\n"
-    "    give ans\\n"
-    "say func s\\n";
-  EXPECT(run(fib_compact)=="5\\n");
-  EXPECT(run(fib_spaced)=="5\\n");
+    "s = 5\n"
+    "make func a\n"
+    "    if a <= 1\n"
+    "        give a\n"
+    "    ans = func a - 1 + func a - 2\n"
+    "    give ans\n"
+    "say func s\n";
+  EXPECT(run(fib_compact)=="5\n");
+  EXPECT(run(fib_spaced)=="5\n");
   EXPECT(run("x = [1, 2]\nx[0] = 9\nsay x[0]\nsay x.len\n")=="9\n2\n");
 
   // Core conversions and familiar aliases.
