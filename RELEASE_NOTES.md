@@ -1,14 +1,11 @@
-# SE 0.7.4
+# SE 0.7.5
 
-Fix native builds from installed SE packages on macOS and Linux.
+Improve SE expression behavior and synchronize the CLI, installers, release packages, and VS Code extension.
 
-- Include the native runtime sources and headers in each release package.
-- Locate that bundle relative to the running SE executable, including when launched through the installer symlink.
-- Keep source-checkout builds working while preventing installed binaries from using the release runner checkout.
-- Report a clear reinstall message when the native runtime bundle is missing.
-- Verify native compilation from the extracted release archive in relocated paths containing spaces, and verify the resulting executable.
-- Retain the PowerShell installer quote fix from 0.7.3.
-
-`se build` still requires a compatible C++20 compiler. The new native package regression runs on Linux and both macOS architectures; Windows package interpreter checks remain in place.
-
-The VS Code extension remains at 0.7.3.
+- Support arithmetic inside no-parentheses bare function-call arguments, including `func a-1 + func a-2` and the whitespace-equivalent form.
+- Allow Text concatenation with other printable SE values, such as `"hello" + 5`, `5 + " apples"`, Bool, and Num values.
+- Keep numeric `+` behavior unchanged when both operands are numeric.
+- Add regression coverage for bare-call Fibonacci syntax and mixed-type Text concatenation.
+- Ship the VS Code extension as version 0.7.5 and package `se-language-0.7.5.vsix`.
+- Update macOS/Linux `install.sh` and Windows `install.ps1` fallback versions to 0.7.5.
+- Build release assets under the v0.7.5 tag for supported macOS, Linux, and Windows targets.
