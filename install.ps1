@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $Repo = 'funlearnstudio/SE'
-$FallbackVersion = '0.7.4'
+$FallbackVersion = '0.7.5'
 
 if ($env:SE_VERSION) {
     $Version = $env:SE_VERSION
