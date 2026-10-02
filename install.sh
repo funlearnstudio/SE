@@ -364,6 +364,7 @@ esac
 
 echo
 echo "Installed: $BIN_DIR/se"
+echo "Release: https://github.com/$REPO/releases/tag/$TAG"
 "$BIN_DIR/se" --version
 report_stdlib_dependencies
 report_python_dependencies

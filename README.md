@@ -50,6 +50,44 @@ curl -fsSL https://raw.githubusercontent.com/funlearnstudio/SE/main/install.sh |
 irm https://raw.githubusercontent.com/funlearnstudio/SE/main/install.ps1 | iex
 ```
 
+### Upgrade / 更新到 0.7.5
+
+Rerun the installation command above to update to the latest stable release. To install exactly 0.7.5:
+
+重新執行上方安裝指令即可更新至最新正式版。指定安裝 0.7.5：
+
+macOS / Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/funlearnstudio/SE/main/install.sh | SE_VERSION=0.7.5 sh
+```
+
+Windows PowerShell:
+
+```powershell
+$env:SE_VERSION = '0.7.5'
+irm https://raw.githubusercontent.com/funlearnstudio/SE/main/install.ps1 | iex
+Remove-Item Env:SE_VERSION
+```
+
+Both installers verify the package against the release's SHA-256 checksums. Windows adds SE to the current terminal's PATH and saves it for new terminals; macOS/Linux prints a PATH setup command if needed.
+
+兩個安裝器都會驗證 Release 的 SHA-256 校驗碼。Windows 會更新目前終端機與使用者 PATH；macOS/Linux 若缺少 PATH 設定，會顯示設定指令。
+
+### Downloads / 下載
+
+[SE 0.7.5 release and platform packages / 正式版與各平台安裝包](https://github.com/funlearnstudio/SE/releases/tag/v0.7.5)
+
+Supported prebuilt packages / 預編譯平台：macOS Apple Silicon (arm64)、macOS Intel (x64)、Linux x64、Windows x64。
+
+[VS Code extension 0.7.5 / VS Code 擴充套件](https://github.com/funlearnstudio/SE/releases/download/v0.7.5/se-language-0.7.5.vsix) — install using **Extensions → … → Install from VSIX**.
+
+### Changes in 0.7.5 / 0.7.5 更新
+
+- Arithmetic in bare function calls / 無括號函式呼叫支援運算：`func a-1 + func a-2`。
+- Text concatenation with printable values / 文字可串接不同型別：`say "hello" + 5`。
+- CLI, installers, platform packages and VS Code extension synchronized to 0.7.5 / CLI、安裝器、平台安裝包與 VS Code 擴充套件同步至 0.7.5。
+
 Verify / 確認：
 
 ```bash
