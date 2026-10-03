@@ -1,0 +1,19 @@
+score = 82
+
+if score >= 90
+    say "A"
+elif score >= 80
+    say "B"
+elif score >= 70
+    say "C"
+else
+    say "D"
+
+# `else if` remains fully supported too.
+value = 2
+if value == 1
+    say "one"
+else if value == 2
+    say "two"
+else
+    say "other"

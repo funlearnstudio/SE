@@ -64,6 +64,14 @@ std::vector<Token> Lexer::scan() {
       while (i<source_.size() && (std::isalnum(static_cast<unsigned char>(source_[i])) || source_[i]=='_')) ++i;
       auto text=source_.substr(start,i-start); auto it=words.find(text);
       auto after_dot=!out.empty()&&out.back().kind==TokenKind::Dot;
+      // `elif condition` is syntax sugar for `else if condition`. Lower it at
+      // the lexer boundary so every existing parser/checker/backend path keeps
+      // exactly the same nested If AST and behavior.
+      if(!after_dot&&text=="elif"){
+        add(TokenKind::Else,"else",col);
+        add(TokenKind::If,"if",col);
+        continue;
+      }
       add(after_dot?TokenKind::Identifier:(it==words.end()?TokenKind::Identifier:it->second),text,col); continue;
     }
     if (std::isdigit(static_cast<unsigned char>(c))) {
