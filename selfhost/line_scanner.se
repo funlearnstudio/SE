@@ -1,0 +1,17 @@
+# First bootstrap component: line-oriented scanner.
+# This is not yet the full SE lexer. It preserves lines and shows indentation.
+# Run with: se run selfhost/line_scanner.se
+
+use text
+
+make scan_lines source
+    lines = text.split source "\n"
+    line_number = 0
+    for line in lines
+        line_number += 1
+        trimmed = text.trim line
+        if trimmed != ""
+            say "LINE " + line_number + ": " + trimmed
+
+source = read "selfhost/sample.se"
+scan_lines source
