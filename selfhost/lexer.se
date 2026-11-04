@@ -1,0 +1,149 @@
+# SE self-hosting bootstrap: lexical analyzer (first implementation).
+# Returns [kind, lexeme, line, column] records.
+# Assumes ASCII syntax characters; text.split with an empty separator
+# currently splits UTF-8 bytes, so Unicode identifiers are not yet supported.
+use text
+
+make is_digit c
+    give c in ["0","1","2","3","4","5","6","7","8","9"]
+
+make is_letter c
+    give text.contains "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_" c
+
+make is_word c
+    give is_letter c or is_digit c
+
+make add_token tokens kind value line column
+    tokens.add [kind, value, line, column]
+
+make lex source
+    chars = text.split source ""
+    n = chars.len
+    tokens = []
+    levels = [0]
+    i = 0
+    line = 1
+    column = 1
+    line_start = true
+    depth = 0
+    keywords = ["true","false","say","ask","if","else","repeat","for","in","while","make","give","type","use","try","fail","set","map","match","case","and","or","not"]
+    while i < n
+        c = chars[i]
+        if line_start and depth == 0
+            spaces = 0
+            while i < n and (chars[i] == " " or chars[i] == "\t")
+                if chars[i] == "\t"
+                    spaces += 4
+                else
+                    spaces += 1
+                i += 1
+            column = spaces + 1
+            if i >= n
+                break
+            c = chars[i]
+            if c != "\n" and c != "#"
+                if spaces % 4 != 0
+                    fail "Indentation must use groups of 4 spaces."
+                previous = levels[levels.len - 1]
+                if spaces > previous
+                    levels.add spaces
+                    add_token tokens "Indent" "" line 1
+                else
+                    while spaces < levels[levels.len - 1]
+                        levels = levels[0..levels.len - 1]
+                        add_token tokens "Dedent" "" line 1
+                    if spaces != levels[levels.len - 1]
+                        fail "Indentation does not match an earlier block."
+            line_start = false
+        if c == " " or c == "\t" or c == "\r"
+            i += 1
+            column += 1
+        else if c == "#"
+            while i < n and chars[i] != "\n"
+                i += 1
+                column += 1
+        else if c == "\n"
+            if depth == 0
+                add_token tokens "Newline" "" line column
+            i += 1
+            line += 1
+            column = 1
+            line_start = true
+        else if is_letter c
+            start_col = column
+            word = ""
+            while i < n and is_word chars[i]
+                word = word + chars[i]
+                i += 1
+                column += 1
+            kind = "Identifier"
+            if word in keywords
+                kind = word
+            add_token tokens kind word line start_col
+        else if is_digit c
+            start_col = column
+            number = ""
+            while i < n and is_digit chars[i]
+                number = number + chars[i]
+                i += 1
+                column += 1
+            kind = "Integer"
+            if i + 1 < n
+                if chars[i] == "." and is_digit chars[i + 1]
+                    kind = "Number"
+                    number = number + "."
+                    i += 1
+                    column += 1
+                    while i < n and is_digit chars[i]
+                        number = number + chars[i]
+                        i += 1
+                        column += 1
+            add_token tokens kind number line start_col
+        else if c == "\""
+            start_col = column
+            i += 1
+            column += 1
+            value = ""
+            closed = false
+            while i < n and chars[i] != "\n"
+                if chars[i] == "\""
+                    closed = true
+                    i += 1
+                    column += 1
+                    break
+                value = value + chars[i]
+                i += 1
+                column += 1
+            if not closed
+                fail "Unterminated string literal."
+            add_token tokens "String" value line start_col
+        else
+            op = c
+            if i + 1 < n
+                pair = c + chars[i + 1]
+                if pair in ["**","==","!=",">=","<=","..","->","+=","-=","*=","/=","%="]
+                    op = pair
+            if not (op in ["**","==","!=",">=","<=","..","->","+=","-=","*=","/=","%=","+","-","*","/","%","=",">","<","(",")","[","]",",",":","."])
+                fail "Unexpected character in SE source."
+            if op == "(" or op == "["
+                depth += 1
+            if op == ")" or op == "]"
+                depth -= 1
+                if depth < 0
+                    fail "Closing bracket without opening bracket."
+            add_token tokens op op line column
+            i += op.len
+            column += op.len
+    if depth != 0
+        fail "An opening bracket was not closed."
+    add_token tokens "Newline" "" line column
+    while levels.len > 1
+        levels = levels[0..levels.len - 1]
+        add_token tokens "Dedent" "" line 1
+    add_token tokens "End" "" line column
+    give tokens
+
+source = read "selfhost/sample.se"
+tokens = lex source
+for token in tokens
+    say token
