@@ -138,11 +138,11 @@ make lex source
                 pair = c + chars[i + 1]
                 if pair in ["**","==","!=",">=","<=","..","->","+=","-=","*=","/=","%="]
                     op = pair
-            if not (op in ["**","==","!=",">=","<=","..","->","+=","-=","*=","/=","%=","+","-","*","/","%","=",">","<","(",")","[","]",",",":","."])
+            if not (op in ["**","==","!=",">=","<=","..","->","+=","-=","*=","/=","%=","+","-","*","/","%","=",">","<","(",")","[","]","{","}",",",":","."])
                 fail "Unexpected character in SE source."
-            if op == "(" or op == "["
+            if op == "(" or op == "[" or op == "{"
                 depth += 1
-            if op == ")" or op == "]"
+            if op == ")" or op == "]" or op == "}"
                 depth -= 1
                 if depth < 0
                     fail "Closing bracket without opening bracket."
@@ -161,7 +161,15 @@ make lex source
     add_token tokens "End" "" line column
     give tokens
 
-source = read "selfhost/sample.se"
+# Minimal regression check: identifiers, operators, strings, and block layout.
+source = "name = \"SE\"\nif name == \"SE\"\n    say \"Hello SE\"\nelse\n    say \"other\"\n"
 tokens = lex source
-for token in tokens
-    say token
+expected = ["Identifier", "=", "String", "Newline", "if", "Identifier", "==", "String", "Newline", "Indent", "say", "String", "Newline", "Dedent", "else", "Newline", "Indent", "say", "String", "Newline", "Dedent", "End"]
+if tokens.len != expected.len
+    fail "Lexer smoke test: incorrect token count."
+j = 0
+while j < expected.len
+    if tokens[j][0] != expected[j]
+        fail "Lexer smoke test: incorrect token kind."
+    j += 1
+say "lexer smoke test passed"
