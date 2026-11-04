@@ -80,7 +80,10 @@ make lex source
                 column += 1
             kind = "Identifier"
             if word in keywords
-                kind = word
+                if tokens.len == 0
+                    kind = word
+                else if tokens[tokens.len - 1][0] != "."
+                    kind = word
             add_token tokens kind word line start_col
         else if is_digit c
             start_col = column
@@ -107,15 +110,25 @@ make lex source
             column += 1
             value = ""
             closed = false
-            while i < n and chars[i] != "\n"
+            while i < n and chars[i] != "\n" and not closed
                 if chars[i] == "\""
                     closed = true
                     i += 1
                     column += 1
-                    break
-                value = value + chars[i]
-                i += 1
-                column += 1
+                else
+                    if chars[i] == "\\" and i + 1 < n
+                        i += 1
+                        column += 1
+                        if chars[i] == "n"
+                            value = value + "\n"
+                        else if chars[i] == "t"
+                            value = value + "\t"
+                        else
+                            value = value + chars[i]
+                    else
+                        value = value + chars[i]
+                    i += 1
+                    column += 1
             if not closed
                 fail "Unterminated string literal."
             add_token tokens "String" value line start_col
@@ -138,7 +151,10 @@ make lex source
             column += op.len
     if depth != 0
         fail "An opening bracket was not closed."
-    add_token tokens "Newline" "" line column
+    if tokens.len == 0
+        add_token tokens "Newline" "" line column
+    else if tokens[tokens.len - 1][0] != "Newline"
+        add_token tokens "Newline" "" line column
     while levels.len > 1
         levels = collections.take levels (levels.len - 1)
         add_token tokens "Dedent" "" line 1
