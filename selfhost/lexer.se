@@ -3,6 +3,7 @@
 # Assumes ASCII syntax characters; text.split with an empty separator
 # currently splits UTF-8 bytes, so Unicode identifiers are not yet supported.
 use text
+use collections
 
 make is_digit c
     give c in ["0","1","2","3","4","5","6","7","8","9"]
@@ -38,9 +39,10 @@ make lex source
                     spaces += 1
                 i += 1
             column = spaces + 1
-            if i >= n
-                break
-            c = chars[i]
+            if i < n
+                c = chars[i]
+            else
+                c = "\n"
             if c != "\n" and c != "#"
                 if spaces % 4 != 0
                     fail "Indentation must use groups of 4 spaces."
@@ -50,7 +52,7 @@ make lex source
                     add_token tokens "Indent" "" line 1
                 else
                     while spaces < levels[levels.len - 1]
-                        levels = levels[0..levels.len - 1]
+                        levels = collections.take levels (levels.len - 1)
                         add_token tokens "Dedent" "" line 1
                     if spaces != levels[levels.len - 1]
                         fail "Indentation does not match an earlier block."
@@ -138,7 +140,7 @@ make lex source
         fail "An opening bracket was not closed."
     add_token tokens "Newline" "" line column
     while levels.len > 1
-        levels = levels[0..levels.len - 1]
+        levels = collections.take levels (levels.len - 1)
         add_token tokens "Dedent" "" line 1
     add_token tokens "End" "" line column
     give tokens
