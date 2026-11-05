@@ -1,0 +1,32 @@
+name: Build SE VSIX
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'vscode/**'
+      - '.github/workflows/build-vsix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vsix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Package extension
+        run: |
+          cd vscode
+          npm install --no-audit --no-fund
+          npx vsce package --no-dependencies
+      - name: Upload installable VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: se-language-vsix
+          path: vscode/*.vsix
+          if-no-files-found: error
