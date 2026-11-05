@@ -1,0 +1,17 @@
+use parser
+use json
+use test
+
+source = "match 2\n    case 1\n        say \"one\"\n    case 2\n        say \"two\"\n    else\n        say \"other\"\n"
+ast = try parse source
+test.equal 1 ast.len
+match_node = json.parse ast[0]
+test.equal "Match" match_node[0]
+choices = json.parse match_node[2]
+test.equal 2 choices.len
+first = json.parse choices[0]
+first_body = json.parse first[1]
+test.equal 1 first_body.len
+fallback = json.parse match_node[3]
+test.equal 1 fallback.len
+say "SE selfhost match parser passed"
