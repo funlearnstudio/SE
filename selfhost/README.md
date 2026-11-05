@@ -43,11 +43,11 @@ Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defa
 ## Supported compiler features / 已支援
 
 - **Lexer**: ASCII identifiers, numeric and string literals, comments, indent/dedent, operators, typed function tokens and source locations.
-- **Parser**: expression precedence including unary and binary operators, list literals, indexing, member access, calls, `ask` and `try` expressions; statements `say`, `give`, `fail`, assignments including `+=` etc., `if/else if/else`, `while`, `repeat`, `for`, typed and untyped `make`, `use`, and multi-variable typed `ask`.
+- **Parser**: expression precedence including unary and binary operators, list literals, indexing, member access, calls, `ask` and `try` expressions; statements `say`, `give`, `fail`, assignments including `+=` etc., `if/else if/else`, `match/case/else`, `while`, `repeat`, `for`, typed and untyped `make`, `use`, and multi-variable typed `ask`.
 - **Static checks**: symbol existence, assignments, numeric and boolean operands, homogeneous lists, indexing, function arity, declared parameter types, annotated return types, selected block scopes, `ask` types and explicit failures.
 - **C++ backend**: Int, Num, Bool, Text, homogeneous Lists, insertion-ordered Maps and Sets, common arithmetic/logic/conditions, inclusive range loops, recursion, indexed collection updates, functions, simple module helpers, input/output and exceptions.
 - **Typed forward functions**: C++20 prototypes are emitted before definitions for functions whose parameter and return types are explicit, enabling forward calls and mutual recursion. Calls requiring return-type deduction are not yet supported forward.
-- **Library subset**: common `math`, `text`, `collections`, `file` and core conversion/read/write/append operations only. This **does not imply** general library compatibility.
+- **Library subset**: selected `math`, `text`, `collections` (`sort`, `reverse`, `take`, `drop`), `file`, and core conversion/read/write/append/Unicode-`char` operations only. This **does not imply** general library compatibility.
 
 ## Tests / 測試
 
@@ -58,11 +58,36 @@ se run selfhost/typechecker_test.se
 se run selfhost/typechecker_extended_test.se
 se run selfhost/codegen_test.se
 python3 tests/selfhost_differential.py $(command -v se)
+# Strict test of the *actual compiler* self-compiling, not a sample program:
+python3 tests/selfhost_stage2.py $(command -v se)
 ```
 
 The test compiles generated C++20 and runs the actual executable. Where syntax is supported by both implementations, it compares output with the production SE interpreter; for typed multi-input (not accepted by the production interpreter), it verifies explicit expected output instead. It also asserts that invalid programs are rejected. Positive cases include Map/Set insertion, lookup and mutation, typed multi-input, recursion, typed mutual recursion and indexed assignments. It also covers arithmetic, for/while/repeat, string operations and diagnostic failures.
 
 A separately bootstrapped native compiler program can be produced from `selfhost/compiler.se` **using the production C++ SE compiler**. That binary may still link the production `s_core` VM, so it **does not prove true self-hosting or independent compiler runtime**.
+
+## Independent runtime / 獨立執行階段
+
+The generated C++20 sample programs compile against ONLY
+`selfhost/se_bootstrap_runtime.hpp` and the host C++ standard library,
+not the production SE VM (`libs_core`). Run
+`c++ -std=c++20 -O0 -Iselfhost tests/selfhost_runtime.cpp -o /tmp/se-runtime-test && /tmp/se-runtime-test`
+to exercise independent text, collection, Unicode-character, Map/Set and error paths.
+**This proves standalone subset-program execution only**, not an independent,
+self-compiled SE compiler.
+
+## Strict self-hosting test / 嚴格自編譯驗證
+
+`tests/selfhost_stage2.py` is an intentionally strict verifier. It must:
+1. Bootstrap the SE-written compiler with the production CLI **once**.
+2. Compile the compiler's own source from the generated native executable.
+3. Compile subsequent generations without invoking the production interpreter.
+4. Compare Stage 2, Stage 3 and Stage 4 generated C++ SHA-256 hashes.
+
+A failure is a **failure**, never counted as a passing self-host result.
+The current compiler lacks custom-module imports, several standard-library
+functions, mutable nested-list semantics and full language constructs; the
+Stage 2/3 check is therefore not expected to pass yet.
 
 ## What is NOT finished / 尚待完成
 
