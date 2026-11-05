@@ -174,17 +174,29 @@ make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
         while _argument_start (_kind tokens state)
             raw_arg = try _prefix tokens state
             arg = try _postfix tokens state raw_arg
+            arithmetic = true
+            while arithmetic
+                op = _kind tokens state
+                precedence = _precedence op
+                if precedence < 6
+                    arithmetic = false
+                else
+                    outer_call = false
+                    if op == "+" or op == "-"
+                        next_token = tokens[state[0] + 1]
+                        following = tokens[state[0] + 2]
+                        if next_token[0] == "Identifier" and _argument_start following[0]
+                            outer_call = true
+                    if outer_call
+                        arithmetic = false
+                    else
+                        _advance tokens state
+                        min_right = precedence + 1
+                        if op == "**"
+                            min_right = precedence
+                        right = try _expression tokens state min_right
+                        arg = json.stringify (["Binary", op, arg, right])
             arguments.add arg
-        # SE bare single-argument calls accept arithmetic on the input:
-        #   func a - 1 + func a - 2  means func(a-1) + func(a-2).
-        # This intentionally consumes one trailing subtraction only when the
-        # bare argument is a simple identifier, keeping outer + at top level.
-        if arguments.len == 1 and _kind tokens state == "-"
-            original = _node arguments[0]
-            if original[0] == "Atom" and original[1] == "Identifier"
-                _advance tokens state
-                rhs = try _expression tokens state 7
-                arguments[0] = json.stringify (["Binary", "-", arguments[0], rhs])
         left = json.stringify (["Call", left, json.stringify arguments, ""])
     while true
         op = _kind tokens state
