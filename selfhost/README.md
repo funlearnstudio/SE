@@ -46,6 +46,7 @@ Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defa
 - **Parser**: expression precedence including unary and binary operators, list literals, indexing, member access, calls, `ask` and `try` expressions; statements `say`, `give`, `fail`, assignments including `+=` etc., `if/else if/else`, `while`, `repeat`, `for`, typed and untyped `make`, `use`, and multi-variable typed `ask`.
 - **Static checks**: symbol existence, assignments, numeric and boolean operands, homogeneous lists, indexing, function arity, declared parameter types, annotated return types, selected block scopes, `ask` types and explicit failures.
 - **C++ backend**: Int, Num, Bool, Text, homogeneous Lists, insertion-ordered Maps and Sets, common arithmetic/logic/conditions, inclusive range loops, recursion, indexed collection updates, functions, simple module helpers, input/output and exceptions.
+- **Typed forward functions**: C++20 prototypes are emitted before definitions for functions whose parameter and return types are explicit, enabling forward calls and mutual recursion. Calls requiring return-type deduction are not yet supported forward.
 - **Library subset**: common `math`, `text`, `collections`, `file` and core conversion/read/write/append operations only. This **does not imply** general library compatibility.
 
 ## Tests / 測試
@@ -59,7 +60,7 @@ se run selfhost/codegen_test.se
 python3 tests/selfhost_differential.py $(command -v se)
 ```
 
-The differential test compiles generated C++20, runs the result, compares output with the production SE interpreter, and asserts that invalid programs are rejected. Positive cases include Map/Set insertion, lookup and mutation, typed multi-input, recursion and indexed assignments. It also covers arithmetic, for/while/repeat, string operations and diagnostic failures.
+The test compiles generated C++20 and runs the actual executable. Where syntax is supported by both implementations, it compares output with the production SE interpreter; for typed multi-input (not accepted by the production interpreter), it verifies explicit expected output instead. It also asserts that invalid programs are rejected. Positive cases include Map/Set insertion, lookup and mutation, typed multi-input, recursion, typed mutual recursion and indexed assignments. It also covers arithmetic, for/while/repeat, string operations and diagnostic failures.
 
 A separately bootstrapped native compiler program can be produced from `selfhost/compiler.se` **using the production C++ SE compiler**. That binary may still link the production `s_core` VM, so it **does not prove true self-hosting or independent compiler runtime**.
 
