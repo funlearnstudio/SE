@@ -4,6 +4,7 @@
 # Stmt: Assign / ExprStmt / say / give / If / while / repeat / For / Make / Use / fail.
 use lexer
 use json
+use text
 use ast_codec
 
 make _node encoded:Text -> List[Text]
@@ -141,23 +142,42 @@ make _postfix tokens:List[List[Text]] state:List[Int] start:Text -> Text
                 fail "Expected member name after '.'"
             left = json.stringify (["Member", left, member[1], ""])
         else if kind == "["
-            # Adjacent brackets index a value; separated brackets start a List argument.
-            bracket = tokens[state[0]]
-            previous = tokens[state[0] - 1]
-            previous_width = previous[1].len
-            if previous[0] == "String"
-                previous_width += 2
-            bracket_column = int bracket[3]
-            preceding_column = int previous[3]
-            preceding_end = preceding_column + previous_width
-            adjacent = bracket_column == preceding_end
-            if adjacent
+            # Uppercase SE type names (Box[Int]) are specialization, not indexing.
+            base_node = _node left
+            generic_type = false
+            if base_node[0] == "Atom" and base_node[1] == "Identifier"
+                name_chars = text.split base_node[2] ""
+                if name_chars.len > 0
+                    generic_type = text.contains "ABCDEFGHIJKLMNOPQRSTUVWXYZ" name_chars[0]
+            if generic_type
                 _advance tokens state
-                index = try _expression tokens state 1
+                if _kind tokens state == "]"
+                    fail "A generic type needs at least one argument."
+                arguments = []
+                arguments.add (try _type_ref tokens state)
+                while _kind tokens state == ","
+                    _advance tokens state
+                    arguments.add (try _type_ref tokens state)
                 try _expect tokens state "]"
-                left = json.stringify (["Index", left, index, ""])
+                left = json.stringify (["TypeInstance", base_node[2], json.stringify arguments, ""])
             else
-                looping = false
+                # Adjacent brackets index a value; separated brackets start List arguments.
+                bracket = tokens[state[0]]
+                previous = tokens[state[0] - 1]
+                previous_width = previous[1].len
+                if previous[0] == "String"
+                    previous_width += 2
+                bracket_column = int bracket[3]
+                preceding_column = int previous[3]
+                preceding_end = preceding_column + previous_width
+                adjacent = bracket_column == preceding_end
+                if adjacent
+                    _advance tokens state
+                    index = try _expression tokens state 1
+                    try _expect tokens state "]"
+                    left = json.stringify (["Index", left, index, ""])
+                else
+                    looping = false
         else
             looping = false
     give left
@@ -294,6 +314,24 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
         type_token = _advance tokens state
         if type_token[0] != "Identifier"
             fail "Expected type name after type."
+        generics = []
+        if _kind tokens state == "["
+            _advance tokens state
+            if _kind tokens state == "]"
+                fail "A generic type needs at least one type name."
+            more = true
+            while more
+                variable = _advance tokens state
+                if variable[0] != "Identifier"
+                    fail "Expected generic type parameter."
+                if variable[1] in generics
+                    fail "Duplicate generic type parameter: " + variable[1]
+                generics.add variable[1]
+                if _kind tokens state == ","
+                    _advance tokens state
+                else
+                    more = false
+            try _expect tokens state "]"
         try _expect tokens state "Newline"
         while _kind tokens state == "Newline"
             _advance tokens state
@@ -326,7 +364,7 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
             else
                 fail "Expected a field or method inside type " + type_token[1]
         try _expect tokens state "Dedent"
-        give json.stringify (["TypeDecl", type_token[1], json.stringify fields, try pack_block methods])
+        give json.stringify (["TypeDecl", type_token[1], json.stringify fields, try pack_block methods, json.stringify generics])
     if kind == "match"
         _advance tokens state
         subject = try _expression tokens state 1
