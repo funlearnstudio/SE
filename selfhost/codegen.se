@@ -32,7 +32,8 @@ make _emit_expr encoded:Text -> Text
         op = node[1]
         if op == "not"
             op = "!"
-        give "(" + op + _emit_expr node[2] + ")"
+        operand = _emit_expr node[2]
+        give "(" + op + operand + ")"
     if kind == "Binary"
         op = node[1]
         left = _emit_expr node[2]
@@ -65,22 +66,38 @@ make _emit_stmt encoded:Text level:Int symbols:List[Text] -> Text
         symbols.add name
         give pad + "auto " + name + " = " + expr + ";\n"
     if kind == "say"
-        give pad + "std::cout << " + _emit_expr node[2] + " << \"\\n\";\n"
+        printable = _emit_expr node[2]
+        give pad + "std::cout << " + printable + " << \"\\n\";\n"
     if kind == "give"
-        give pad + "return " + _emit_expr node[2] + ";\n"
+        returned = _emit_expr node[2]
+        give pad + "return " + returned + ";\n"
     if kind == "If"
-        yes = _emit_block node[2] (level + 1) (_clone_names symbols)
-        no = _emit_block node[3] (level + 1) (_clone_names symbols)
-        output = pad + "if (" + _emit_expr node[1] + ") {\n" + yes + pad + "}"
+        yes_ast = node[2]
+        no_ast = node[3]
+        test_ast = node[1]
+        yes_names = _clone_names symbols
+        no_names = _clone_names symbols
+        yes = _emit_block yes_ast (level + 1) yes_names
+        no = _emit_block no_ast (level + 1) no_names
+        test_cpp = _emit_expr test_ast
+        output = pad + "if (" + test_cpp + ") {\n" + yes + pad + "}"
         if no != ""
             output = output + " else {\n" + no + pad + "}"
         give output + "\n"
     if kind == "while"
-        body = _emit_block node[2] (level + 1) (_clone_names symbols)
-        give pad + "while (" + _emit_expr node[1] + ") {\n" + body + pad + "}\n"
+        loop_ast = node[2]
+        test_ast = node[1]
+        loop_names = _clone_names symbols
+        body = _emit_block loop_ast (level + 1) loop_names
+        test_cpp = _emit_expr test_ast
+        give pad + "while (" + test_cpp + ") {\n" + body + pad + "}\n"
     if kind == "repeat"
-        body = _emit_block node[2] (level + 1) (_clone_names symbols)
-        give pad + "for (int _se_i = 0; _se_i < " + _emit_expr node[1] + "; ++_se_i) {\n" + body + pad + "}\n"
+        loop_ast = node[2]
+        count_ast = node[1]
+        loop_names = _clone_names symbols
+        body = _emit_block loop_ast (level + 1) loop_names
+        count_cpp = _emit_expr count_ast
+        give pad + "for (int _se_i = 0; _se_i < " + count_cpp + "; ++_se_i) {\n" + body + pad + "}\n"
     if kind == "Make"
         params = _node node[2]
         local_names = []
@@ -90,7 +107,8 @@ make _emit_stmt encoded:Text level:Int symbols:List[Text] -> Text
                 args = args + ", "
             args = args + "auto " + item
             local_names.add item
-        body = _emit_block node[3] 1 local_names
+        function_ast = node[3]
+        body = _emit_block function_ast 1 local_names
         give "auto " + node[1] + "(" + args + ") {\n" + body + "}\n"
     fail "Unsupported SE statement in C++ bootstrap: " + kind
 
