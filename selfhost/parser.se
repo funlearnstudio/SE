@@ -309,16 +309,18 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
         generics = []
         if _kind tokens state == "["
             _advance tokens state
-            while true
+            more_generics = true
+            while more_generics
                 variable = _advance tokens state
                 if variable[0] != "Identifier"
                     fail "Expected a generic type parameter."
                 if variable[1] in generics
                     fail "Duplicate generic type parameter: " + variable[1]
                 generics.add variable[1]
-                if _kind tokens state != ","
-                    break
-                _advance tokens state
+                if _kind tokens state == ","
+                    _advance tokens state
+                else
+                    more_generics = false
             try _expect tokens state "]"
         params = []
         while _kind tokens state == "Identifier"
