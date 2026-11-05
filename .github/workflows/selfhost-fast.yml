@@ -4,7 +4,8 @@ on:
   push:
     paths:
       - "selfhost/**"
-      - "tests/selfhost_differential.py"
+      - "tests/selfhost_*.py"
+      - "tests/selfhost_*.cpp"
       - ".github/workflows/selfhost-fast.yml"
       - "CMakeLists.txt"
       - "src/**"
@@ -12,7 +13,8 @@ on:
   pull_request:
     paths:
       - "selfhost/**"
-      - "tests/selfhost_differential.py"
+      - "tests/selfhost_*.py"
+      - "tests/selfhost_*.cpp"
       - ".github/workflows/selfhost-fast.yml"
       - "CMakeLists.txt"
       - "src/**"
