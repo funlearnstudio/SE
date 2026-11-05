@@ -73,7 +73,7 @@ def verify_negative(case: str, part: str, tmp: Path) -> None:
 def main() -> None:
     for filename in ("lexer.se", "parser.se", "symbol_table.se", "typechecker.se", "codegen.se", "compile.se", "compiler.se"):
         result = run(str(SE), "check", str(ROOT / "selfhost" / filename))
-        assert result.returncode == 0, (filename, result.stderr)
+        assert result.returncode == 0, (filename, result.stdout, result.stderr)
     for filename in ("parser_test.se", "parser_extended_test.se", "parser_match_test.se", "typechecker_test.se", "typechecker_extended_test.se", "codegen_test.se"):
         result = run(str(SE), "run", str(ROOT / "selfhost" / filename))
         assert result.returncode == 0, (filename, result.stderr)
