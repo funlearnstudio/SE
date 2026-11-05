@@ -33,7 +33,7 @@ def main(executable: Path) -> None:
     if not ARCHIVE.is_file():
         raise RuntimeError(f"Build the s_core static archive first: {ARCHIVE}")
     with tempfile.TemporaryDirectory(prefix="se-native-prebuilt-") as temp:
-        for name in ("hello.se", "function.se", "type.se"):
+        for name in ("hello.se", "function.se", "type.se", "expansion-all.se"):
             source = Path(temp) / name
             shutil.copyfile(ROOT / "examples" / name, source)
             interpreted = run(str(executable), "run", str(source))
