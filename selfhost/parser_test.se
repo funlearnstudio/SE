@@ -15,19 +15,25 @@ while j < expected.len
 
 ast = parse source
 test.equal 2 ast.len
-test.ok (text.contains ast[0] "\"Assign\"")
-test.ok (text.contains ast[1] "\"If\"")
-test.ok (text.contains ast[1] "\"say\"")
+first = ast[0]
+test.ok (text.contains first "\"Assign\"")
+second = ast[1]
+test.ok (text.contains second "\"If\"")
+test.ok (text.contains second "\"say\"")
 
 arithmetic = parse "value = 1 + 2 * 3\nsay value\n"
 test.equal 2 arithmetic.len
-test.ok (text.contains arithmetic[0] "\"Binary\"")
-test.ok (text.contains arithmetic[0] "*")
+math_ast = arithmetic[0]
+test.ok (text.contains math_ast "\"Binary\"")
+test.ok (text.contains math_ast "*")
 
 blocks = parse "make greet name\n    say name\nrepeat 3\n    say \"Hi\"\nwhile true\n    give 1\n"
 test.equal 3 blocks.len
-test.ok (text.contains blocks[0] "\"Make\"")
-test.ok (text.contains blocks[1] "\"repeat\"")
-test.ok (text.contains blocks[2] "\"while\"")
+make_ast = blocks[0]
+test.ok (text.contains make_ast "\"Make\"")
+repeat_ast = blocks[1]
+test.ok (text.contains repeat_ast "\"repeat\"")
+while_ast = blocks[2]
+test.ok (text.contains while_ast "\"while\"")
 
 say "SE selfhost lexer/parser smoke test passed"
