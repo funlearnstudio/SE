@@ -3,9 +3,9 @@
 use parser
 use codegen
 
-source = read "selfhost/sample.se"
-ast = parse source
-cpp = emit_program ast
-write "selfhost/generated_sample.cpp" cpp
+source = try read "selfhost/sample.se"
+ast = try parse source
+cpp = try emit_program ast
+try write "selfhost/generated_sample.cpp" cpp
 
 say "Generated selfhost/generated_sample.cpp"
