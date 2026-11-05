@@ -1,0 +1,33 @@
+# Lexer + parser smoke/regression test for the SE-written bootstrap front end.
+use lexer
+use parser
+use text
+use test
+
+source = "name = \"SE\"\nif name == \"SE\"\n    say \"Hello SE\"\nelse\n    say \"other\"\n"
+tokens = lex source
+expected = ["Identifier", "=", "String", "Newline", "if", "Identifier", "==", "String", "Newline", "Indent", "say", "String", "Newline", "Dedent", "else", "Newline", "Indent", "say", "String", "Newline", "Dedent", "End"]
+test.equal expected.len tokens.len
+j = 0
+while j < expected.len
+    test.equal expected[j] tokens[j][0]
+    j += 1
+
+ast = parse source
+test.equal 2 ast.len
+test.ok (text.contains ast[0] "\"Assign\"")
+test.ok (text.contains ast[1] "\"If\"")
+test.ok (text.contains ast[1] "\"Say\"")
+
+arithmetic = parse "value = 1 + 2 * 3\nsay value\n"
+test.equal 2 arithmetic.len
+test.ok (text.contains arithmetic[0] "\"Binary\"")
+test.ok (text.contains arithmetic[0] "\\\"*\"")
+
+blocks = parse "make greet name\n    say name\nrepeat 3\n    say \"Hi\"\nwhile true\n    give 1\n"
+test.equal 3 blocks.len
+test.ok (text.contains blocks[0] "\"Make\"")
+test.ok (text.contains blocks[1] "\"repeat\"")
+test.ok (text.contains blocks[2] "\"while\"")
+
+say "SE selfhost lexer/parser smoke test passed"
