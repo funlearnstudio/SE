@@ -57,6 +57,29 @@ inline double se_num(const std::string& v) {
   return n;
 }
 template<class T> inline double se_num(const T& v) {return static_cast<double>(v);}
+// SE char(codepoint): encode a Unicode scalar as UTF-8.
+inline std::string se_char(std::int64_t value) {
+  if(value<0 || value>0x10ffff || (value>=0xd800 && value<=0xdfff))
+    throw std::runtime_error("Invalid Unicode scalar for char");
+  const auto cp=static_cast<std::uint32_t>(value);
+  std::string out;
+  if(cp<=0x7f)out+=static_cast<char>(cp);
+  else if(cp<=0x7ff){
+    out+=static_cast<char>(0xc0|(cp>>6));
+    out+=static_cast<char>(0x80|(cp&0x3f));
+  }else if(cp<=0xffff){
+    out+=static_cast<char>(0xe0|(cp>>12));
+    out+=static_cast<char>(0x80|((cp>>6)&0x3f));
+    out+=static_cast<char>(0x80|(cp&0x3f));
+  }else{
+    out+=static_cast<char>(0xf0|(cp>>18));
+    out+=static_cast<char>(0x80|((cp>>12)&0x3f));
+    out+=static_cast<char>(0x80|((cp>>6)&0x3f));
+    out+=static_cast<char>(0x80|(cp&0x3f));
+  }
+  return out;
+}
+
 inline std::string se_ask(const std::string& question) {
   std::cout<<question;
   std::cout.flush();
@@ -114,6 +137,16 @@ inline std::string se_join(const std::vector<std::string>& parts,const std::stri
   std::string out;
   for(std::size_t i=0;i<parts.size();++i){if(i)out+=delim;out+=parts[i];}
   return out;
+}
+template<class T> inline std::vector<T> se_take(const std::vector<T>& values,std::int64_t amount){
+  if(amount<0)throw std::runtime_error("collections.take requires nonnegative count");
+  const auto n=std::min<std::size_t>(values.size(),static_cast<std::size_t>(amount));
+  return {values.begin(),values.begin()+static_cast<std::ptrdiff_t>(n)};
+}
+template<class T> inline std::vector<T> se_drop(const std::vector<T>& values,std::int64_t amount){
+  if(amount<0)throw std::runtime_error("collections.drop requires nonnegative count");
+  const auto n=std::min<std::size_t>(values.size(),static_cast<std::size_t>(amount));
+  return {values.begin()+static_cast<std::ptrdiff_t>(n),values.end()};
 }
 template<class T> inline std::vector<T> se_sorted(std::vector<T> items){std::sort(items.begin(),items.end());return items;}
 template<class T> inline std::vector<T> se_reversed(std::vector<T> items){std::reverse(items.begin(),items.end());return items;}
