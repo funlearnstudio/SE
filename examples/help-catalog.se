@@ -1,0 +1,22 @@
+# Full module and per-function help examples
+# .help is a Text property and also prints as a standalone statement.
+use game
+use file
+use math
+use json
+use statistics
+use crypto
+use sqlite3
+
+math.help
+game.help
+file.help
+json.help
+statistics.help
+crypto.help
+sqlite3.help
+
+say math.sqrt.help
+say file.copy.help
+say game.key_move.help
+say json.parse.help

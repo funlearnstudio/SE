@@ -1,4 +1,5 @@
 #include "s/interpreter.hpp"
+#include "s/module_help_catalog.hpp"
 #include "s/ffi.hpp"
 #include "s/platform.hpp"
 #include <algorithm>
@@ -145,7 +146,61 @@ std::string help_text(const Value&v){
   else if(std::holds_alternative<std::shared_ptr<MapData>>(v.data()))out<<"members: help, len\nindex with map[\"key\"]";
   else if(std::holds_alternative<std::shared_ptr<SetData>>(v.data()))out<<"members: help, len, add value, remove value";
   else if(auto o=std::get_if<std::shared_ptr<ObjectData>>(&v.data())){out<<"members: help";if((*o)->type){for(auto&[name,value]:(*o)->fields){(void)value;out<<", "<<name;}for(auto&[name,method]:(*o)->type->methods){(void)method;out<<", "<<name;}}}
-  else if(auto m=std::get_if<std::shared_ptr<ModuleData>>(&v.data())){out<<"members: help";for(auto&[name,value]:(*m)->exports){(void)value;out<<", "<<name;}}
+  else if(auto m=std::get_if<std::shared_ptr<ModuleData>>(&v.data())){
+    const auto& module=**m;
+    const auto& docs=module_help_descriptions();
+    const auto& api=module_member_help_descriptions();
+    out<<"Module: "<<module.name<<"\\n";
+    if(auto desc=docs.find(module.name);desc!=docs.end())out<<"Purpose: "<<desc->second<<"\\n";
+    else out<<"Purpose: SE module or user-defined module.\\n";
+    out<<"Import: use "<<module.name<<"\\n";
+    out<<"API reference (name | arguments | description | arity):\\n";
+    std::vector<std::string> names;
+    for(const auto& item:module.exports)names.push_back(item.first);
+    std::sort(names.begin(),names.end());
+    for(const auto& name:names){
+      const auto& value=module.exports.at(name);
+      const std::string qualified=module.name+"."+name;
+      out<<"  "<<qualified;
+      if(auto d=api.find(qualified);d!=api.end()){
+        out<<" "<<d->second.usage.substr(name.size());
+        out<<"\\n    "<<d->second.description;
+      }else{
+        out<<"\\n    "<<(std::holds_alternative<std::shared_ptr<CallableData>>(value.data())?"Callable API.":"Value or constant.");
+      }
+      if(auto fn=std::get_if<std::shared_ptr<CallableData>>(&value.data());fn&&*fn){
+        out<<" [arguments: "<<(*fn)->min_args;
+        if((*fn)->variadic)out<<"+";
+        else if((*fn)->max_args!=(*fn)->min_args)out<<".."<<(*fn)->max_args;
+        out<<"]";
+      }else out<<" [value: "<<value.type_name()<<"]";
+      out<<"\\n";
+    }
+    out<<"Examples:\\n  use "<<module.name<<"\\n";
+    if(!names.empty()){
+      const auto first=module.name+"."+names.front();
+      if(auto d=api.find(first);d!=api.end())out<<"  "<<module.name<<"."<<d->second.usage<<"\\n";
+      else out<<"  say "<<first<<".help\\n";
+    }
+    out<<"Detailed function help: say "<<module.name<<"."<<(names.empty()?"member":names.front())<<".help\\n";
+    out<<"Note: APIs described as Fallible may require try; native, network, browser and optional-dependency APIs have environment requirements.";
+  }
+  else if(auto fn=std::get_if<std::shared_ptr<CallableData>>(&v.data());fn&&*fn){
+    const auto& api=module_member_help_descriptions();
+    const std::string& full=(*fn)->name;
+    out<<"Function: "<<full<<"\\n";
+    if(auto doc=api.find(full);doc!=api.end()){
+      const auto dot=full.find('.');
+      const std::string module=dot==std::string::npos?"":full.substr(0,dot+1);
+      out<<"Usage: "<<module<<doc->second.usage<<"\\n";
+      out<<"Description: "<<doc->second.description<<"\\n";
+      out<<"Example: "<<module<<doc->second.usage<<"\\n";
+      if(doc->second.description.find("Fallible")!=std::string::npos)
+        out<<"Error handling: use try for fallible operations.\\n";
+    }else out<<"Usage: "<<full<<" [arguments]\\nDescription: callable SE function.\\n";
+    out<<"Required arguments: "<<(*fn)->min_args<<"\\n";
+    out<<"Maximum arguments: "<<((*fn)->variadic?std::string("variadic"):std::to_string((*fn)->max_args));
+  }
   else if(std::holds_alternative<std::shared_ptr<FileData>>(v.data()))out<<"members: help, read, write text, close";
   else if(std::holds_alternative<PathData>(v.data()))out<<"members: help, name, ext, parent, exists, is_file, is_dir";
   else if(std::holds_alternative<std::shared_ptr<ErrorData>>(v.data()))out<<"members: help, message, source, line, kind";
