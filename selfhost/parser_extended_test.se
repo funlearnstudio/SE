@@ -21,6 +21,8 @@ say "DEBUG expr: " + expr
 test.equal "Call" expr[0]
 item = node ast[3]
 index = node item[2]
+say "DEBUG item: " + item
+say "DEBUG index: " + index
 test.equal "Index" index[0]
 forloop = node ast[4]
 test.equal "For" forloop[0]
