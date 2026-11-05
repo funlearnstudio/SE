@@ -28,6 +28,10 @@ make _ctype source:Text -> Text
         give "std::vector<std::int64_t>"
     if source == "List[Num]"
         give "std::vector<double>"
+    if source == "List[List[Text]]"
+        give "std::vector<std::vector<std::string>>"
+    if source == "List[List[Int]]"
+        give "std::vector<std::vector<std::int64_t>>"
     if source == "List[Text]"
         give "std::vector<std::string>"
     if source == "List[Bool]"
@@ -75,6 +79,8 @@ make _emit_call encoded:Text -> Text
             give "se_num(" + generated + ")"
         if name in ["text", "string"]
             give "se_string(" + generated + ")"
+        if name == "char"
+            give "se_char(" + generated + ")"
         if name == "read"
             give "se_read(" + generated + ")"
         if name == "write"
@@ -100,6 +106,10 @@ make _emit_call encoded:Text -> Text
                     give "se_sorted(" + generated + ")"
                 if method == "reverse"
                     give "se_reversed(" + generated + ")"
+                if method == "take"
+                    give "se_take(" + generated + ")"
+                if method == "drop"
+                    give "se_drop(" + generated + ")"
                 fail "Collection function not yet supported: " + method
         obj = try _emit_expr target[1]
         if method == "add"
