@@ -116,7 +116,10 @@ def main() -> None:
         verify_positive("language_package_imports.se", "", tmp)
         verify_positive("language_duration.se", "", tmp, expected_output="duration ok\n")
         verify_positive("language_elif.se", "", tmp, expected_output="middle\n")
-        verify_positive("language_zero_arg_functions.se", "", tmp)
+        # Production runtime auto-invokes nullary functions, but its static
+        # checker currently rejects their arithmetic use as Function + Int.
+        # Exercise the actual generated C++ against a fixed output oracle.
+        verify_positive("language_zero_arg_functions.se", "", tmp, expected_output="42\n43\nready\ntrue\n84\n")
         for case, message in (
             ("negative_required_field.se", "Missing required field"),
             ("negative_field_default.se", "Field default type mismatch"),
