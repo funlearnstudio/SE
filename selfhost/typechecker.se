@@ -3,6 +3,7 @@
 # expressions, local scopes, bounded loops, declarations and module names.
 use json
 use symbol_table
+use collections
 
 make _node encoded:Text -> List[Text]
     give json.parse encoded
@@ -393,7 +394,8 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
     fail "Unsupported AST statement in self-hosted checker: " + kind
 
 make check_program statements:List[Text] -> List[List[Text]]
-    symbols = []
+    symbols = [["", "", "", ""]]
+    symbols = collections.take symbols 0
     # Register functions first, enabling forward calls.
     for item in statements
         node = _node item

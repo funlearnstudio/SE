@@ -1,12 +1,15 @@
 # SE self-hosting symbol table (compiler stage 3).
 # Entries: [name, type, arity, return_type]; all fields are Text.
 # Block scopes copy the visible symbol table; exports/locals cannot leak back.
+use collections
 
 make new_symbols -> List[List[Text]]
-    give []
+    seeded = [["", "", "", ""]]
+    give collections.take seeded 0
 
 make clone_symbols entries:List[List[Text]] -> List[List[Text]]
-    cloned = []
+    cloned = [["", "", "", ""]]
+    cloned = collections.take cloned 0
     for entry in entries
         cloned.add entry
     give cloned

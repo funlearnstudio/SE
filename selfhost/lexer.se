@@ -23,7 +23,7 @@ make lex source:Text -> List[List[Text]]
     n = chars.len
     # Seed the nested List type, then empty it (SE uses homogeneous Lists).
     tokens = [["", "", "", ""]]
-    tokens = []
+    tokens = collections.take tokens 0
     levels = [0]
     i = 0
     line = 1
