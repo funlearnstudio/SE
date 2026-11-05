@@ -32,6 +32,22 @@ make _ctype source:Text -> Text
         give "std::vector<std::string>"
     if source == "List[Bool]"
         give "std::vector<bool>"
+    if source == "Map[Text,Int]"
+        give "SEMap<std::int64_t>"
+    if source == "Map[Text,Text]"
+        give "SEMap<std::string>"
+    if source == "Map[Text,Num]"
+        give "SEMap<double>"
+    if source == "Map[Text,Bool]"
+        give "SEMap<bool>"
+    if source == "Set[Int]"
+        give "SESet<std::int64_t>"
+    if source == "Set[Text]"
+        give "SESet<std::string>"
+    if source == "Set[Num]"
+        give "SESet<double>"
+    if source == "Set[Bool]"
+        give "SESet<bool>"
     if source == "Unknown"
         give "auto"
     fail "Unsupported C++ type annotation: " + source
@@ -87,7 +103,7 @@ make _emit_call encoded:Text -> Text
                 fail "Collection function not yet supported: " + method
         obj = try _emit_expr target[1]
         if method == "add"
-            give obj + ".push_back(" + generated + ")"
+            give "se_add_item(" + obj + ", " + generated + ")"
         fail "Unsupported method: " + method
     fail "Only named functions and supported module methods can be called."
 
@@ -133,10 +149,24 @@ make _emit_expr encoded:Text -> Text
     if kind == "List"
         items = try _emit_arguments node[1]
         give "se_list(" + items + ")"
+    if kind == "Map"
+        pairs = _node node[1]
+        output = ""
+        for item in pairs
+            pair = _node item
+            key = try _emit_expr pair[0]
+            value = try _emit_expr pair[1]
+            if output != ""
+                output = output + ", "
+            output = output + "std::pair{" + key + ", " + value + "}"
+        give "se_map(" + output + ")"
+    if kind == "Set"
+        items = try _emit_arguments node[1]
+        give "se_set(" + items + ")"
     if kind == "Index"
         base = try _emit_expr node[1]
         index = try _emit_expr node[2]
-        give base + ".at(static_cast<std::size_t>(" + index + "))"
+        give "se_index(" + base + ", " + index + ")"
     if kind == "Member"
         base = try _emit_expr node[1]
         member = node[2]
@@ -182,6 +212,13 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     if kind == "fail"
         result = try _emit_expr node[2]
         give pad + "throw std::runtime_error(se_string(" + result + "));\n"
+    if kind == "AssignIndex"
+        base = try _emit_expr node[1]
+        index = try _emit_expr node[2]
+        value = try _emit_expr node[3]
+        give pad + "se_index(" + base + ", " + index + ") = " + value + ";\n"
+    if kind == "AssignMember"
+        fail "Object field assignment requires the full SE backend."
     if kind == "MultiAsk"
         fields = _node node[1]
         suffix = string names.len

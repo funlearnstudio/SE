@@ -82,9 +82,51 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 else
                     fail "List element type mismatch: " + element + " vs " + got
         give "List[" + element + "]"
+    if kind == "Map"
+        pairs = _node node[1]
+        element = "Unknown"
+        for item in pairs
+            pair = _node item
+            key_type = try _infer pair[0] symbols
+            if key_type != "Text"
+                fail "Map keys must be Text."
+            got = try _infer pair[1] symbols
+            if element == "Unknown"
+                element = got
+            else if not _compatible element got
+                if element == "Int" and got == "Num"
+                    element = "Num"
+                else
+                    fail "Map values must have the same type."
+        give "Map[Text," + element + "]"
+    if kind == "Set"
+        items = _node node[1]
+        element = "Unknown"
+        for item in items
+            got = try _infer item symbols
+            if element == "Unknown"
+                element = got
+            else if not _compatible element got
+                if element == "Int" and got == "Num"
+                    element = "Num"
+                else
+                    fail "Set values must have the same type."
+        give "Set[" + element + "]"
     if kind == "Index"
         container = try _infer node[1] symbols
         index_type = try _infer node[2] symbols
+        if container in ["Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Map[Text,Unknown]"]
+            if index_type != "Text" and index_type != "Unknown"
+                fail "Map key must be Text."
+            if container == "Map[Text,Int]"
+                give "Int"
+            if container == "Map[Text,Num]"
+                give "Num"
+            if container == "Map[Text,Text]"
+                give "Text"
+            if container == "Map[Text,Bool]"
+                give "Bool"
+            give "Unknown"
         if index_type != "Int" and index_type != "Unknown"
             fail "List index must be Int."
         if container == "List[Int]"
@@ -97,17 +139,17 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             give "Bool"
         if container == "List[Unknown]" or container == "Unknown"
             give "Unknown"
-        fail "Only List indexing is supported by bootstrap checker, got " + container
+        fail "Only List and Map indexing supported, got " + container
     if kind == "Member"
         object_type = try _infer node[1] symbols
         member = node[2]
         if member == "len"
-            if object_type == "Text" or object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]"]
+            if object_type == "Text" or object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]", "Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Set[Int]", "Set[Num]", "Set[Text]", "Set[Bool]"]
                 give "Int"
         if member == "upper" or member == "lower"
             if object_type == "Text" or object_type == "Unknown"
                 give "Text"
-        if member == "add" and (object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]"])
+        if member == "add" and (object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]", "Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Set[Int]", "Set[Num]", "Set[Text]", "Set[Bool]"])
             give "Function"
         if object_type == "Module"
             give "Function"
@@ -190,6 +232,40 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         inferred = try _infer node[2] symbols
         try assign_symbol symbols node[1] inferred
         give "OK"
+    if kind == "AssignIndex"
+        target_type = try _infer node[1] symbols
+        index_type = try _infer node[2] symbols
+        value_type = try _infer node[3] symbols
+        element = "Unknown"
+        if target_type in ["Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]"]
+            if index_type != "Text"
+                fail "Map key assignment requires Text key."
+            if target_type == "Map[Text,Int]"
+                element = "Int"
+            if target_type == "Map[Text,Num]"
+                element = "Num"
+            if target_type == "Map[Text,Text]"
+                element = "Text"
+            if target_type == "Map[Text,Bool]"
+                element = "Bool"
+        else
+            if index_type != "Int"
+                fail "List index assignment requires Int index."
+            if target_type == "List[Int]"
+                element = "Int"
+            if target_type == "List[Num]"
+                element = "Num"
+            if target_type == "List[Text]"
+                element = "Text"
+            if target_type == "List[Bool]"
+                element = "Bool"
+            if target_type != "Unknown" and element == "Unknown"
+                fail "Assignment index target must be a List or Map."
+        if not _compatible element value_type
+            fail "Collection assignment expects " + element + ", got " + value_type
+        give "OK"
+    if kind == "AssignMember"
+        fail "Object field assignment is not yet supported in SE bootstrap."
     if kind == "MultiAsk"
         fields = _node node[1]
         for item in fields
@@ -241,6 +317,10 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             element_type = "Num"
         if iterable == "List[Bool]"
             element_type = "Bool"
+        if iterable == "Set[Int]"
+            element_type = "Int"
+        if iterable == "Set[Text]"
+            element_type = "Text"
         if iterable != "Unknown" and element_type == "Unknown"
             fail "for expects List or Range, got " + iterable
         local = clone_symbols symbols

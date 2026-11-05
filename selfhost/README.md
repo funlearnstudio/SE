@@ -15,7 +15,7 @@ parser.se              Pratt expression parser and structured JSON AST
   ↓
 symbol_table.se        symbol registration and scope snapshots
   ↓
-typechecker.se         static checks: types, arity, undeclared names, returns
+typechecker.se         static checks: types, arity, undeclared names, annotated returns and collection keys
   ↓
 codegen.se             C++20 translation
   + se_bootstrap_runtime.hpp (small supporting runtime)
@@ -45,7 +45,7 @@ Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defa
 - **Lexer**: ASCII identifiers, numeric and string literals, comments, indent/dedent, operators, typed function tokens and source locations.
 - **Parser**: expression precedence including unary and binary operators, list literals, indexing, member access, calls, `ask` and `try` expressions; statements `say`, `give`, `fail`, assignments including `+=` etc., `if/else if/else`, `while`, `repeat`, `for`, typed and untyped `make`, `use`, and multi-variable typed `ask`.
 - **Static checks**: symbol existence, assignments, numeric and boolean operands, homogeneous lists, indexing, function arity, declared parameter types, annotated return types, selected block scopes, `ask` types and explicit failures.
-- **C++ backend**: Int, Num, Bool, Text, nonempty homogeneous Lists, common arithmetic/logic/conditions, basic range loops, functions, simple module helpers, input/output and exceptions.
+- **C++ backend**: Int, Num, Bool, Text, homogeneous Lists, insertion-ordered Maps and Sets, common arithmetic/logic/conditions, inclusive range loops, recursion, indexed collection updates, functions, simple module helpers, input/output and exceptions.
 - **Library subset**: common `math`, `text`, `collections`, `file` and core conversion/read/write/append operations only. This **does not imply** general library compatibility.
 
 ## Tests / 測試
@@ -59,13 +59,13 @@ se run selfhost/codegen_test.se
 python3 tests/selfhost_differential.py $(command -v se)
 ```
 
-The differential test compiles generated C++20, runs the result, compares output with the production SE interpreter, and asserts that invalid programs are rejected. It covers arithmetic, functions, collections, for/while/repeat, string operations, typed multi-input and diagnostic failures.
+The differential test compiles generated C++20, runs the result, compares output with the production SE interpreter, and asserts that invalid programs are rejected. Positive cases include Map/Set insertion, lookup and mutation, typed multi-input, recursion and indexed assignments. It also covers arithmetic, for/while/repeat, string operations and diagnostic failures.
 
 A separately bootstrapped native compiler program can be produced from `selfhost/compiler.se` **using the production C++ SE compiler**. That binary may still link the production `s_core` VM, so it **does not prove true self-hosting or independent compiler runtime**.
 
 ## What is NOT finished / 尚待完成
 
-- Complete parser and checker for `type`, Map/Set, generics, closures, `match`, async, native modules, SE Web and all language forms.
+- Complete parser and checker for `type`, generic Map/Set shapes, generics, closures, `match`, async, native modules, SE Web and all language forms.
 - Complete standard library and platform/ABI compatibility.
 - Comprehensive error recovery, Unicode/UTF-8 identifiers, source maps and source-accurate diagnostics.
 - Self-compile and reproducibility: compiler written in SE compiling **its own** sources, then stage2-stage3 binary equivalence.

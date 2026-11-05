@@ -74,6 +74,9 @@ def main() -> None:
         verify_positive("language_core.se", "", tmp)
         verify_positive("language_text.se", "", tmp)
         verify_positive("language_input.se", "5 7 hello\n", tmp)
+        verify_positive("language_index_assignment.se", "", tmp)
+        verify_positive("language_map_set.se", "", tmp)
+        verify_positive("language_recursion.se", "", tmp)
         for case, message in (
             ("negative_wrong_type.se", "Arithmetic requires numbers"),
             ("negative_undefined.se", "Undefined identifier"),
@@ -81,6 +84,10 @@ def main() -> None:
             ("negative_wrong_return.se", "Function return type"),
             ("negative_hetero_list.se", "List element type mismatch"),
             ("negative_bad_ask.se", "ask supports Text, Int or Num"),
+            ("negative_index_type.se", "Collection assignment expects Int"),
+            ("negative_map_key.se", "Map keys must be Text"),
+            ("negative_set_value.se", "Set values must have the same type"),
+            ("negative_missing_return.se", "is missing a return"),
         ):
             verify_negative(case, message, tmp)
     print("SE selfhost differential tests passed")

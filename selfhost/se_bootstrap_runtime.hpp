@@ -138,3 +138,80 @@ inline void se_append(const std::string& path,const std::string& data) {
   if(!file)throw std::runtime_error("Cannot append: "+path);
   file<<data;
 }
+
+// Ordered Map and Set use the same insertion-order semantics as SE runtime.
+template<class T> struct SEMap {
+  std::vector<std::pair<std::string,T>> items;
+  void put(const std::string& key, const T& value) {
+    for(auto& pair:items)if(pair.first==key){pair.second=value;return;}
+    items.emplace_back(key,value);
+  }
+  T& at(const std::string& key) {
+    for(auto& pair:items)if(pair.first==key)return pair.second;
+    throw std::runtime_error("Map has no key: "+key);
+  }
+  const T& at(const std::string& key) const {
+    for(const auto& pair:items)if(pair.first==key)return pair.second;
+    throw std::runtime_error("Map has no key: "+key);
+  }
+  std::size_t size() const {return items.size();}
+};
+template<class T> struct SESet {
+  std::vector<T> items;
+  void add(const T& value) {
+    if(std::find(items.begin(),items.end(),value)==items.end())items.push_back(value);
+  }
+  std::size_t size() const{return items.size();}
+};
+template<class K,class V,class... Pairs> auto se_map(std::pair<K,V> first, Pairs... rest) {
+  using Element=std::common_type_t<V,typename Pairs::second_type...>;
+  SEMap<Element> out;
+  out.put(se_string(first.first),static_cast<Element>(first.second));
+  (out.put(se_string(rest.first),static_cast<Element>(rest.second)),...);
+  return out;
+}
+inline SEMap<std::string> se_map(){return {};}
+template<class T,class... Values> auto se_set(T first,Values... rest){
+  using Element=std::common_type_t<T,Values...>;
+  SESet<Element> out;
+  out.add(static_cast<Element>(first));
+  (out.add(static_cast<Element>(rest)),...);
+  return out;
+}
+inline SESet<std::string> se_set(){return {};}
+template<class T> inline bool se_contains(const SESet<T>& values,const T& item){
+  return std::find(values.items.begin(),values.items.end(),item)!=values.items.end();
+}
+template<class T> inline bool se_contains(const SEMap<T>& values,const std::string& key){
+  for(const auto& item:values.items)if(item.first==key)return true;
+  return false;
+}
+template<class T> inline void se_print_value(std::ostream& stream,const SESet<T>& values){
+  stream<<"set [";
+  for(std::size_t i=0;i<values.items.size();++i){
+    if(i)stream<<", ";
+    se_print_value(stream,values.items[i]);
+  }
+  stream<<']';
+}
+template<class T> inline void se_print_value(std::ostream& stream,const SEMap<T>& values){
+  stream<<'[';
+  for(std::size_t i=0;i<values.items.size();++i){
+    if(i)stream<<", ";
+    stream<<'"'<<values.items[i].first<<"\": ";
+    se_print_value(stream,values.items[i].second);
+  }
+  stream<<']';
+}
+template<class T> decltype(auto) se_index(std::vector<T>& items,std::int64_t i){
+  if(i<0||static_cast<std::size_t>(i)>=items.size())throw std::runtime_error("List index out of bounds");
+  return items.at(static_cast<std::size_t>(i));
+}
+template<class T> decltype(auto) se_index(const std::vector<T>& items,std::int64_t i){
+  if(i<0||static_cast<std::size_t>(i)>=items.size())throw std::runtime_error("List index out of bounds");
+  return items.at(static_cast<std::size_t>(i));
+}
+template<class T> decltype(auto) se_index(SEMap<T>& items,const std::string& key){return items.at(key);}
+template<class T> decltype(auto) se_index(const SEMap<T>& items,const std::string& key){return items.at(key);}
+template<class T> inline void se_add_item(std::vector<T>& values,const T& value){values.push_back(value);}
+template<class T> inline void se_add_item(SESet<T>& values,const T& value){values.add(value);}

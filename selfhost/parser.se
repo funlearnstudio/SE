@@ -81,18 +81,47 @@ make _prefix tokens:List[List[Text]] state:List[Int] -> Text
         value = try _expression tokens state 1
         try _expect tokens state ")"
         give value
-    if kind == "["
-        _advance tokens state
+    if kind == "[" or kind == "set" or kind == "map"
+        forced = "List"
+        if kind == "set"
+            forced = "Set"
+            _advance tokens state
+            try _expect tokens state "["
+        else if kind == "map"
+            forced = "Map"
+            _advance tokens state
+            try _expect tokens state "["
+        else
+            _advance tokens state
         items = []
+        pairs = []
         if _kind tokens state != "]"
             first = try _expression tokens state 1
-            items.add first
-            while _kind tokens state == ","
+            if _kind tokens state == ":"
+                if forced == "Set"
+                    fail "A Set cannot contain key/value entries."
+                forced = "Map"
                 _advance tokens state
-                item = try _expression tokens state 1
-                items.add item
+                value = try _expression tokens state 1
+                pairs.add (json.stringify ([first, value]))
+                while _kind tokens state == ","
+                    _advance tokens state
+                    key = try _expression tokens state 1
+                    try _expect tokens state ":"
+                    value = try _expression tokens state 1
+                    pairs.add (json.stringify ([key, value]))
+            else
+                if forced == "Map"
+                    fail "Map entries require key: value."
+                items.add first
+                while _kind tokens state == ","
+                    _advance tokens state
+                    item = try _expression tokens state 1
+                    items.add item
         try _expect tokens state "]"
-        give json.stringify (["List", json.stringify items, "", ""])
+        if forced == "Map"
+            give json.stringify (["Map", json.stringify pairs, "", ""])
+        give json.stringify ([forced, json.stringify items, "", ""])
     if kind in ["Integer", "Number", "String", "true", "false", "Identifier"]
         tok = _advance tokens state
         give json.stringify (["Atom", tok[0], tok[1], ""])
@@ -248,15 +277,14 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
         try _expect tokens state "Newline"
         give json.stringify (["Use", name[1], "", ""])
     if kind == "Identifier"
-        next = tokens[state[0] + 1]
-        op = next[0]
+        saved = state[0]
+        target_expr = try _expression tokens state 9
+        op = _kind tokens state
         if op in ["=", "+=", "-=", "*=", "/=", "%="]
-            name = _advance tokens state
             _advance tokens state
             expr = try _expression tokens state 1
             try _expect tokens state "Newline"
             if op != "="
-                base = json.stringify (["Atom", "Identifier", name[1], ""])
                 binary_op = "+"
                 if op == "-="
                     binary_op = "-"
@@ -266,8 +294,16 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
                     binary_op = "/"
                 if op == "%="
                     binary_op = "%"
-                expr = json.stringify (["Binary", binary_op, base, expr])
-            give json.stringify (["Assign", name[1], expr, ""])
+                expr = json.stringify (["Binary", binary_op, target_expr, expr])
+            target = _node target_expr
+            if target[0] == "Atom" and target[1] == "Identifier"
+                give json.stringify (["Assign", target[2], expr, ""])
+            if target[0] == "Index"
+                give json.stringify (["AssignIndex", target[1], target[2], expr])
+            if target[0] == "Member"
+                give json.stringify (["AssignMember", target[1], target[2], expr])
+            fail "Invalid assignment target in SE bootstrap compiler."
+        state[0] = saved
     expr = try _expression tokens state 1
     try _expect tokens state "Newline"
     give json.stringify (["ExprStmt", "", expr, ""])

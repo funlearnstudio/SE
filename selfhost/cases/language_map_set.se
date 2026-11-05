@@ -1,0 +1,10 @@
+user = ["name": "Steve", "role": "student"]
+say user["name"]
+user["role"] = "developer"
+say user
+say "name" in user
+values = set [1, 2, 2, 3]
+values.add 4
+say 2 in values
+say values
+say values.len
