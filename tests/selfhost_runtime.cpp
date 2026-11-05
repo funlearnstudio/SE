@@ -30,6 +30,14 @@ int main() {
     assert(se_contains(std::string("abc"), std::string("b")));
     assert(se_repeat("x", 3) == "xxx");
     assert(se_add("name=", std::int64_t{7}) == "name=7");
+    assert(se_char(65) == "A");
+    assert(se_char(20013) == "\xe4\xb8\xad");
+    caught = false;
+    try { (void)se_char(0xd800); }
+    catch (const std::runtime_error&) { caught = true; }
+    assert(caught);
+    assert((se_take(numbers, 2) == std::vector<std::int64_t>{1, 9}));
+    assert((se_drop(numbers, 2) == std::vector<std::int64_t>{3}));
 
     auto mapping = se_map(std::pair{std::string("a"), std::int64_t{1}},
                           std::pair{std::string("b"), std::int64_t{2}});
