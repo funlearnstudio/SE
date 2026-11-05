@@ -146,7 +146,10 @@ make _postfix tokens:List[List[Text]] state:List[Int] start:Text -> Text
             previous_width = previous[1].len
             if previous[0] == "String"
                 previous_width += 2
-            adjacent = int bracket[3] == int previous[3] + previous_width
+            bracket_column = int bracket[3]
+            preceding_column = int previous[3]
+            preceding_end = preceding_column + previous_width
+            adjacent = bracket_column == preceding_end
             if adjacent
                 _advance tokens state
                 index = try _expression tokens state 1
