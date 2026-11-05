@@ -94,6 +94,7 @@ def main() -> None:
         verify_positive("language_for_map_pairs.se", "", tmp)
         verify_positive("language_generic_functions.se", "", tmp)
         verify_positive("language_fibonacci_canonical.se", "", tmp)
+        verify_positive("language_bare_arithmetic.se", "", tmp)
         verify_positive("language_std_basic.se", "", tmp)
         verify_positive("language_user_type.se", "", tmp)
         verify_positive("language_collections_functional.se", "", tmp)
