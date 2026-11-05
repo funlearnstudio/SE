@@ -256,6 +256,31 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         if node[1] in ["math", "text", "collections", "file"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
+    if kind == "Match"
+        value = try _emit_expr node[1]
+        choices = _node node[2]
+        local_name = "__se_match_value"
+        output = pad + "{\n"
+        output = output + pad + "    const auto " + local_name + " = " + value + ";\n"
+        first = true
+        for encoded_case in choices
+            choice = _node encoded_case
+            pattern = try _emit_expr choice[0]
+            branch_names = _clone_names names
+            body = try _emit_block choice[1] (level + 2) branch_names
+            if first
+                output = output + pad + "    if ("
+                first = false
+            else
+                output = output + " else if ("
+            output = output + local_name + " == " + pattern + ") {\n"
+            output = output + body + pad + "    }"
+        fallback = _node node[3]
+        if fallback.len > 0
+            branch_names = _clone_names names
+            body = try _emit_block node[3] (level + 2) branch_names
+            output = output + " else {\n" + body + pad + "    }"
+        give output + "\n" + pad + "}\n"
     if kind == "If"
         yes_ast = node[2]
         no_ast = node[3]
