@@ -39,7 +39,7 @@ template<class T> inline void se_say(const T& value) {
   std::cout << '\n';
 }
 template<class A,class B> auto se_add(const A& a,const B& b) {
-  if constexpr(std::is_same_v<std::decay_t<A>,std::string> || std::is_same_v<std::decay_t<B>,std::string>)
+  if constexpr(std::is_constructible_v<std::string, A> || std::is_constructible_v<std::string, B>)
     return se_string(a)+se_string(b);
   else return a+b;
 }
