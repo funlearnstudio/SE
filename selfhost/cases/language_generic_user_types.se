@@ -1,0 +1,36 @@
+type Box[T]
+    value:T
+
+    make get -> T
+        give value
+
+    make replace next:T
+        value = next
+
+type Pair[A, B]
+    first:A
+    second:B
+
+type Wrapper[T]
+    item:Box[T]
+
+make unwrap[T] box:Box[T] -> T
+    give box.value
+
+box = Box[Int]
+    value = 42
+say box.value
+say box.get
+box.replace 50
+say box.get
+say unwrap box
+
+pair = Pair[Text, Int]
+    first = "SE"
+    second = 7
+say pair.first
+say pair.second
+
+wrapper = Wrapper[Int]
+    item = box
+say wrapper.item.value

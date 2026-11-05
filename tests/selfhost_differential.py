@@ -107,6 +107,7 @@ def main() -> None:
         verify_positive("language_std_basic.se", "", tmp)
         verify_positive("language_user_type.se", "", tmp)
         verify_positive("language_typed_fields.se", "", tmp)
+        verify_positive("language_generic_user_types.se", "", tmp)
         verify_positive("language_collections_functional.se", "", tmp)
         verify_positive("language_remove_collections.se", "", tmp)
         verify_positive("language_remove_map.se", "", tmp)
@@ -122,6 +123,8 @@ def main() -> None:
         verify_positive("language_zero_arg_functions.se", "", tmp, expected_output="42\n43\nready\ntrue\n84\n")
         for case, message in (
             ("negative_required_field.se", "Missing required field"),
+            ("negative_generic_wrong_arity.se", "needs 1 type arguments"),
+            ("negative_generic_wrong_field.se", "Initializer field type mismatch"),
             ("negative_field_default.se", "Field default type mismatch"),
             ("negative_wrong_type.se", "Arithmetic requires numbers"),
             ("negative_undefined.se", "Undefined identifier"),

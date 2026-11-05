@@ -33,4 +33,9 @@ zero_cpp = try emit_program (try parse zero_source)
 test.ok (text.contains zero_cpp "se_implicit_call(answer)")
 test.ok (text.contains zero_cpp "se_add(se_implicit_call(answer), std::int64_t{1})")
 
+generic_source = "type Box[T]\n    value:T\nbox = Box[Int]\n    value = 7\nsay box.value\n"
+generic_cpp = try emit_program (try parse generic_source)
+test.ok (text.contains generic_cpp "template <typename T>")
+test.ok (text.contains generic_cpp "SEType_Box<std::int64_t>{}")
+
 say "SE selfhost codegen smoke test passed"

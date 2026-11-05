@@ -1,0 +1,4 @@
+type Box[T]
+    value:T
+box = Box[Int, Text]
+    value = 7
