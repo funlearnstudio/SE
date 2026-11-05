@@ -104,6 +104,8 @@ make _emit_call encoded:Text -> Text
             give "se_num(" + generated + ")"
         if name in ["text", "string"]
             give "se_string(" + generated + ")"
+        if name == "wait"
+            give "se_wait(" + generated + ")"
         if name == "char"
             give "se_char(" + generated + ")"
         if name == "read"
@@ -128,6 +130,14 @@ make _emit_call encoded:Text -> Text
                 if method == "parse"
                     give "se_json_parse(" + generated + ")"
                 fail "JSON module function not yet supported: " + method
+            if module == "path"
+                if method in ["join", "name", "ext", "parent", "exists", "is_file", "is_dir"]
+                    give "se_path_" + method + "(" + generated + ")"
+                fail "Path function not yet supported: " + method
+            if module == "random"
+                if method == "int"
+                    give "se_random_int(" + generated + ")"
+                fail "Random module function not yet supported: " + method
             if module == "math"
                 if method in ["sqrt", "pow", "abs", "floor", "ceil", "round", "sin", "cos", "tan", "log", "log10", "exp", "hypot", "min", "max"]
                     give "std::" + method + "(" + generated + ")"
@@ -163,6 +173,8 @@ make _emit_expr encoded:Text -> Text
             give "std::string(" + quoted + ")"
         if value_kind == "Integer"
             give "std::int64_t{" + raw + "}"
+        if value_kind == "Duration"
+            give "se_duration(" + (json.stringify raw) + ")"
         if value_kind in ["Number", "true", "false", "Identifier"]
             give raw
         fail "Unrecognized literal: " + value_kind
@@ -213,6 +225,22 @@ make _emit_expr encoded:Text -> Text
         index = try _emit_expr node[2]
         give "se_index(" + base + ", " + index + ")"
     if kind == "Member"
+        owner = _node node[1]
+        member = node[2]
+        if owner[0] == "Atom" and owner[1] == "Identifier"
+            module = owner[2]
+            if module == "math"
+                if member == "pi"
+                    give "std::numbers::pi_v<double>"
+                if member == "e"
+                    give "std::numbers::e_v<double>"
+            if module == "random" and member == "num"
+                give "se_random_num()"
+            if module == "os"
+                if member == "platform"
+                    give "se_platform()"
+                if member == "cwd"
+                    give "se_cwd()"
         base = try _emit_expr node[1]
         member = node[2]
         if member == "message"
@@ -300,7 +328,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         result = try _emit_expr node[2]
         give pad + result + ";\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"
