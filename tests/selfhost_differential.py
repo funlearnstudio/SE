@@ -74,7 +74,7 @@ def main() -> None:
     for filename in ("lexer.se", "parser.se", "symbol_table.se", "typechecker.se", "codegen.se", "compile.se", "compiler.se"):
         result = run(str(SE), "check", str(ROOT / "selfhost" / filename))
         assert result.returncode == 0, (filename, result.stderr)
-    for filename in ("parser_test.se", "parser_extended_test.se", "typechecker_test.se", "typechecker_extended_test.se", "codegen_test.se"):
+    for filename in ("parser_test.se", "parser_extended_test.se", "parser_match_test.se", "typechecker_test.se", "typechecker_extended_test.se", "codegen_test.se"):
         result = run(str(SE), "run", str(ROOT / "selfhost" / filename))
         assert result.returncode == 0, (filename, result.stderr)
         print(f"PASS unit: {filename}")
@@ -87,6 +87,7 @@ def main() -> None:
         verify_positive("language_map_set.se", "", tmp)
         verify_positive("language_recursion.se", "", tmp)
         verify_positive("language_forward_functions.se", "", tmp)
+        verify_positive("language_match.se", "", tmp)
         for case, message in (
             ("negative_wrong_type.se", "Arithmetic requires numbers"),
             ("negative_undefined.se", "Undefined identifier"),
@@ -98,6 +99,7 @@ def main() -> None:
             ("negative_map_key.se", "Map keys must be Text"),
             ("negative_set_value.se", "Set values must have the same type"),
             ("negative_missing_return.se", "is missing a return"),
+            ("negative_match_type.se", "Match case type mismatch"),
         ):
             verify_negative(case, message, tmp)
     print("SE selfhost differential tests passed")
