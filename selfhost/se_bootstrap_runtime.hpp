@@ -4,6 +4,12 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cmath>
+#include <chrono>
+#include <filesystem>
+#include <numbers>
+#include <random>
+#include <thread>
+#include <system_error>
 #include <cstdint>
 #include <cctype>
 #include <iostream>
@@ -17,6 +23,79 @@
 #include <vector>
 
 struct SEError { std::string message; };
+struct SEDuration {
+  std::int64_t milliseconds;
+  bool operator==(const SEDuration&) const = default;
+};
+inline std::ostream& operator<<(std::ostream& out,const SEDuration& d){
+  return out<<d.milliseconds<<"ms";
+}
+inline SEDuration se_duration(const std::string& source){
+  std::size_t i=0;
+  if(source.empty() || !std::isdigit(static_cast<unsigned char>(source[0])))
+    throw std::runtime_error("Invalid SE Duration literal");
+  while(i<source.size() && std::isdigit(static_cast<unsigned char>(source[i])))++i;
+  std::int64_t n=0;
+  try{n=std::stoll(source.substr(0,i));}
+  catch(const std::exception&){throw std::runtime_error("SE Duration out of range");}
+  const auto unit=source.substr(i);
+  std::int64_t factor=0;
+  if(unit=="ms")factor=1;
+  else if(unit=="s")factor=1000;
+  else if(unit=="min")factor=60000;
+  else throw std::runtime_error("Unsupported SE Duration unit: "+unit);
+  if(n>std::numeric_limits<std::int64_t>::max()/factor)
+    throw std::runtime_error("SE Duration overflow");
+  return SEDuration{n*factor};
+}
+inline void se_wait(SEDuration d){
+  if(d.milliseconds<0)throw std::runtime_error("wait requires nonnegative Duration");
+  std::this_thread::sleep_for(std::chrono::milliseconds(d.milliseconds));
+}
+inline std::string se_platform(){
+#ifdef _WIN32
+  return "windows";
+#elif defined(__APPLE__)
+  return "macos";
+#else
+  return "linux";
+#endif
+}
+inline std::string se_cwd(){return std::filesystem::current_path().string();}
+template<class... Parts> inline std::string se_path_join(const Parts&... parts){
+  std::filesystem::path joined;
+  ((joined /= std::filesystem::path(parts)),...);
+  return joined.string();
+}
+inline std::string se_path_name(const std::string& path){
+  return std::filesystem::path(path).filename().string();
+}
+inline std::string se_path_ext(const std::string& path){
+  return std::filesystem::path(path).extension().string();
+}
+inline std::string se_path_parent(const std::string& path){
+  return std::filesystem::path(path).parent_path().string();
+}
+inline bool se_path_exists(const std::string& path){
+  std::error_code error; return std::filesystem::exists(path,error);
+}
+inline bool se_path_is_file(const std::string& path){
+  std::error_code error; return std::filesystem::is_regular_file(path,error);
+}
+inline bool se_path_is_dir(const std::string& path){
+  std::error_code error; return std::filesystem::is_directory(path,error);
+}
+inline std::mt19937_64& se_random_engine(){
+  static thread_local std::mt19937_64 engine{std::random_device{}()};
+  return engine;
+}
+inline std::int64_t se_random_int(std::int64_t first,std::int64_t last){
+  if(first>last)throw std::runtime_error("random.int range is reversed");
+  return std::uniform_int_distribution<std::int64_t>(first,last)(se_random_engine());
+}
+inline double se_random_num(){
+  return std::generate_canonical<double,53>(se_random_engine());
+}
 
 inline std::string se_string(const std::string& value) { return value; }
 inline std::string se_string(const char* value) { return std::string(value); }
