@@ -89,6 +89,7 @@ def main() -> None:
         verify_positive("language_forward_functions.se", "", tmp)
         verify_positive("language_match.se", "", tmp)
         verify_positive("language_char_collections.se", "", tmp)
+        verify_positive("language_json_ast.se", "", tmp)
         for case, message in (
             ("negative_wrong_type.se", "Arithmetic requires numbers"),
             ("negative_undefined.se", "Undefined identifier"),
