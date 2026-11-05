@@ -568,7 +568,10 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             element_type = parts[1]
         if parts[0] == "Map" and parts.len == 3
             element_type = parts[1]
-        if iterable != "Unknown" and element_type == "Unknown"
+        recognized = parts[0] in ["List", "Set"] and parts.len == 2
+        if parts[0] == "Map" and parts.len == 3
+            recognized = true
+        if iterable != "Unknown" and not recognized
             fail "for expects List, Set or Map, got " + iterable
         local = clone_symbols symbols
         try define_symbol local node[1] element_type "0" ""
