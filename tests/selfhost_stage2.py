@@ -93,7 +93,8 @@ def verify(se: Path) -> None:
         # Stage0 is allowed to use the production compiler/runtime ONCE.
         # Build the SE-written driver as a native executable to avoid the
         # interpreter overhead of translating the full bundled compiler.
-        bootstrap_build_env = dict(os.environ, SE_NATIVE_OPT="0")
+        bootstrap_build_env = dict(os.environ, SE_NATIVE_OPT="0",
+                                   SE_NATIVE_CORE_LIB=str(ROOT / "build" / "libs_core.a"))
         invoke([str(se), "build", "selfhost/compiler.se"], env=bootstrap_build_env)
         native_stage0 = ROOT / "selfhost" / ("compiler.exe" if os.name == "nt" else "compiler")
         if not native_stage0.is_file():
