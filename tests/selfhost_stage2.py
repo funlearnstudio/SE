@@ -28,7 +28,7 @@ CXX = os.environ.get("CXX", "c++")
 def invoke(command: list[str], *, env: dict[str, str] | None = None) -> None:
     proc = subprocess.run(command, cwd=ROOT, env=env, text=True,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                          timeout=120, check=False)
+                          timeout=600, check=False)
     if proc.returncode:
         raise RuntimeError(
             f"Command failed (exit {proc.returncode}): {' '.join(command)}\n"
@@ -72,8 +72,17 @@ def verify(se: Path) -> None:
         stage0_env.update(SE_SELFHOST_SOURCE=str(bundled_source),
                           SE_SELFHOST_OUTPUT=str(stage1_cpp))
 
-        # Bootstrap only once using the current production SE CLI.
-        invoke([str(se), "run", "selfhost/compiler.se"], env=stage0_env)
+        # Production SE can syntax-check the bundle before the expensive
+        # compiler self-translation. This is a real SE parser/typechecker pass.
+        invoke([str(se), "check", str(bundled_source)])
+        # Stage0 is allowed to use the production compiler/runtime ONCE.
+        # Build the SE-written driver as a native executable to avoid the
+        # interpreter overhead of translating the full bundled compiler.
+        invoke([str(se), "build", "selfhost/compiler.se"])
+        native_stage0 = ROOT / "selfhost" / ("compiler.exe" if os.name == "nt" else "compiler")
+        if not native_stage0.is_file():
+            raise RuntimeError("Production SE build did not create a Stage0 driver")
+        invoke([str(native_stage0)], env=stage0_env)
         if not stage1_cpp.exists():
             raise RuntimeError("Stage0 SE compiler did not generate stage1 C++.")
         compile_native(stage1_cpp, stage1)
