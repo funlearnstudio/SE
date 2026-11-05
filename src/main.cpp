@@ -299,7 +299,18 @@ int file_command(const std::string&cmd,const std::filesystem::path&path){
       else
         throw std::runtime_error("Invalid SE_NATIVE_OPT; choose 0, 1, 2, 3, s or g.");
     }
-    std::string command=compiler+" -std=c++20 "+optimization+" -g0 -Wall -Wextra -Wpedantic -Werror -Wno-misleading-indentation -I"+shell_quote((root/"include").string())+" "+shell_quote(cpp_path.string())+" "+shell_quote((root/"src/runtime/error.cpp").string())+" "+shell_quote((root/"src/runtime/value.cpp").string())+" "+shell_quote((root/"src/runtime/platform_base.cpp").string())+" "+shell_quote((root/"src/runtime/advanced.cpp").string())+" "+shell_quote((root/"src/runtime/database.cpp").string())+" "+shell_quote((root/"src/runtime/expansion.cpp").string())+" "+shell_quote((root/"src/runtime/formats.cpp").string())+" "+shell_quote((root/"src/interpreter/interpreter.cpp").string())+" "+shell_quote((root/"src/ffi/ffi.cpp").string())+" -pthread";
+    std::string command=compiler+" -std=c++20 "+optimization+" -g0 -Wall -Wextra -Wpedantic -Werror -Wno-misleading-indentation -I"+shell_quote((root/"include").string())+" "+shell_quote(cpp_path.string());
+    // Reuse an already-built SE runtime archive when supplied. This is
+    // an optional fast native build path, not a claim of independent runtime.
+    if(const char* core_env=std::getenv("SE_NATIVE_CORE_LIB"); core_env && *core_env){
+      const std::filesystem::path archive=std::filesystem::absolute(core_env);
+      if(!std::filesystem::is_regular_file(archive))
+        throw std::runtime_error("SE_NATIVE_CORE_LIB does not name a regular file: "+archive.string());
+      command+=" "+shell_quote(archive.string());
+    }else{
+      command+=" "+shell_quote((root/"src/runtime/error.cpp").string())+" "+shell_quote((root/"src/runtime/value.cpp").string())+" "+shell_quote((root/"src/runtime/platform_base.cpp").string())+" "+shell_quote((root/"src/runtime/advanced.cpp").string())+" "+shell_quote((root/"src/runtime/database.cpp").string())+" "+shell_quote((root/"src/runtime/expansion.cpp").string())+" "+shell_quote((root/"src/runtime/formats.cpp").string())+" "+shell_quote((root/"src/interpreter/interpreter.cpp").string())+" "+shell_quote((root/"src/ffi/ffi.cpp").string());
+    }
+    command+=" -pthread";
 #ifdef __linux__
     command+=" -ldl";
 #endif
