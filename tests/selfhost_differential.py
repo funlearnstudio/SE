@@ -94,6 +94,8 @@ def main() -> None:
         verify_positive("language_for_map_pairs.se", "", tmp)
         verify_positive("language_generic_functions.se", "", tmp)
         verify_positive("language_fibonacci_canonical.se", "", tmp)
+        verify_positive("language_std_basic.se", "", tmp)
+        verify_positive("language_duration.se", "", tmp, expected_output="duration ok\n")
         verify_positive("language_elif.se", "", tmp, expected_output="middle\n")
         for case, message in (
             ("negative_wrong_type.se", "Arithmetic requires numbers"),
