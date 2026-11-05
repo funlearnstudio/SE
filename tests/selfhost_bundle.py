@@ -47,7 +47,8 @@ def replace_names(line: str, mapping: dict[str, str]) -> str:
         match = IDENT.match(line, i)
         if match:
             name = match.group()
-            out.append(mapping.get(name, name))
+            # Member access (json.parse, text.split, ...) is not an SE function.
+            out.append(name if i > 0 and line[i - 1] == "." else mapping.get(name, name))
             i = match.end()
             continue
         out.append(line[i])
