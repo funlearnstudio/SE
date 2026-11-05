@@ -319,6 +319,23 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
             give pad + name + " = " + expr + ";\n"
         names.add name
         give pad + "auto " + name + " = " + expr + ";\n"
+    if kind == "AssignInit"
+        name = node[1]
+        expr = try _emit_expr node[2]
+        output = ""
+        if name in names
+            output = pad + name + " = " + expr + ";\n"
+        else
+            names.add name
+            output = pad + "auto " + name + " = " + expr + ";\n"
+        fields = _node node[3]
+        for encoded_field in fields
+            field = _node encoded_field
+            value = try _emit_expr field[1]
+            output = output + pad + name + "." + field[0] + " = " + value + ";\n"
+        give output
+    if kind == "TypeDecl"
+        give try _emit_type encoded
     if kind == "say"
         printable = try _emit_expr node[2]
         give pad + "se_say(" + printable + ");\n"
@@ -334,7 +351,9 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         value = try _emit_expr node[3]
         give pad + "se_index(" + base + ", " + index + ") = " + value + ";\n"
     if kind == "AssignMember"
-        fail "Object field assignment requires the full SE backend."
+        base = try _emit_expr node[1]
+        value = try _emit_expr node[3]
+        give pad + base + "." + node[2] + " = " + value + ";\n"
     if kind == "MultiAsk"
         fields = _node node[1]
         suffix = string names.len
@@ -488,6 +507,7 @@ make _emit_prototype encoded:Text -> Text
     give header + return_type + " " + node[1] + "(" + arguments + ");\n"
 
 make emit_program ast:List[Text] -> Text
+    type_decls = ""
     prototypes = ""
     functions = ""
     body = ""
@@ -497,12 +517,14 @@ make emit_program ast:List[Text] -> Text
         node = _node stmt
         if node[0] == "Make"
             prototypes = prototypes + (try _emit_prototype stmt)
+        if node[0] == "TypeDecl"
+            type_decls = type_decls + (try _emit_type stmt) + "\n"
     for stmt in ast
         node = _node stmt
         if node[0] == "Make"
             generated = try _emit_stmt stmt 0 names
             functions = functions + generated + "\n"
-        else
+        else if node[0] != "TypeDecl"
             generated = try _emit_stmt stmt 2 names
             body = body + generated
-    give "#include \"se_bootstrap_runtime.hpp\"\n\n" + prototypes + "\n" + functions + "int main() {\n    try {\n" + body + "        return 0;\n    } catch (const std::exception& e) {\n        std::cerr << e.what() << '\\n';\n        return 1;\n    }\n}\n"
+    give "#include \"se_bootstrap_runtime.hpp\"\n\n" + type_decls + prototypes + "\n" + functions + "int main() {\n    try {\n" + body + "        return 0;\n    } catch (const std::exception& e) {\n        std::cerr << e.what() << '\\n';\n        return 1;\n    }\n}\n"
