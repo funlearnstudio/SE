@@ -27,7 +27,7 @@ The SE-written public driver is `compiler.se`, which uses `compile.se` to orches
 
 ## Run / 執行
 
-From the **repository root**, after installing SE 0.7.6 or later:
+From the **repository root**, after building the experimental branch's `se` executable (or using a compatible SE installation):
 
 ```sh
 se check selfhost/compiler.se
@@ -47,7 +47,9 @@ Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defa
 - **Static checks**: symbol existence, assignments, numeric and boolean operands, homogeneous lists, indexing, function arity, declared parameter types, annotated return types, selected block scopes, `ask` types and explicit failures.
 - **C++ backend**: Int, Num, Bool, Text, homogeneous Lists, insertion-ordered Maps and Sets, common arithmetic/logic/conditions, inclusive range loops, recursion, indexed collection updates, functions, simple module helpers, input/output and exceptions.
 - **Generic functions**: simple generic functions such as `make identity[T] item:T -> T` compile to C++ templates. Multiple generic parameters and nested generic type inference still require additional testing.
-- **Canonical bare-call recursion**: parsing the single-argument form `func a - 1 + func a - 2` as two calls whose arguments are decremented, with an end-to-end Fibonacci regression fixture.
+- **Canonical bare-call arithmetic**: arguments absorb arithmetic (`twice a + b` means `twice(a+b)`), while `func a - 1 + func a - 2` splits into two calls when the next operand starts another call. Both have native/interpreter differential tests.
+- **Local source modules**: `use helpers` recursively resolves `helpers.se` relative to the importer; duplicate imports are deduplicated and circular imports rejected. Imported declarations are flattened, so full module namespaces/encapsulation are not implemented.
+- **C++ keyword safety**: SE identifiers such as `class`, `template` and `namespace` are escaped consistently during C++ generation.
 - **Typed forward functions**: C++20 prototypes are emitted before definitions for functions whose parameter and return types are explicit, enabling forward calls and mutual recursion. Calls requiring return-type deduction are not yet supported forward.
 - **Library subset**: math operations and constants, `text` split/trim/contains/repeat/join, `collections` sort/reverse/take/drop/slice/filter/map/reduce/sort_with, `json` String/List[String] wire encoding, `os` getenv/platform/cwd, `random` numeric generators, filesystem `path` operations, and core conversions, files, and Unicode `char`. The native bootstrap runtime is separate from the production VM; this is **not** full standard-library compatibility.
 
@@ -87,9 +89,10 @@ self-compiled SE compiler.
 4. Compare Stage 2, Stage 3 and Stage 4 generated C++ SHA-256 hashes.
 
 A failure is a **failure**, never counted as a passing self-host result.
-The current compiler lacks custom-module imports, several standard-library
-functions, mutable nested-list semantics and full language constructs; the
-Stage 2/3 check is therefore not expected to pass yet.
+Local source imports now work in the tested subset, but full module namespace
+semantics, many standard-library APIs, some nested-list mutation rules and
+advanced language constructs are missing. The **Stage 2/3/4 proof has not passed**;
+compiling a normal SE program does not establish that the compiler can compile itself.
 
 ## Native bootstrap build performance / 原生編譯控制
 
@@ -98,20 +101,19 @@ The production CLI now accepts the strictly validated variable
 unchanged. Example:
 
 ```sh
-SE_NATIVE_OPT=0 se build selfhost/compiler.se
+SE_NATIVE_OPT=0 SE_NATIVE_CORE_LIB="$(pwd)/build/libs_core.a" build/se build selfhost/compiler.se
 ```
 
-The strict self-hosting verifier uses this mode to avoid spending time
-optimizing the very large Stage0 serialized AST. Even if the Stage0 native
+The optional `SE_NATIVE_CORE_LIB` fast path reuses an archive built by CMake, e.g. `cmake --build build --target se`; it still links the **production** runtime and is not proof of independent execution. The strict verifier uses this mode to avoid recompiling production runtime sources or optimizing the large Stage0 serialized AST. Even if the Stage0 native
 executable builds and runs, the independent Stage2/3/4 proof still has to pass.
 
 ## What is NOT finished / 尚待完成
 
 - Full generic user types and all inference combinations, closures and nested functions, managed async/await, native ABI modules, SE Web, complete recovery diagnostics, and all language forms. Basic `type`, generic functions, and value-based `match` are implemented as documented above.
-- Complete standard library and platform/ABI compatibility.
+- Complete standard library and platform/ABI compatibility; the production VM supports more modules than this bootstrap, and imported module availability is not equivalent to full API coverage.
 - Comprehensive error recovery, Unicode/UTF-8 identifiers, source maps and source-accurate diagnostics.
 - Reproducible independent self-compilation: the strict Stage2/Stage3/Stage4 test has **not passed**. Source bundling plus a production Stage0 is not proof. The test must complete all its native generations without linking or invoking the production VM.
-- Cross-platform SE-only bootstrap verified on Linux/macOS/Windows. Differential tests currently verified in Linux; GitHub Actions needed for other platforms.
+- Cross-platform SE-only bootstrap on Linux/macOS/Windows is **not** verified. The fast differential suite currently runs on Linux only.
 
 ### Principle
 
