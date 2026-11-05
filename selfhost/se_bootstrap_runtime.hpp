@@ -80,6 +80,118 @@ inline std::string se_char(std::int64_t value) {
   return out;
 }
 
+// Standalone JSON facilities for the SE compiler's own String/List[String]
+// AST wire format. These intentionally reject other JSON value shapes.
+inline std::string se_json_stringify(const std::string& value){
+  constexpr char hex[]="0123456789abcdef";
+  std::string result="\"";
+  for(unsigned char c:value){
+    switch(c){
+      case '"':result+="\\\"";break;
+      case '\\':result+="\\\\";break;
+      case '\n':result+="\\n";break;
+      case '\r':result+="\\r";break;
+      case '\t':result+="\\t";break;
+      case '\b':result+="\\b";break;
+      case '\f':result+="\\f";break;
+      default:
+        if(c<0x20){
+          result+="\\u00";
+          result+=hex[c>>4];
+          result+=hex[c&0xf];
+        }else result+=static_cast<char>(c);
+    }
+  }
+  return result+"\"";
+}
+inline std::string se_json_stringify(const std::vector<std::string>& values){
+  std::string result="[";
+  for(const auto& value:values){
+    if(result.size()!=1)result+=",";
+    result+=se_json_stringify(value);
+  }
+  return result+"]";
+}
+inline std::vector<std::string> se_json_parse(const std::string& json){
+  std::size_t pos=0;
+  auto whitespace=[&](){
+    while(pos<json.size() &&
+          (json[pos]==' ' || json[pos]=='\n' || json[pos]=='\t' || json[pos]=='\r'))
+      ++pos;
+  };
+  auto digit=[&]()->std::uint32_t{
+    if(pos==json.size())throw std::runtime_error("Invalid JSON Unicode escape");
+    auto c=json[pos++];
+    if(c>='0'&&c<='9')return static_cast<std::uint32_t>(c-'0');
+    if(c>='a'&&c<='f')return static_cast<std::uint32_t>(c-'a'+10);
+    if(c>='A'&&c<='F')return static_cast<std::uint32_t>(c-'A'+10);
+    throw std::runtime_error("Invalid JSON Unicode escape");
+  };
+  auto scalar=[&]()->std::uint32_t{
+    std::uint32_t cp=0;
+    for(int i=0;i<4;i++)cp=(cp<<4)|digit();
+    return cp;
+  };
+  auto string_value=[&]()->std::string{
+    if(pos>=json.size()||json[pos++]!='"')
+      throw std::runtime_error("Expected JSON string");
+    std::string out;
+    while(pos<json.size()){
+      unsigned char c=static_cast<unsigned char>(json[pos++]);
+      if(c=='"')return out;
+      if(c<0x20)throw std::runtime_error("Control character in JSON string");
+      if(c!='\\'){out+=static_cast<char>(c);continue;}
+      if(pos==json.size())throw std::runtime_error("Unterminated JSON escape");
+      const auto escape=json[pos++];
+      switch(escape){
+        case '"':out+='"';break;
+        case '\\':out+='\\';break;
+        case '/':out+='/';break;
+        case 'n':out+='\n';break;
+        case 'r':out+='\r';break;
+        case 't':out+='\t';break;
+        case 'b':out+='\b';break;
+        case 'f':out+='\f';break;
+        case 'u':{
+          std::uint32_t cp=scalar();
+          if(cp>=0xd800&&cp<=0xdbff){
+            if(pos+2>json.size()||json[pos++]!='\\'||json[pos++]!='u')
+              throw std::runtime_error("Unpaired JSON high surrogate");
+            const auto low=scalar();
+            if(low<0xdc00||low>0xdfff)
+              throw std::runtime_error("Invalid JSON surrogate pair");
+            cp=0x10000+((cp-0xd800)<<10)+(low-0xdc00);
+          }else if(cp>=0xdc00&&cp<=0xdfff)
+            throw std::runtime_error("Unpaired JSON low surrogate");
+          out+=se_char(static_cast<std::int64_t>(cp));
+          break;
+        }
+        default:throw std::runtime_error("Unknown JSON escape");
+      }
+    }
+    throw std::runtime_error("Unterminated JSON string");
+  };
+  whitespace();
+  if(pos>=json.size()||json[pos++]!='[')
+    throw std::runtime_error("Only JSON arrays of strings are supported");
+  whitespace();
+  std::vector<std::string> out;
+  if(pos<json.size()&&json[pos]==']')++pos;
+  else{
+    while(true){
+      whitespace();
+      out.push_back(string_value());
+      whitespace();
+      if(pos>=json.size())throw std::runtime_error("Unterminated JSON array");
+      if(json[pos]==']'){++pos;break;}
+      if(json[pos++]!=',')throw std::runtime_error("Expected comma in JSON array");
+    }
+  }
+  whitespace();
+  if(pos!=json.size())throw std::runtime_error("Unexpected trailing JSON text");
+  return out;
+}
+
 inline std::string se_ask(const std::string& question) {
   std::cout<<question;
   std::cout.flush();
