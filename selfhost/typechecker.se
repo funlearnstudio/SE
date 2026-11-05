@@ -628,6 +628,13 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         give "OK"
     if kind == "Make"
         params = _node node[2]
+        # Nested declarations become visible in their lexical scope. Top-level
+        # functions are already predeclared by check_program for forward calls.
+        entry = lookup_symbol symbols node[1]
+        if entry[0] == ""
+            try define_symbol symbols node[1] "Function" (string params.len) node[4]
+            entry = lookup_symbol symbols node[1]
+            entry.add node[2]
         local = clone_symbols symbols
         for item in params
             pair = _node item
