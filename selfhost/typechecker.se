@@ -30,6 +30,8 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             give "Int"
         if token == "Number"
             give "Num"
+        if token == "Duration"
+            give "Duration"
         if token == "String"
             give "Text"
         if token == "true" or token == "false"
@@ -151,6 +153,14 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
     if kind == "Member"
         object_type = try _infer node[1] symbols
         member = node[2]
+        owner = _node node[1]
+        if owner[0] == "Atom" and owner[1] == "Identifier"
+            if owner[2] == "math" and member in ["pi", "e"]
+                give "Num"
+            if owner[2] == "random" and member == "num"
+                give "Num"
+            if owner[2] == "os" and member in ["platform", "cwd"]
+                give "Text"
         if member == "message" and object_type == "Error"
             give "Text"
         if member == "len"
@@ -178,6 +188,13 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             if name == "write" or name == "append"
                 if args.len != 2
                     fail name + " expects path and text."
+                give "Unknown"
+            if name == "wait"
+                if args.len != 1
+                    fail "wait expects one Duration."
+                wait_type = try _infer args[0] symbols
+                if wait_type != "Duration" and wait_type != "Unknown"
+                    fail "wait expects a Duration value."
                 give "Unknown"
             if name == "char"
                 if args.len != 1
