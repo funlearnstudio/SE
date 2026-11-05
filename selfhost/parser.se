@@ -198,6 +198,22 @@ make _body tokens:List[List[Text]] state:List[Int] -> List[Text]
     try _expect tokens state "Indent"
     give try _block tokens state true
 
+# Parse a complete elif chain recursively so each branch has one AST shape.
+make _elif_chain tokens:List[List[Text]] state:List[Int] -> Text
+    try _expect tokens state "elif"
+    condition = try _expression tokens state 1
+    yes = try _body tokens state
+    no = []
+    if _kind tokens state == "elif"
+        no.add (try _elif_chain tokens state)
+    else if _kind tokens state == "else"
+        _advance tokens state
+        if _kind tokens state == "if"
+            no.add (try _statement tokens state)
+        else
+            no = try _body tokens state
+    give json.stringify (["If", condition, json.stringify yes, json.stringify no])
+
 make _statement tokens:List[List[Text]] state:List[Int] -> Text
     kind = _kind tokens state
     if kind == "say" or kind == "give" or kind == "fail"
@@ -210,7 +226,9 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
         condition = try _expression tokens state 1
         yes = try _body tokens state
         no = []
-        if _kind tokens state == "else"
+        if _kind tokens state == "elif"
+            no.add (try _elif_chain tokens state)
+        else if _kind tokens state == "else"
             _advance tokens state
             if _kind tokens state == "if"
                 elseif_stmt = try _statement tokens state

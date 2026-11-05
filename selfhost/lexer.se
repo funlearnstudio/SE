@@ -31,7 +31,7 @@ make lex source:Text -> List[List[Text]]
     line_start = true
     depth = 0
     carriage_return = char 13
-    keywords = ["true","false","say","ask","if","else","repeat","for","in","while","make","give","type","use","try","fail","set","map","match","case","and","or","not"]
+    keywords = ["true","false","say","ask","if","else","elif","repeat","for","in","while","make","give","type","use","try","fail","set","map","match","case","and","or","not"]
     while i < n
         c = chars[i]
         if line_start and depth == 0
