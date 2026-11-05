@@ -2,6 +2,7 @@
 // Small C++20 runtime for the SE-written bootstrap compiler.
 // This header is NOT the production SE runtime. See selfhost/README.md.
 #include <algorithm>
+#include <cstdlib>
 #include <cmath>
 #include <cstdint>
 #include <cctype>
@@ -190,6 +191,11 @@ inline std::vector<std::string> se_json_parse(const std::string& json){
   whitespace();
   if(pos!=json.size())throw std::runtime_error("Unexpected trailing JSON text");
   return out;
+}
+
+inline std::string se_getenv(const std::string& key) {
+  const char* raw=std::getenv(key.c_str());
+  return raw ? std::string(raw) : std::string();
 }
 
 inline std::string se_ask(const std::string& question) {
