@@ -30,6 +30,7 @@ make lex source:Text -> List[List[Text]]
     column = 1
     line_start = true
     depth = 0
+    carriage_return = char 13
     keywords = ["true","false","say","ask","if","else","repeat","for","in","while","make","give","type","use","try","fail","set","map","match","case","and","or","not"]
     while i < n
         c = chars[i]
@@ -60,7 +61,7 @@ make lex source:Text -> List[List[Text]]
                     if spaces != levels[levels.len - 1]
                         fail "Indentation does not match an earlier block."
             line_start = false
-        if c == " " or c == "\t" or c == "\r"
+        if c == " " or c == "\t" or c == carriage_return
             i += 1
             column += 1
         else if c == "#"
