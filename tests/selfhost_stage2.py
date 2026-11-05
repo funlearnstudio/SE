@@ -18,6 +18,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 
 ROOT = Path(__file__).resolve().parent.parent
 BUNDLE_TOOL = ROOT / "tests" / "selfhost_bundle.py"
@@ -26,13 +27,26 @@ CXX = os.environ.get("CXX", "c++")
 
 
 def invoke(command: list[str], *, env: dict[str, str] | None = None) -> None:
-    proc = subprocess.run(command, cwd=ROOT, env=env, text=True,
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                          timeout=600, check=False)
+    label = " ".join(command)
+    start = time.monotonic()
+    print("SELFHOST STEP BEGIN:", label, flush=True)
+    try:
+        proc = subprocess.run(command, cwd=ROOT, env=env, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              timeout=180, check=False)
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"SELFHOST STEP TIMEOUT after {time.monotonic() - start:.1f}s: {label}"
+        ) from exc
+    print(
+        f"SELFHOST STEP END: {time.monotonic() - start:.1f}s,"
+        f" exit {proc.returncode}: {label}",
+        flush=True,
+    )
     if proc.returncode:
         raise RuntimeError(
-            f"Command failed (exit {proc.returncode}): {' '.join(command)}\n"
-            f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}\n"
+            f"Command failed (exit {proc.returncode}): {label}\n"
+            f"stdout:\n{proc.stdout[-12000:]}\nstderr:\n{proc.stderr[-12000:]}\n"
         )
 
 
@@ -61,6 +75,7 @@ def verify(se: Path) -> None:
         root = Path(tmp)
         bundled_source = root / "compiler_bundle.se"
         invoke([sys.executable, str(BUNDLE_TOOL), "--output", str(bundled_source)])
+        print("BUNDLE SIZE:", bundled_source.stat().st_size, "bytes", flush=True)
         stage1_cpp = root / "stage1.cpp"
         stage2_cpp = root / "stage2.cpp"
         stage3_cpp = root / "stage3.cpp"
