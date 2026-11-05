@@ -83,6 +83,8 @@ def main() -> None:
         verify_positive("language_core.se", "", tmp)
         verify_positive("language_text.se", "", tmp)
         verify_positive("language_text_replace.se", "", tmp)
+        verify_positive("language_math_extended.se", "", tmp)
+        verify_positive("language_statistics_regex.se", "", tmp)
         verify_positive("language_conversions.se", "", tmp)
         verify_positive("language_time.se", "", tmp)
         verify_positive("language_file_module.se", "", tmp)

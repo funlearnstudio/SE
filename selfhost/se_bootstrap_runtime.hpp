@@ -9,6 +9,8 @@
 #include <ctime>
 #include <filesystem>
 #include <numbers>
+#include <numeric>
+#include <regex>
 #include <random>
 #include <thread>
 #include <system_error>
@@ -664,3 +666,74 @@ template<class T> inline bool se_remove_item(SEMap<T>& values,const std::string&
     if(it->first==key){values.items.erase(it);return true;}
   return false;
 }
+
+// Math API ported from src/runtime/ecosystem.cpp.
+inline double se_math_cbrt(double x){return std::cbrt(x);}
+inline double se_math_abs(double x){return std::fabs(x);}
+inline double se_math_floor(double x){return std::floor(x);}
+inline double se_math_ceil(double x){return std::ceil(x);}
+inline double se_math_round(double x){return std::round(x);}
+inline double se_math_trunc(double x){return std::trunc(x);}
+inline double se_math_sin(double x){return std::sin(x);}
+inline double se_math_cos(double x){return std::cos(x);}
+inline double se_math_tan(double x){return std::tan(x);}
+inline double se_math_asin(double x){return std::asin(x);}
+inline double se_math_acos(double x){return std::acos(x);}
+inline double se_math_atan(double x){return std::atan(x);}
+inline double se_math_sinh(double x){return std::sinh(x);}
+inline double se_math_cosh(double x){return std::cosh(x);}
+inline double se_math_tanh(double x){return std::tanh(x);}
+inline double se_math_asinh(double x){return std::asinh(x);}
+inline double se_math_acosh(double x){return std::acosh(x);}
+inline double se_math_atanh(double x){return std::atanh(x);}
+inline double se_math_exp(double x){return std::exp(x);}
+inline double se_math_exp2(double x){return std::exp2(x);}
+inline double se_math_expm1(double x){return std::expm1(x);}
+inline double se_math_log(double x){return std::log(x);}
+inline double se_math_log10(double x){return std::log10(x);}
+inline double se_math_log2(double x){return std::log2(x);}
+inline double se_math_log1p(double x){return std::log1p(x);}
+inline double se_math_gamma(double x){return std::tgamma(x);}
+inline double se_math_lgamma(double x){return std::lgamma(x);}
+inline double se_math_erf(double x){return std::erf(x);}
+inline double se_math_erfc(double x){return std::erfc(x);}
+inline double se_math_pow(double x,double y){return std::pow(x,y);}
+inline double se_math_atan2(double x,double y){return std::atan2(x,y);}
+inline double se_math_fmod(double x,double y){return std::fmod(x,y);}
+inline double se_math_remainder(double x,double y){return std::remainder(x,y);}
+inline double se_math_copysign(double x,double y){return std::copysign(x,y);}
+inline double se_math_nextafter(double x,double y){return std::nextafter(x,y);}
+inline double se_math_sqrt(double x){if(x<0)throw std::runtime_error("math.sqrt needs a non-negative number.");return std::sqrt(x);}
+inline double se_math_degrees(double x){return x*180.0/std::numbers::pi_v<double>;}
+inline double se_math_radians(double x){return x*std::numbers::pi_v<double>/180.0;}
+template<class... X> double se_math_hypot(X... x){return std::sqrt(((static_cast<double>(x)*static_cast<double>(x))+...));}
+template<class... X> double se_math_min(X... x){return std::min({static_cast<double>(x)...});}
+template<class... X> double se_math_max(X... x){return std::max({static_cast<double>(x)...});}
+inline double se_math_clamp(double x,double lo,double hi){if(lo>hi)throw std::runtime_error("math.clamp needs min <= max.");return std::clamp(x,lo,hi);}
+inline double se_math_lerp(double x,double y,double t){return x+(y-x)*t;}
+inline double se_math_map_range(double x,double a,double b,double c,double d){if(a==b)throw std::runtime_error("math.map_range input range cannot have zero width.");return c+(x-a)*(d-c)/(b-a);}
+inline std::int64_t se_math_sign(double x){return (x>0)-(x<0);}
+inline bool se_math_isfinite(double x){return std::isfinite(x);}
+inline bool se_math_isinf(double x){return std::isinf(x);}
+inline bool se_math_isnan(double x){return std::isnan(x);}
+template<class... X> std::int64_t se_math_gcd(std::int64_t x,X... rest){((x=std::gcd(x,static_cast<std::int64_t>(rest))),...);return x;}
+template<class... X> std::int64_t se_math_lcm(std::int64_t x,X... rest){((x=std::lcm(x,static_cast<std::int64_t>(rest))),...);return x;}
+inline std::int64_t se_math_factorial(std::int64_t n){if(n<0||n>20)throw std::runtime_error("math.factorial needs 0 <= n <= 20.");std::int64_t r=1;for(std::int64_t i=2;i<=n;++i)r*=i;return r;}
+inline std::int64_t se_math_perm(std::int64_t n,std::int64_t k){if(k<0||n<0||k>n||n>20)throw std::runtime_error("math.perm needs 0 <= k <= n <= 20.");std::int64_t r=1;for(std::int64_t i=0;i<k;++i)r*=n-i;return r;}
+inline std::int64_t se_math_comb(std::int64_t n,std::int64_t k){if(k<0||n<0||k>n)throw std::runtime_error("math.comb needs 0 <= k <= n.");k=std::min(k,n-k);std::int64_t r=1;for(std::int64_t i=1;i<=k;++i){auto a=n-k+i,b=i;auto g=std::gcd(a,b);a/=g;b/=g;g=std::gcd(r,b);r/=g;b/=g;if(b!=1||r>std::numeric_limits<std::int64_t>::max()/a)throw std::runtime_error("math.comb Int overflow");r*=a;}return r;}
+template<class T> double se_math_sum(const std::vector<T>& x){if(x.empty())throw std::runtime_error("math statistics need a non-empty List.");double r=0;for(auto v:x)r+=static_cast<double>(v);return r;}
+template<class T> double se_math_mean(const std::vector<T>& x){return se_math_sum(x)/x.size();}
+template<class T> double se_math_median(std::vector<T> x){if(x.empty())throw std::runtime_error("math statistics need a non-empty List.");std::sort(x.begin(),x.end());auto n=x.size();return n%2?static_cast<double>(x[n/2]):(static_cast<double>(x[n/2-1])+static_cast<double>(x[n/2]))/2;}
+template<class T> double se_math_variance(const std::vector<T>& x){auto mean=se_math_mean(x);double r=0;for(auto v:x){double d=static_cast<double>(v)-mean;r+=d*d;}return r/x.size();}
+template<class T> double se_math_stddev(const std::vector<T>& x){return std::sqrt(se_math_variance(x));}
+
+template<class T> double se_statistics_mean(const std::vector<T>& x){return se_math_mean(x);}
+template<class T> double se_statistics_median(const std::vector<T>& x){return se_math_median(x);}
+template<class T> double se_statistics_pvariance(const std::vector<T>& x){return se_math_variance(x);}
+template<class T> double se_statistics_pstdev(const std::vector<T>& x){return se_math_stddev(x);}
+template<class T> double se_statistics_variance(const std::vector<T>& x){if(x.size()<2)throw std::runtime_error("statistics.variance needs at least 2 values.");return se_math_variance(x)*x.size()/(x.size()-1);}
+template<class T> double se_statistics_stdev(const std::vector<T>& x){return std::sqrt(se_statistics_variance(x));}
+inline bool se_regex_match(const std::string& pattern,const std::string& value){return std::regex_match(value,std::regex(pattern));}
+inline bool se_regex_search(const std::string& pattern,const std::string& value){return std::regex_search(value,std::regex(pattern));}
+inline std::string se_regex_replace(const std::string& pattern,const std::string& value,const std::string& replacement){return std::regex_replace(value,std::regex(pattern),replacement);}
+inline std::vector<std::string> se_regex_split(const std::string& pattern,const std::string& value){std::regex re(pattern);std::sregex_token_iterator it(value.begin(),value.end(),re,-1),end;return std::vector<std::string>(it,end);}

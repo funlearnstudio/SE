@@ -135,5 +135,18 @@ int main() {
     assert(!se_path_exists(temp_root.string()));
 
     assert((se_range(3, 1) == std::vector<std::int64_t>{3, 2, 1}));
+    auto rejects=[](auto operation){bool failed=false;try{operation();}catch(const std::exception&){failed=true;}assert(failed);};
+    rejects([]{se_math_sqrt(-1);});
+    rejects([]{se_math_clamp(0,2,1);});
+    rejects([]{se_math_map_range(1,0,0,0,1);});
+    rejects([]{se_math_factorial(21);});
+    rejects([]{se_math_comb(67,33);});
+    rejects([]{se_math_perm(3,4);});
+    rejects([]{se_math_mean(std::vector<double>{});});
+    rejects([]{se_statistics_variance(std::vector<double>{1});});
+    rejects([]{se_regex_match("[", "text");});
+    assert(se_math_comb(66,33)==7219428434016265740LL);
+    assert(se_math_min(3,2.5,4)==2.5);
+    assert(se_math_hypot(2,3,6)==7);
     std::cout << "SE bootstrap standalone runtime passed\n";
 }

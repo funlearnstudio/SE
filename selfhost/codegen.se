@@ -197,9 +197,17 @@ make _emit_call encoded:Text -> Text
                 if method == "fail"
                     give "se_test_fail(" + generated + ")"
                 fail "Test module function not supported: " + method
+            if module == "statistics"
+                if method in ["mean", "median", "pvariance", "pstdev", "variance", "stdev"]
+                    give "se_statistics_" + method + "(" + generated + ")"
+                fail "Unknown statistics function: " + method
+            if module == "regex" or module == "re"
+                if method in ["match", "search", "replace", "split"]
+                    give "se_regex_" + method + "(" + generated + ")"
+                fail "Unknown regex function: " + method
             if module == "math"
-                if method in ["sqrt", "pow", "abs", "floor", "ceil", "round", "sin", "cos", "tan", "log", "log10", "exp", "hypot", "min", "max"]
-                    give "std::" + method + "(" + generated + ")"
+                if method in ["cbrt", "abs", "floor", "ceil", "round", "trunc", "sin", "cos", "tan", "asin", "acos", "atan", "sinh", "cosh", "tanh", "asinh", "acosh", "atanh", "exp", "exp2", "expm1", "log", "log10", "log2", "log1p", "gamma", "lgamma", "erf", "erfc", "pow", "atan2", "fmod", "remainder", "copysign", "nextafter", "sqrt", "degrees", "radians", "hypot", "min", "max", "clamp", "lerp", "map_range", "sign", "isfinite", "isinf", "isnan", "gcd", "lcm", "factorial", "comb", "perm", "sum", "mean", "median", "variance", "stddev"]
+                    give "se_math_" + method + "(" + generated + ")"
                 fail "Math module function not yet supported: " + method
             if module == "text"
                 if method in ["split", "trim", "contains", "repeat", "join", "starts", "ends", "replace"]
@@ -311,6 +319,10 @@ make _emit_expr encoded:Text -> Text
                     give "std::numbers::pi_v<double>"
                 if member == "e"
                     give "std::numbers::e_v<double>"
+                if member == "tau"
+                    give "(2.0 * std::numbers::pi_v<double>)"
+                if member == "inf"
+                    give "std::numeric_limits<double>::infinity()"
             if module == "random" and member == "num"
                 give "se_random_num()"
             if module == "os"
@@ -493,7 +505,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         result = try _emit_expr node[2]
         give pad + result + ";\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"

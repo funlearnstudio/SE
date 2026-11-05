@@ -142,7 +142,7 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
         if member == "help"
             give "Text"
         if owner[0] == "Atom" and owner[1] == "Identifier"
-            if owner[2] == "math" and member in ["pi", "e"]
+            if owner[2] == "math" and member in ["pi", "e", "tau", "inf"]
                 give "Num"
             if owner[2] == "random" and member == "num"
                 give "Num"

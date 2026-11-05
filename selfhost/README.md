@@ -122,3 +122,7 @@ Unsupported syntax must error instead of silently generating incorrect code. Com
 ## Recursive types and annotated fields
 
 `type_model.se` ports recursive type compatibility, generic binding and return-type substitution from the production checker. List/Map/Set C++ types are emitted recursively, including nested collection types. Repeated generic bindings are checked for conflicts. User-type fields support annotations, defaults, required initialization and checked field assignment. Generic user-type declarations themselves remain unfinished.
+
+## Math, statistics and regular expressions
+
+The bootstrap backend now maps the production math module's operational API to the independent runtime: constants pi/e/tau/inf, unary/binary functions, variadic hypot/min/max/gcd/lcm, interpolation, factorial/combinations/permutations, and population statistics. `statistics` provides mean/median and sample/population variance and deviation. `regex` and `re` provide match/search/replace/split using the same C++ ECMAScript regex implementation as production. Math combination overflow is explicitly rejected. Static module API checking and complete help output remain unfinished.

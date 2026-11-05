@@ -137,7 +137,7 @@ make _postfix tokens:List[List[Text]] state:List[Int] start:Text -> Text
         if kind == "."
             _advance tokens state
             member = _advance tokens state
-            if member[0] != "Identifier" and member[0] != "map"
+            if member[0] != "Identifier" and member[0] != "map" and member[0] != "match"
                 fail "Expected member name after '.'"
             left = json.stringify (["Member", left, member[1], ""])
         else if kind == "["

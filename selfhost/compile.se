@@ -10,7 +10,7 @@ make _node encoded:Text -> List[Text]
     give json.parse encoded
 
 make _builtin_module name:Text -> Bool
-    give name in ["math","text","collections","file","json","os","random","path","time","base64","test"]
+    give name in ["math","text","collections","file","json","os","random","path","time","base64","test","statistics","regex","re"]
 
 # Load source modules relative to their importing source file. Modules are
 # inserted before the importing code so their declarations are visible; each
