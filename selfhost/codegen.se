@@ -56,6 +56,15 @@ make _ctype source:Text -> Text
         give "auto"
     fail "Unsupported C++ type annotation: " + source
 
+# Preserve mutable cursor, token and symbol-table arguments across calls.
+make _parameter_type declared:Text name:Text -> Text
+    result = try _ctype declared
+    if declared in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[List[Text]]", "List[List[Int]]"]
+        if name in ["state", "tokens", "symbols", "entries", "names"]
+            give result + "&"
+        give "const " + result + "&"
+    give result
+
 make _emit_arguments encoded:Text -> Text
     args = _node encoded
     result = ""
@@ -336,7 +345,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         args = ""
         for item in params
             param = _node item
-            typename = try _ctype param[1]
+            typename = try _parameter_type param[1] param[0]
             if args != ""
                 args = args + ", "
             args = args + typename + " " + param[0]
@@ -361,7 +370,7 @@ make _emit_prototype encoded:Text -> Text
             give ""
         if arguments != ""
             arguments = arguments + ", "
-        arguments = arguments + (try _ctype param[1]) + " " + param[0]
+        arguments = arguments + (try _parameter_type param[1] param[0]) + " " + param[0]
     return_type = try _ctype node[4]
     give return_type + " " + node[1] + "(" + arguments + ");\n"
 
