@@ -81,6 +81,24 @@ int main() {
     catch (const std::runtime_error&) { caught = true; }
     assert(caught);
 
+    assert(se_duration("500ms").milliseconds == 500);
+    assert(se_duration("2s").milliseconds == 2000);
+    assert(se_duration("1min").milliseconds == 60000);
+    se_wait(se_duration("0ms"));
+    caught=false;
+    try{(void)se_duration("7hour");}catch(const std::runtime_error&){caught=true;}
+    assert(caught);
+    assert(se_random_int(7,7)==7);
+    const auto randvalue=se_random_num();
+    assert(randvalue>=0.0 && randvalue<=1.0);
+    assert(se_path_join("tmp","sample.txt")==std::string("tmp/sample.txt"));
+    assert(se_path_name("a/b.txt")=="b.txt");
+    assert(se_path_ext("a/b.txt")==".txt");
+    assert(se_path_parent("a/b.txt")=="a");
+    assert(se_path_is_dir("selfhost"));
+    assert(se_path_is_file("selfhost/sample.se"));
+    assert(se_path_exists("selfhost/sample.se"));
+
     assert((se_range(3, 1) == std::vector<std::int64_t>{3, 2, 1}));
     std::cout << "SE bootstrap standalone runtime passed\n";
 }
