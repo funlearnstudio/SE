@@ -1,8 +1,8 @@
 {
   "name": "se-language",
   "displayName": "SE Language",
-  "description": "Official SE language support with full standard-library IntelliSense, live compiler diagnostics, syntax guide, navigation, snippets, and run/check/build commands",
-  "version": "0.7.5",
+  "description": "Official SE language support with multi-value ask input, standard-library IntelliSense, live diagnostics, syntax guide, navigation, snippets, and run/check/build commands",
+  "version": "0.7.6",
   "publisher": "funlearnstudio",
   "license": "MIT",
   "icon": "icons/se.png",
