@@ -171,7 +171,7 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
         if member == "upper" or member == "lower"
             if object_type == "Text" or object_type == "Unknown"
                 give "Text"
-        if member == "add" and (object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]", "List[List[Text]]", "List[List[Int]]", "Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Set[Int]", "Set[Num]", "Set[Text]", "Set[Bool]"])
+        if member in ["add", "remove"] and (object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]", "List[List[Text]]", "List[List[Int]]", "Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Set[Int]", "Set[Num]", "Set[Text]", "Set[Bool]"])
             give "Function"
         if object_type == "Module"
             give "Function"
