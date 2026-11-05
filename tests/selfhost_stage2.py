@@ -2,7 +2,7 @@
 """STRICT stage2/stage3 self-hosting verification (no substitutions).
 
 This intentionally fails until the SE-written compiler can compile its complete
-own module graph with the independent C++20 runtime. A green unit/differential
+own bundled module graph with the independent C++20 runtime. A green unit/differential
 test is not proof of self-hosting. Usage:
     python3 tests/selfhost_stage2.py /absolute/path/to/se
 
@@ -20,7 +20,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-COMPILER_SOURCE = ROOT / "selfhost" / "compiler.se"
+BUNDLE_TOOL = ROOT / "tests" / "selfhost_bundle.py"
 HEADER_DIR = ROOT / "selfhost"
 CXX = os.environ.get("CXX", "c++")
 
@@ -43,9 +43,9 @@ def compile_native(generated_cpp: Path, output_binary: Path) -> None:
             "-I", str(HEADER_DIR), str(generated_cpp), "-o", str(output_binary)])
 
 
-def compile_source(native: Path, target: Path) -> None:
+def compile_source(native: Path, source: Path, target: Path) -> None:
     env = dict(os.environ)
-    env["SE_SELFHOST_SOURCE"] = str(COMPILER_SOURCE)
+    env["SE_SELFHOST_SOURCE"] = str(source)
     env["SE_SELFHOST_OUTPUT"] = str(target)
     invoke([str(native)], env=env)
     if not target.is_file() or target.stat().st_size == 0:
@@ -59,6 +59,8 @@ def digest(path: Path) -> str:
 def verify(se: Path) -> None:
     with tempfile.TemporaryDirectory(prefix="se-stage3-") as tmp:
         root = Path(tmp)
+        bundled_source = root / "compiler_bundle.se"
+        invoke([sys.executable, str(BUNDLE_TOOL), "--output", str(bundled_source)])
         stage1_cpp = root / "stage1.cpp"
         stage2_cpp = root / "stage2.cpp"
         stage3_cpp = root / "stage3.cpp"
@@ -67,7 +69,7 @@ def verify(se: Path) -> None:
         stage2 = root / "stage2"
         stage3 = root / "stage3"
         stage0_env = dict(os.environ)
-        stage0_env.update(SE_SELFHOST_SOURCE=str(COMPILER_SOURCE),
+        stage0_env.update(SE_SELFHOST_SOURCE=str(bundled_source),
                           SE_SELFHOST_OUTPUT=str(stage1_cpp))
 
         # Bootstrap only once using the current production SE CLI.
@@ -77,13 +79,13 @@ def verify(se: Path) -> None:
         compile_native(stage1_cpp, stage1)
 
         # Stage1 is standalone and must independently compile its own SE source.
-        compile_source(stage1, stage2_cpp)
+        compile_source(stage1, bundled_source, stage2_cpp)
         compile_native(stage2_cpp, stage2)
 
         # Stage2 independently recompiles its own SE source to produce Stage3.
-        compile_source(stage2, stage3_cpp)
+        compile_source(stage2, bundled_source, stage3_cpp)
         compile_native(stage3_cpp, stage3)
-        compile_source(stage3, stage4_cpp)
+        compile_source(stage3, bundled_source, stage4_cpp)
 
         # Compare generated sources rather than platform-specific binary metadata.
         hashes = [digest(stage2_cpp), digest(stage3_cpp), digest(stage4_cpp)]
