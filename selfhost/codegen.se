@@ -69,6 +69,17 @@ make _ctype source:Text -> Text
         give source
     if source == "Unknown"
         give "auto"
+    if parts.len > 1
+        arguments = []
+        i = 1
+        while i < parts.len
+            arguments.add (try _ctype parts[i])
+            i += 1
+        give "SEType_" + parts[0] + "<" + (text.join arguments ", ") + ">"
+    characters = text.split source ""
+    if characters.len > 0
+        if text.contains "ABCDEFGHIJKLMNOPQRSTUVWXYZ" characters[0]
+            give "SEType_" + source
     fail "Unsupported C++ type annotation: " + source
 
 # Preserve mutable cursor, token and symbol-table arguments across calls.
@@ -263,6 +274,12 @@ make _emit_expr encoded:Text -> Text
         if value_kind in ["Number", "true", "false"]
             give raw
         fail "Unrecognized literal: " + value_kind
+    if kind == "TypeInstance"
+        arguments = _node node[2]
+        cpp_args = []
+        for argument in arguments
+            cpp_args.add (try _ctype argument)
+        give "SEType_" + node[1] + "<" + (text.join cpp_args ", ") + ">{}"
     if kind == "Unary"
         op = node[1]
         if op == "not"
@@ -364,7 +381,16 @@ make _emit_type encoded:Text -> Text
     node = _node encoded
     fields = _node node[2]
     methods = try unpack_block node[3]
-    output = "struct SEType_" + node[1] + " {\n"
+    generics = []
+    if node.len > 4
+        generics = _node node[4]
+    header = ""
+    if generics.len > 0
+        declarations = []
+        for variable in generics
+            declarations.add ("typename " + variable)
+        header = "template <" + (text.join declarations ", ") + ">\n"
+    output = header + "struct SEType_" + node[1] + " {\n"
     field_names = []
     for encoded_field in fields
         field = _node encoded_field
@@ -406,7 +432,9 @@ make _emit_type encoded:Text -> Text
         output = output + "    " + return_type + " " + cpp_method + "(" + arguments + ") {\n"
         output = output + prelude + body + "    }\n"
     cpp_type = _cpp_identifier node[1]
-    output = output + "};\ninline const SEType_" + node[1] + " " + cpp_type + "{};\n"
+    output = output + "};\n"
+    if generics.len == 0
+        output = output + "inline const SEType_" + node[1] + " " + cpp_type + "{};\n"
     give output
 
 make _emit_block encoded:Text level:Int names:List[Text] -> Text
