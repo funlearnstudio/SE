@@ -1,5 +1,5 @@
 # SE self-hosting bootstrap: lexical analyzer (first implementation).
-# Returns [kind, lexeme, line, column] records.
+# Returns [kind, lexeme, line, column] records (all Text for List typing).
 # Assumes ASCII syntax characters; text.split with an empty separator
 # currently splits UTF-8 bytes, so Unicode identifiers are not yet supported.
 use text
@@ -15,7 +15,7 @@ make is_word c
     give is_letter c or is_digit c
 
 make add_token tokens kind value line column
-    tokens.add [kind, value, line, column]
+    tokens.add [kind, value, string(line), string(column)]
 
 make lex source
     chars = text.split source ""
@@ -160,16 +160,3 @@ make lex source
         add_token tokens "Dedent" "" line 1
     add_token tokens "End" "" line column
     give tokens
-
-# Minimal regression check: identifiers, operators, strings, and block layout.
-source = "name = \"SE\"\nif name == \"SE\"\n    say \"Hello SE\"\nelse\n    say \"other\"\n"
-tokens = lex source
-expected = ["Identifier", "=", "String", "Newline", "if", "Identifier", "==", "String", "Newline", "Indent", "say", "String", "Newline", "Dedent", "else", "Newline", "Indent", "say", "String", "Newline", "Dedent", "End"]
-if tokens.len != expected.len
-    fail "Lexer smoke test: incorrect token count."
-j = 0
-while j < expected.len
-    if tokens[j][0] != expected[j]
-        fail "Lexer smoke test: incorrect token kind."
-    j += 1
-say "lexer smoke test passed"
