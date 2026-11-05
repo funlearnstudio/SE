@@ -159,7 +159,8 @@ make _emit_call encoded:Text -> Text
         obj = try _emit_expr target[1]
         if method == "add"
             give "se_add_item(" + obj + ", " + generated + ")"
-        fail "Unsupported method: " + method
+        # A user-defined object's method is a regular C++20 member call.
+        give obj + "." + method + "(" + generated + ")"
     fail "Only named functions and supported module methods can be called."
 
 make _emit_expr encoded:Text -> Text
@@ -249,7 +250,9 @@ make _emit_expr encoded:Text -> Text
             give "static_cast<std::int64_t>(" + base + ".size())"
         if member == "upper" or member == "lower"
             give "se_" + member + "(" + base + ")"
-        fail "Only .len, .upper, .lower and .add calls are implemented in bootstrap C++ backend."
+        # A static C++20 property-or-zero-argument-method expression.
+        # Requires-expressions discard the invalid branch at compilation time.
+        give "([&](auto&& __se_object)->decltype(auto){if constexpr (requires { __se_object." + member + "(); }) return __se_object." + member + "(); else return (__se_object." + member + ");})(" + base + ")"
     if kind == "Call"
         give try _emit_call encoded
     if kind == "Ask"
@@ -258,6 +261,44 @@ make _emit_expr encoded:Text -> Text
     if kind == "Try"
         give try _emit_expr node[1]
     fail "Unsupported AST expression for C++ codegen: " + kind
+
+# Generate a C++20 concrete object type with fields and methods.
+make _emit_type encoded:Text -> Text
+    node = _node encoded
+    fields = _node node[2]
+    methods = _node node[3]
+    output = "struct SEType_" + node[1] + " {\n"
+    field_names = []
+    for encoded_field in fields
+        field = _node encoded_field
+        value = try _emit_expr field[1]
+        field_names.add field[0]
+        output = output + "    decltype(" + value + ") " + field[0] + " = " + value + ";\n"
+    for encoded_method in methods
+        method = _node encoded_method
+        parameters = _node method[2]
+        arguments = ""
+        local_names = _clone_names field_names
+        parameter_names = []
+        for encoded_param in parameters
+            parameter = _node encoded_param
+            typename = try _parameter_type parameter[1] parameter[0]
+            if arguments != ""
+                arguments = arguments + ", "
+            arguments = arguments + typename + " " + parameter[0]
+            parameter_names.add parameter[0]
+            local_names.add parameter[0]
+        prelude = ""
+        for encoded_field in fields
+            field = _node encoded_field
+            if not (field[0] in parameter_names)
+                prelude = prelude + "        auto& " + field[0] + " = this->" + field[0] + ";\n"
+        return_type = try _ctype method[4]
+        body = try _emit_block method[3] 2 local_names
+        output = output + "    " + return_type + " " + method[1] + "(" + arguments + ") {\n"
+        output = output + prelude + body + "    }\n"
+    output = output + "};\ninline const SEType_" + node[1] + " " + node[1] + "{};\n"
+    give output
 
 make _emit_block encoded:Text level:Int names:List[Text] -> Text
     statements = _node encoded
