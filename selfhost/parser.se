@@ -44,14 +44,14 @@ make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
     if kind == "-" or kind == "not"
         op = _advance tokens state
         right = _expression tokens state 7
-        left = json.stringify ["Unary", op[0], right, ""]
+        left = json.stringify (["Unary", op[0], right, ""])
     else if kind == "("
         _advance tokens state
         left = _expression tokens state 1
         _expect tokens state ")"
     else if kind in ["Integer", "Number", "String", "true", "false", "Identifier"]
         token = _advance tokens state
-        left = json.stringify ["Atom", token[0], token[1], ""]
+        left = json.stringify (["Atom", token[0], token[1], ""])
     else
         fail "SE parser expected an expression, got " + kind + " at line " + tokens[state[0]][2]
 
@@ -65,7 +65,7 @@ make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
         if op == "**"
             next_minimum = precedence
         right = _expression tokens state next_minimum
-        left = json.stringify ["Binary", op, left, right]
+        left = json.stringify (["Binary", op, left, right])
 
 make _block tokens:List[List[Text]] state:List[Int] nested:Bool -> List[Text]
     statements = []
@@ -94,7 +94,7 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
         _advance tokens state
         expr = _expression tokens state 1
         _expect tokens state "Newline"
-        give json.stringify [kind, "", expr, ""]
+        give json.stringify ([kind, "", expr, ""])
     if kind == "if"
         _advance tokens state
         condition = _expression tokens state 1
@@ -103,12 +103,12 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
         if _kind tokens state == "else"
             _advance tokens state
             no = _body tokens state
-        give json.stringify ["If", condition, json.stringify yes, json.stringify no]
+        give json.stringify (["If", condition, json.stringify yes, json.stringify no])
     if kind == "while" or kind == "repeat"
         _advance tokens state
         condition = _expression tokens state 1
         body = _body tokens state
-        give json.stringify [kind, condition, json.stringify body, ""]
+        give json.stringify ([kind, condition, json.stringify body, ""])
     if kind == "make"
         _advance tokens state
         name = _advance tokens state
@@ -119,13 +119,13 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
             param = _advance tokens state
             params.add param[1]
         body = _body tokens state
-        give json.stringify ["Make", name[1], json.stringify params, json.stringify body]
+        give json.stringify (["Make", name[1], json.stringify params, json.stringify body])
     if kind == "Identifier"
         name = _advance tokens state
         _expect tokens state "="
         expr = _expression tokens state 1
         _expect tokens state "Newline"
-        give json.stringify ["Assign", name[1], expr, ""]
+        give json.stringify (["Assign", name[1], expr, ""])
     fail "Unsupported SE statement in bootstrap parser: " + kind + " at line " + tokens[state[0]][2]
 
 make parse_tokens tokens:List[List[Text]] -> List[Text]
