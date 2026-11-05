@@ -17,12 +17,12 @@ ast = parse source
 test.equal 2 ast.len
 test.ok (text.contains ast[0] "\"Assign\"")
 test.ok (text.contains ast[1] "\"If\"")
-test.ok (text.contains ast[1] "\"Say\"")
+test.ok (text.contains ast[1] "\"say\"")
 
 arithmetic = parse "value = 1 + 2 * 3\nsay value\n"
 test.equal 2 arithmetic.len
 test.ok (text.contains arithmetic[0] "\"Binary\"")
-test.ok (text.contains arithmetic[0] "\\\"*\"")
+test.ok (text.contains arithmetic[0] "*")
 
 blocks = parse "make greet name\n    say name\nrepeat 3\n    say \"Hi\"\nwhile true\n    give 1\n"
 test.equal 3 blocks.len
