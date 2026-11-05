@@ -34,7 +34,7 @@ make _load_source source_path:Text loaded:List[Text] active:List[Text] -> List[T
         module_name = node[1]
         builtin = _builtin_module module_name
         if node[0] == "Use" and not builtin
-            module_path = path.join (path.parent source_path) (node[1] + ".se")
+            module_path = string (path.join (path.parent source_path) (module_name + ".se"))
             if not path.exists module_path
                 fail "SE module not found: " + module_path
             expanded = try _load_source module_path loaded stack
