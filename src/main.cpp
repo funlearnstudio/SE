@@ -291,7 +291,15 @@ int file_command(const std::string&cmd,const std::filesystem::path&path){
       if(!f)throw std::runtime_error("Failed while writing generated C++ file: "+cpp_path.string());
     }
     const char*cxx=std::getenv("CXX");std::string compiler=cxx?cxx:"c++";
-    std::string command=compiler+" -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -Wno-misleading-indentation -I"+shell_quote((root/"include").string())+" "+shell_quote(cpp_path.string())+" "+shell_quote((root/"src/runtime/error.cpp").string())+" "+shell_quote((root/"src/runtime/value.cpp").string())+" "+shell_quote((root/"src/runtime/platform_base.cpp").string())+" "+shell_quote((root/"src/runtime/advanced.cpp").string())+" "+shell_quote((root/"src/runtime/database.cpp").string())+" "+shell_quote((root/"src/runtime/expansion.cpp").string())+" "+shell_quote((root/"src/runtime/formats.cpp").string())+" "+shell_quote((root/"src/interpreter/interpreter.cpp").string())+" "+shell_quote((root/"src/ffi/ffi.cpp").string())+" -pthread";
+    std::string optimization="-O2";
+    if(const char* override_opt=std::getenv("SE_NATIVE_OPT")) {
+      const std::string level=override_opt;
+      if(level=="0"||level=="1"||level=="2"||level=="3"||level=="s"||level=="g")
+        optimization="-O"+level;
+      else
+        throw std::runtime_error("Invalid SE_NATIVE_OPT; choose 0, 1, 2, 3, s or g.");
+    }
+    std::string command=compiler+" -std=c++20 "+optimization+" -g0 -Wall -Wextra -Wpedantic -Werror -Wno-misleading-indentation -I"+shell_quote((root/"include").string())+" "+shell_quote(cpp_path.string())+" "+shell_quote((root/"src/runtime/error.cpp").string())+" "+shell_quote((root/"src/runtime/value.cpp").string())+" "+shell_quote((root/"src/runtime/platform_base.cpp").string())+" "+shell_quote((root/"src/runtime/advanced.cpp").string())+" "+shell_quote((root/"src/runtime/database.cpp").string())+" "+shell_quote((root/"src/runtime/expansion.cpp").string())+" "+shell_quote((root/"src/runtime/formats.cpp").string())+" "+shell_quote((root/"src/interpreter/interpreter.cpp").string())+" "+shell_quote((root/"src/ffi/ffi.cpp").string())+" -pthread";
 #ifdef __linux__
     command+=" -ldl";
 #endif
