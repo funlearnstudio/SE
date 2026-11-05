@@ -162,6 +162,16 @@ make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
             raw_arg = try _prefix tokens state
             arg = try _postfix tokens state raw_arg
             arguments.add arg
+        # SE bare single-argument calls accept arithmetic on the input:
+        #   func a - 1 + func a - 2  means func(a-1) + func(a-2).
+        # This intentionally consumes one trailing subtraction only when the
+        # bare argument is a simple identifier, keeping outer + at top level.
+        if arguments.len == 1 and _kind tokens state == "-"
+            original = _node arguments[0]
+            if original[0] == "Atom" and original[1] == "Identifier"
+                _advance tokens state
+                rhs = try _expression tokens state 7
+                arguments[0] = json.stringify (["Binary", "-", arguments[0], rhs])
         left = json.stringify (["Call", left, json.stringify arguments, ""])
     while true
         op = _kind tokens state

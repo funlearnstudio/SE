@@ -47,6 +47,7 @@ Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defa
 - **Static checks**: symbol existence, assignments, numeric and boolean operands, homogeneous lists, indexing, function arity, declared parameter types, annotated return types, selected block scopes, `ask` types and explicit failures.
 - **C++ backend**: Int, Num, Bool, Text, homogeneous Lists, insertion-ordered Maps and Sets, common arithmetic/logic/conditions, inclusive range loops, recursion, indexed collection updates, functions, simple module helpers, input/output and exceptions.
 - **Generic functions**: simple generic functions such as `make identity[T] item:T -> T` compile to C++ templates. Multiple generic parameters and nested generic type inference still require additional testing.
+- **Canonical bare-call recursion**: parsing the single-argument form `func a - 1 + func a - 2` as two calls whose arguments are decremented, with an end-to-end Fibonacci regression fixture.
 - **Typed forward functions**: C++20 prototypes are emitted before definitions for functions whose parameter and return types are explicit, enabling forward calls and mutual recursion. Calls requiring return-type deduction are not yet supported forward.
 - **Library subset**: selected `math`, `text`, `collections` (`sort`, `reverse`, `take`, `drop`), `file`, and core conversion/read/write/append/Unicode-`char` operations only. This **does not imply** general library compatibility.
 
