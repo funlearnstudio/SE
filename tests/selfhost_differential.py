@@ -108,6 +108,7 @@ def main() -> None:
         verify_positive("language_user_type.se", "", tmp)
         verify_positive("language_typed_fields.se", "", tmp)
         verify_positive("language_generic_user_types.se", "", tmp)
+        verify_positive("language_nested_functions.se", "", tmp)
         verify_positive("language_collections_functional.se", "", tmp)
         verify_positive("language_remove_collections.se", "", tmp)
         verify_positive("language_remove_map.se", "", tmp)

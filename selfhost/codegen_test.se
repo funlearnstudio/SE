@@ -38,4 +38,9 @@ generic_cpp = try emit_program (try parse generic_source)
 test.ok (text.contains generic_cpp "template <typename T>")
 test.ok (text.contains generic_cpp "SEType_Box<std::int64_t>{}")
 
+nested_source = "make outer n:Int -> Int\n    make add x:Int -> Int\n        give x + n\n    give add 2\nsay outer 3\n"
+nested_cpp = try emit_program (try parse nested_source)
+test.ok (text.contains nested_cpp "std::function<std::int64_t(std::int64_t)>")
+test.ok (text.contains nested_cpp " = [&](std::int64_t x) -> std::int64_t")
+
 say "SE selfhost codegen smoke test passed"
