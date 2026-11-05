@@ -623,19 +623,40 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     if kind == "Make"
         params = _node node[2]
         local_names = []
+        if level > 0
+            local_names = _clone_names names
         args = ""
+        concrete = node[4] != "Unknown"
+        arg_types = []
         for item in params
             param = _node item
             typename = try _parameter_type param[1] param[0]
+            if param[1] == "Unknown"
+                concrete = false
             if args != ""
                 args = args + ", "
             cpp_param = _cpp_identifier param[0]
             args = args + typename + " " + cpp_param
+            arg_types.add typename
             local_names.add param[0]
         result_type = try _ctype node[4]
+        cpp_function = _cpp_identifier node[1]
+        if level > 0
+            if node.len > 5
+                variables = _node node[5]
+                if variables.len > 0
+                    fail "Nested generic functions are not supported yet."
+            # Capture surrounding lexical variables. Typed lambdas use
+            # std::function so self-recursion is valid in C++20.
+            names.add node[1]
+            local_names.add node[1]
+            body = try _emit_block node[3] (level + 1) local_names
+            if concrete
+                signature = result_type + "(" + (text.join arg_types ", ") + ")"
+                give pad + "std::function<" + signature + "> " + cpp_function + " = [&](" + args + ") -> " + result_type + " {\n" + body + pad + "};\n"
+            give pad + "auto " + cpp_function + " = [&](" + args + ") -> " + result_type + " {\n" + body + pad + "};\n"
         body = try _emit_block node[3] 1 local_names
         header = try _emit_template encoded
-        cpp_function = _cpp_identifier node[1]
         give header + result_type + " " + cpp_function + "(" + args + ") {\n" + body + "}\n"
     fail "Unsupported AST statement for C++ codegen: " + kind
 

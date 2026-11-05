@@ -19,6 +19,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <limits>
 #include <stdexcept>
