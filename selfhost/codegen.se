@@ -155,6 +155,16 @@ make _emit_call encoded:Text -> Text
                     give "se_take(" + generated + ")"
                 if method == "drop"
                     give "se_drop(" + generated + ")"
+                if method == "slice"
+                    give "se_slice(" + generated + ")"
+                if method == "filter"
+                    give "se_filter(" + generated + ")"
+                if method == "map"
+                    give "se_transform(" + generated + ")"
+                if method == "reduce"
+                    give "se_reduce(" + generated + ")"
+                if method == "sort_with"
+                    give "se_sort_with(" + generated + ")"
                 fail "Collection function not yet supported: " + method
         obj = try _emit_expr target[1]
         if method == "add"
