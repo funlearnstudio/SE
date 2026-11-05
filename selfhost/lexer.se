@@ -5,19 +5,19 @@
 use text
 use collections
 
-make is_digit c
+make is_digit c:Text -> Bool
     give c in ["0","1","2","3","4","5","6","7","8","9"]
 
-make is_letter c
+make is_letter c:Text -> Bool
     give text.contains "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_" c
 
-make is_word c
+make is_word c:Text -> Bool
     give is_letter c or is_digit c
 
-make add_token tokens kind value line column
+make add_token tokens:List[List[Text]] kind:Text value:Text line:Int column:Int
     tokens.add [kind, value, string(line), string(column)]
 
-make lex source
+make lex source:Text -> List[List[Text]]
     chars = text.split source ""
     n = chars.len
     tokens = []
