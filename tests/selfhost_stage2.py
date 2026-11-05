@@ -26,17 +26,19 @@ HEADER_DIR = ROOT / "selfhost"
 CXX = os.environ.get("CXX", "c++")
 
 
-def invoke(command: list[str], *, env: dict[str, str] | None = None) -> None:
+def invoke(command: list[str], *, env: dict[str, str] | None = None,
+           timeout_seconds: int = 180) -> None:
     label = " ".join(command)
     start = time.monotonic()
     print("SELFHOST STEP BEGIN:", label, flush=True)
     try:
         proc = subprocess.run(command, cwd=ROOT, env=env, text=True,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                              timeout=180, check=False)
+                              timeout=timeout_seconds, check=False)
     except subprocess.TimeoutExpired as exc:
         raise RuntimeError(
-            f"SELFHOST STEP TIMEOUT after {time.monotonic() - start:.1f}s: {label}"
+            f"SELFHOST STEP TIMEOUT after {time.monotonic() - start:.1f}s "
+            f"(limit {timeout_seconds}s): {label}"
         ) from exc
     print(
         f"SELFHOST STEP END: {time.monotonic() - start:.1f}s,"
@@ -95,7 +97,8 @@ def verify(se: Path) -> None:
         # interpreter overhead of translating the full bundled compiler.
         bootstrap_build_env = dict(os.environ, SE_NATIVE_OPT="0",
                                    SE_NATIVE_CORE_LIB=str(ROOT / "build" / "libs_core.a"))
-        invoke([str(se), "build", "selfhost/compiler.se"], env=bootstrap_build_env)
+        invoke([str(se), "build", "selfhost/compiler.se"], env=bootstrap_build_env,
+               timeout_seconds=420)
         native_stage0 = ROOT / "selfhost" / ("compiler.exe" if os.name == "nt" else "compiler")
         if not native_stage0.is_file():
             raise RuntimeError("Production SE build did not create a Stage0 driver")

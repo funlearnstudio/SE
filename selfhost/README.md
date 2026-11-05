@@ -113,7 +113,7 @@ executable builds and runs, the independent Stage2/3/4 proof still has to pass.
 
 ## What is NOT finished / 尚待完成
 
-- Full generic user types and all inference combinations, closures and nested functions, managed async/await, native ABI modules, SE Web, complete recovery diagnostics, and all language forms. Basic `type`, generic functions, and value-based `match` are implemented as documented above.
+- All generic inference combinations, escaping closures, nested generic functions, managed async/await, native ABI modules, SE Web, complete recovery diagnostics, and all language forms. Generic `type`, generic functions, lexical nested functions and value-based `match` are implemented as documented above.
 - Complete standard library and platform/ABI compatibility; the production VM supports more modules than this bootstrap, and imported module availability is not equivalent to full API coverage.
 - Comprehensive error recovery, Unicode/UTF-8 identifiers, source maps and source-accurate diagnostics.
 - Broader self-host coverage: the strict Stage2/Stage3/Stage4 test passes for the currently bundled subset. Source bundling plus a production Stage0 is not proof by itself; changes must preserve native Stage1/2/3 self-compilation without linking or invoking the production VM after bootstrap.
@@ -125,7 +125,7 @@ Unsupported syntax must error instead of silently generating incorrect code. Com
 
 ## Recursive types and annotated fields
 
-`type_model.se` ports recursive type compatibility, generic binding and return-type substitution from the production checker. List/Map/Set C++ types are emitted recursively, including nested collection types. Repeated generic bindings are checked for conflicts. User-type fields support annotations, defaults, required initialization and checked field assignment. Generic user-type declarations themselves remain unfinished.
+`type_model.se` ports recursive type compatibility, generic binding and return-type substitution from the production checker. List/Map/Set C++ types are emitted recursively, including nested collection types. Repeated generic bindings are checked for conflicts. User-type fields support annotations, defaults, required initialization and checked field assignment. Generic user types are supported for their tested invariant specialization subset; advanced generic constraints and full type inference remain unfinished.
 
 ## Math, statistics and regular expressions
 
