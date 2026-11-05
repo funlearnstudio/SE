@@ -4,18 +4,18 @@ use codegen
 use text
 use test
 
-source = read "selfhost/sample.se"
-ast = parse source
-cpp = emit_program ast
+source = try read "selfhost/sample.se"
+ast = try parse source
+cpp = try emit_program ast
 test.equal 2 ast.len
 test.ok (text.contains cpp "auto name = std::string")
 test.ok (text.contains cpp "if (")
 test.ok (text.contains cpp "std::cout <<")
 test.ok (text.contains cpp "return 0;")
-write "selfhost/generated_sample.cpp" cpp
+try write "selfhost/generated_sample.cpp" cpp
 
 math_source = "x = 2 + 3 * 4\nsay x\n"
-math_cpp = emit_program (parse math_source)
+math_cpp = try emit_program (try parse math_source)
 test.ok (text.contains math_cpp "(3 * 4)")
 test.ok (text.contains math_cpp "(2 + (3 * 4))")
 
