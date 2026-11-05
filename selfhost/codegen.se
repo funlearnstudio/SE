@@ -81,6 +81,12 @@ make _emit_template encoded:Text -> Text
         give ""
     give "template <" + result + ">\n"
 
+# Keep SE identifiers distinct from reserved C++20 tokens.
+make _cpp_identifier name:Text -> Text
+    if name in ["alignas","alignof","and","and_eq","asm","auto","bitand","bitor","bool","break","case","catch","char","char8_t","char16_t","char32_t","class","compl","concept","const","consteval","constexpr","constinit","const_cast","continue","co_await","co_return","co_yield","decltype","default","delete","do","double","dynamic_cast","else","enum","explicit","export","extern","false","float","for","friend","goto","if","inline","int","long","mutable","namespace","new","noexcept","not","not_eq","nullptr","operator","or","or_eq","private","protected","public","register","reinterpret_cast","requires","return","short","signed","sizeof","static","static_assert","static_cast","struct","switch","template","this","thread_local","throw","true","try","typedef","typeid","typename","union","unsigned","using","virtual","void","volatile","wchar_t","while","xor","xor_eq"]
+        give "se_keyword_" + name
+    give name
+
 make _emit_arguments encoded:Text -> Text
     args = _node encoded
     result = ""
@@ -114,7 +120,8 @@ make _emit_call encoded:Text -> Text
             give "se_write(" + generated + ")"
         if name == "append"
             give "se_append(" + generated + ")"
-        give name + "(" + generated + ")"
+        cpp_name = _cpp_identifier name
+        give cpp_name + "(" + generated + ")"
     if target[0] == "Member"
         owner = _node target[1]
         method = target[2]
@@ -172,7 +179,8 @@ make _emit_call encoded:Text -> Text
         if method == "remove"
             give "se_remove_item(" + obj + ", " + generated + ")"
         # A user-defined object's method is a regular C++20 member call.
-        give obj + "." + method + "(" + generated + ")"
+        cpp_method = _cpp_identifier method
+        give obj + "." + cpp_method + "(" + generated + ")"
     fail "Only named functions and supported module methods can be called."
 
 make _emit_expr encoded:Text -> Text
@@ -188,7 +196,9 @@ make _emit_expr encoded:Text -> Text
             give "std::int64_t{" + raw + "}"
         if value_kind == "Duration"
             give "se_duration(" + (json.stringify raw) + ")"
-        if value_kind in ["Number", "true", "false", "Identifier"]
+        if value_kind == "Identifier"
+            give _cpp_identifier raw
+        if value_kind in ["Number", "true", "false"]
             give raw
         fail "Unrecognized literal: " + value_kind
     if kind == "Unary"
@@ -264,7 +274,8 @@ make _emit_expr encoded:Text -> Text
             give "se_" + member + "(" + base + ")"
         # A static C++20 property-or-zero-argument-method expression.
         # Requires-expressions discard the invalid branch at compilation time.
-        give "([&](auto&& __se_object)->decltype(auto){if constexpr (requires { __se_object." + member + "(); }) return __se_object." + member + "(); else return (__se_object." + member + ");})(" + base + ")"
+        cpp_member = _cpp_identifier member
+        give "([&](auto&& __se_object)->decltype(auto){if constexpr (requires { __se_object." + cpp_member + "(); }) return __se_object." + cpp_member + "(); else return (__se_object." + cpp_member + ");})(" + base + ")"
     if kind == "Call"
         give try _emit_call encoded
     if kind == "Ask"
@@ -285,7 +296,8 @@ make _emit_type encoded:Text -> Text
         field = _node encoded_field
         value = try _emit_expr field[1]
         field_names.add field[0]
-        output = output + "    decltype(" + value + ") " + field[0] + " = " + value + ";\n"
+        cpp_field = _cpp_identifier field[0]
+        output = output + "    decltype(" + value + ") " + cpp_field + " = " + value + ";\n"
     for encoded_method in methods
         method = _node encoded_method
         parameters = _node method[2]
@@ -297,19 +309,23 @@ make _emit_type encoded:Text -> Text
             typename = try _parameter_type parameter[1] parameter[0]
             if arguments != ""
                 arguments = arguments + ", "
-            arguments = arguments + typename + " " + parameter[0]
+            cpp_parameter = _cpp_identifier parameter[0]
+            arguments = arguments + typename + " " + cpp_parameter
             parameter_names.add parameter[0]
             local_names.add parameter[0]
         prelude = ""
         for encoded_field in fields
             field = _node encoded_field
             if not (field[0] in parameter_names)
-                prelude = prelude + "        auto& " + field[0] + " = this->" + field[0] + ";\n"
+                cpp_field = _cpp_identifier field[0]
+                prelude = prelude + "        auto& " + cpp_field + " = this->" + cpp_field + ";\n"
         return_type = try _ctype method[4]
         body = try _emit_block method[3] 2 local_names
-        output = output + "    " + return_type + " " + method[1] + "(" + arguments + ") {\n"
+        cpp_method = _cpp_identifier method[1]
+        output = output + "    " + return_type + " " + cpp_method + "(" + arguments + ") {\n"
         output = output + prelude + body + "    }\n"
-    output = output + "};\ninline const SEType_" + node[1] + " " + node[1] + "{};\n"
+    cpp_type = _cpp_identifier node[1]
+    output = output + "};\ninline const SEType_" + node[1] + " " + cpp_type + "{};\n"
     give output
 
 make _emit_block encoded:Text level:Int names:List[Text] -> Text
@@ -327,24 +343,27 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     if kind == "Assign"
         name = node[1]
         expr = try _emit_expr node[2]
+        cpp_name = _cpp_identifier name
         if name in names
-            give pad + name + " = " + expr + ";\n"
+            give pad + cpp_name + " = " + expr + ";\n"
         names.add name
-        give pad + "auto " + name + " = " + expr + ";\n"
+        give pad + "auto " + cpp_name + " = " + expr + ";\n"
     if kind == "AssignInit"
         name = node[1]
         expr = try _emit_expr node[2]
         output = ""
+        cpp_name = _cpp_identifier name
         if name in names
-            output = pad + name + " = " + expr + ";\n"
+            output = pad + cpp_name + " = " + expr + ";\n"
         else
             names.add name
-            output = pad + "auto " + name + " = " + expr + ";\n"
+            output = pad + "auto " + cpp_name + " = " + expr + ";\n"
         fields = _node node[3]
         for encoded_field in fields
             field = _node encoded_field
             value = try _emit_expr field[1]
-            output = output + pad + name + "." + field[0] + " = " + value + ";\n"
+            cpp_field = _cpp_identifier field[0]
+            output = output + pad + cpp_name + "." + cpp_field + " = " + value + ";\n"
         give output
     if kind == "TypeDecl"
         give try _emit_type encoded
@@ -365,7 +384,8 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     if kind == "AssignMember"
         base = try _emit_expr node[1]
         value = try _emit_expr node[3]
-        give pad + base + "." + node[2] + " = " + value + ";\n"
+        cpp_field = _cpp_identifier node[2]
+        give pad + base + "." + cpp_field + " = " + value + ";\n"
     if kind == "MultiAsk"
         fields = _node node[1]
         suffix = string names.len
@@ -389,11 +409,13 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
             if field[1] == "Num"
                 expr = "se_num(" + expr + ")"
             if field[0] in names
-                output = output + pad + field[0] + " = " + expr + ";\n"
+                cpp_field = _cpp_identifier field[0]
+                output = output + pad + cpp_field + " = " + expr + ";\n"
             else
                 names.add field[0]
                 typename = try _ctype field[1]
-                output = output + pad + typename + " " + field[0] + " = " + expr + ";\n"
+                cpp_field = _cpp_identifier field[0]
+                output = output + pad + typename + " " + cpp_field + " = " + expr + ";\n"
             i += 1
         give output
     if kind == "ExprStmt"
@@ -412,7 +434,8 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
             error_names = _clone_names names
             error_names.add node[2]
             fallback = try _emit_block node[3] (level + 1) error_names
-            output = output + pad + "    SEError " + node[2] + "{__se_caught.what()};\n"
+            cpp_error = _cpp_identifier node[2]
+            output = output + pad + "    SEError " + cpp_error + "{__se_caught.what()};\n"
             output = output + fallback
         else
             output = output + pad + "    throw;\n"
@@ -472,15 +495,18 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         body = try _emit_block node[4] (level + 1) scope
         iterable = try _emit_expr node[3]
         output = pad + "for (const auto& __se_pair : " + iterable + ".items) {\n"
-        output = output + pad + "    auto " + node[1] + " = __se_pair.first;\n"
-        output = output + pad + "    auto " + node[2] + " = __se_pair.second;\n"
+        cpp_first = _cpp_identifier node[1]
+        cpp_second = _cpp_identifier node[2]
+        output = output + pad + "    auto " + cpp_first + " = __se_pair.first;\n"
+        output = output + pad + "    auto " + cpp_second + " = __se_pair.second;\n"
         give output + body + pad + "}\n"
     if kind == "For"
         scope = _clone_names names
         scope.add node[1]
         body = try _emit_block node[3] (level + 1) scope
         iterable = try _emit_expr node[2]
-        give pad + "for (auto " + node[1] + " : " + iterable + ") {\n" + body + pad + "}\n"
+        cpp_loop = _cpp_identifier node[1]
+        give pad + "for (auto " + cpp_loop + " : " + iterable + ") {\n" + body + pad + "}\n"
     if kind == "Make"
         params = _node node[2]
         local_names = []
@@ -490,12 +516,14 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
             typename = try _parameter_type param[1] param[0]
             if args != ""
                 args = args + ", "
-            args = args + typename + " " + param[0]
+            cpp_param = _cpp_identifier param[0]
+            args = args + typename + " " + cpp_param
             local_names.add param[0]
         result_type = try _ctype node[4]
         body = try _emit_block node[3] 1 local_names
         header = try _emit_template encoded
-        give header + result_type + " " + node[1] + "(" + args + ") {\n" + body + "}\n"
+        cpp_function = _cpp_identifier node[1]
+        give header + result_type + " " + cpp_function + "(" + args + ") {\n" + body + "}\n"
     fail "Unsupported AST statement for C++ codegen: " + kind
 
 # Emit forward declarations for functions with explicit signatures. This lets
@@ -513,10 +541,12 @@ make _emit_prototype encoded:Text -> Text
             give ""
         if arguments != ""
             arguments = arguments + ", "
-        arguments = arguments + (try _parameter_type param[1] param[0]) + " " + param[0]
+        cpp_param = _cpp_identifier param[0]
+        arguments = arguments + (try _parameter_type param[1] param[0]) + " " + cpp_param
     return_type = try _ctype node[4]
     header = try _emit_template encoded
-    give header + return_type + " " + node[1] + "(" + arguments + ");\n"
+    cpp_function = _cpp_identifier node[1]
+    give header + return_type + " " + cpp_function + "(" + arguments + ");\n"
 
 make emit_program ast:List[Text] -> Text
     type_decls = ""
