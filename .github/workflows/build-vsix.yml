@@ -6,6 +6,14 @@ on:
     paths:
       - 'vscode/**'
       - '.github/workflows/build-vsix.yml'
+  pull_request:
+    paths:
+      - 'vscode/**'
+      - 'src/**'
+      - 'include/**'
+      - 'tests/ask-multiple-smoke.sh'
+      - 'examples/ask-multiple.se'
+      - '.github/workflows/build-vsix.yml'
   workflow_dispatch:
 
 permissions:
@@ -19,6 +27,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Build SE and verify multi-value ask
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel 2
+          SE_BIN=./build/se bash tests/ask-multiple-smoke.sh
       - name: Package extension
         run: |
           cd vscode
