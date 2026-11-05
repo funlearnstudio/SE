@@ -144,12 +144,12 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
         object_type = try _infer node[1] symbols
         member = node[2]
         if member == "len"
-            if object_type == "Text" or object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]", "Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Set[Int]", "Set[Num]", "Set[Text]", "Set[Bool]"]
+            if object_type == "Text" or object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]", "List[List[Text]]", "List[List[Int]]", "Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Set[Int]", "Set[Num]", "Set[Text]", "Set[Bool]"]
                 give "Int"
         if member == "upper" or member == "lower"
             if object_type == "Text" or object_type == "Unknown"
                 give "Text"
-        if member == "add" and (object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]", "Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Set[Int]", "Set[Num]", "Set[Text]", "Set[Bool]"])
+        if member == "add" and (object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]", "List[List[Text]]", "List[List[Int]]", "Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Set[Int]", "Set[Num]", "Set[Text]", "Set[Bool]"])
             give "Function"
         if object_type == "Module"
             give "Function"
@@ -161,6 +161,13 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             try _infer item symbols
         if callee[0] == "Atom" and callee[1] == "Identifier"
             name = callee[2]
+            if name == "char"
+                if args.len != 1
+                    fail "char expects one argument."
+                codepoint_type = try _infer args[0] symbols
+                if not _compatible "Int" codepoint_type
+                    fail "char expects an Int codepoint."
+                give "Text"
             if name == "int" or name == "integer"
                 if args.len != 1
                     fail "int expects one argument."
@@ -341,6 +348,10 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             element_type = "Num"
         if iterable == "List[Bool]"
             element_type = "Bool"
+        if iterable == "List[List[Text]]"
+            element_type = "List[Text]"
+        if iterable == "List[List[Int]]"
+            element_type = "List[Int]"
         if iterable == "Set[Int]"
             element_type = "Int"
         if iterable == "Set[Text]"
