@@ -203,5 +203,13 @@
       "test.equal $1 ${3:4}"
     ],
     "description": "Create a simple SE test"
+  },
+  "Ask multiple values": {
+    "prefix": "askmulti",
+    "body": [
+      "ask ${1:a}:Int ${2:b}:Int",
+      "say $1 + $2"
+    ],
+    "description": "Read multiple whitespace-separated typed values on one input line"
   }
 }

@@ -1,0 +1,9 @@
+# Read several whitespace-separated fields from one line.
+# Example input: 12 3.5 Alice
+ask count:Int price:Num name:Text
+say count
+say price
+say name
+
+# The original prompt expression is unchanged:
+# name = ask "What is your name?"
