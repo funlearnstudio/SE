@@ -1,0 +1,107 @@
+# SE self-hosting bootstrap: generate C++20 from the initial SE AST subset.
+# Expressions/statement nodes are JSON-encoded List[Text] from parser.se.
+# This is an experimental bootstrap backend; it is not a replacement for
+# the production C++ compiler and does not yet include full SE type semantics.
+use json
+use text
+
+make _node encoded:Text -> List[Text]
+    give json.parse encoded
+
+make _indent depth:Int -> Text
+    give text.repeat "    " depth
+
+make _clone_names existing:List[Text] -> List[Text]
+    result = []
+    for name in existing
+        result.add name
+    give result
+
+make _emit_expr encoded:Text -> Text
+    node = _node encoded
+    kind = node[0]
+    if kind == "Atom"
+        value_kind = node[1]
+        raw = node[2]
+        if value_kind == "String"
+            give "std::string(" + json.stringify raw + ")"
+        if value_kind in ["Integer", "Number", "true", "false", "Identifier"]
+            give raw
+        fail "Unsupported SE literal in C++ bootstrap: " + value_kind
+    if kind == "Unary"
+        op = node[1]
+        if op == "not"
+            op = "!"
+        give "(" + op + _emit_expr node[2] + ")"
+    if kind == "Binary"
+        op = node[1]
+        left = _emit_expr node[2]
+        right = _emit_expr node[3]
+        if op == "**"
+            give "std::pow(" + left + ", " + right + ")"
+        if op == "and"
+            op = "&&"
+        if op == "or"
+            op = "||"
+        give "(" + left + " " + op + " " + right + ")"
+    fail "Unknown SE expression AST node: " + kind
+
+make _emit_block encoded:Text level:Int symbols:List[Text] -> Text
+    statements = _node encoded
+    output = ""
+    for item in statements
+        output = output + _emit_stmt item level symbols
+    give output
+
+make _emit_stmt encoded:Text level:Int symbols:List[Text] -> Text
+    node = _node encoded
+    kind = node[0]
+    pad = _indent level
+    if kind == "Assign"
+        name = node[1]
+        expr = _emit_expr node[2]
+        if name in symbols
+            give pad + name + " = " + expr + ";\n"
+        symbols.add name
+        give pad + "auto " + name + " = " + expr + ";\n"
+    if kind == "say"
+        give pad + "std::cout << " + _emit_expr node[2] + " << \"\\n\";\n"
+    if kind == "give"
+        give pad + "return " + _emit_expr node[2] + ";\n"
+    if kind == "If"
+        yes = _emit_block node[2] (level + 1) (_clone_names symbols)
+        no = _emit_block node[3] (level + 1) (_clone_names symbols)
+        output = pad + "if (" + _emit_expr node[1] + ") {\n" + yes + pad + "}"
+        if no != ""
+            output = output + " else {\n" + no + pad + "}"
+        give output + "\n"
+    if kind == "while"
+        body = _emit_block node[2] (level + 1) (_clone_names symbols)
+        give pad + "while (" + _emit_expr node[1] + ") {\n" + body + pad + "}\n"
+    if kind == "repeat"
+        body = _emit_block node[2] (level + 1) (_clone_names symbols)
+        give pad + "for (int _se_i = 0; _se_i < " + _emit_expr node[1] + "; ++_se_i) {\n" + body + pad + "}\n"
+    if kind == "Make"
+        params = _node node[2]
+        local_names = []
+        args = ""
+        for item in params
+            if args != ""
+                args = args + ", "
+            args = args + "auto " + item
+            local_names.add item
+        body = _emit_block node[3] 1 local_names
+        give "auto " + node[1] + "(" + args + ") {\n" + body + "}\n"
+    fail "Unsupported SE statement in C++ bootstrap: " + kind
+
+make emit_program ast:List[Text] -> Text
+    functions = ""
+    body = ""
+    names = []
+    for stmt in ast
+        node = _node stmt
+        if node[0] == "Make"
+            functions = functions + _emit_stmt stmt 0 names + "\n"
+        else
+            body = body + _emit_stmt stmt 1 names
+    give "#include <iostream>\n#include <string>\n#include <cmath>\n\n" + functions + "int main() {\n" + body + "    return 0;\n}\n"
