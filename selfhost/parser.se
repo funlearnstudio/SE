@@ -218,6 +218,37 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
             else
                 no = try _body tokens state
         give json.stringify (["If", condition, json.stringify yes, json.stringify no])
+    if kind == "match"
+        _advance tokens state
+        subject = try _expression tokens state 1
+        try _expect tokens state "Newline"
+        try _expect tokens state "Indent"
+        choices = []
+        fallback = []
+        has_else = false
+        while _kind tokens state != "Dedent"
+            current = _kind tokens state
+            if current == "Newline"
+                _advance tokens state
+            else if current == "case"
+                if has_else
+                    fail "A match case cannot follow else."
+                _advance tokens state
+                pattern = try _expression tokens state 1
+                case_body = try _body tokens state
+                choices.add (json.stringify ([pattern, json.stringify case_body]))
+            else if current == "else"
+                if has_else
+                    fail "Duplicate else in match."
+                _advance tokens state
+                fallback = try _body tokens state
+                has_else = true
+            else
+                fail "Expected case or else inside match."
+        try _expect tokens state "Dedent"
+        if choices.len == 0
+            fail "A match must contain at least one case."
+        give json.stringify (["Match", subject, json.stringify choices, json.stringify fallback])
     if kind == "while" or kind == "repeat"
         _advance tokens state
         condition = try _expression tokens state 1
