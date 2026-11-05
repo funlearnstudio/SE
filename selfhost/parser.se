@@ -41,14 +41,15 @@ make _precedence op:Text -> Int
 
 make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
     kind = _kind tokens state
+    left = ""
     if kind == "-" or kind == "not"
         op = _advance tokens state
-        right = _expression tokens state 7
+        right = try _expression tokens state 7
         left = json.stringify (["Unary", op[0], right, ""])
     else if kind == "("
         _advance tokens state
-        left = _expression tokens state 1
-        _expect tokens state ")"
+        left = try _expression tokens state 1
+        try _expect tokens state ")"
     else if kind in ["Integer", "Number", "String", "true", "false", "Identifier"]
         token = _advance tokens state
         left = json.stringify (["Atom", token[0], token[1], ""])
@@ -64,7 +65,7 @@ make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
         next_minimum = precedence + 1
         if op == "**"
             next_minimum = precedence
-        right = _expression tokens state next_minimum
+        right = try _expression tokens state next_minimum
         left = json.stringify (["Binary", op, left, right])
 
 make _block tokens:List[List[Text]] state:List[Int] nested:Bool -> List[Text]
@@ -78,36 +79,36 @@ make _block tokens:List[List[Text]] state:List[Int] nested:Bool -> List[Text]
         if _kind tokens state == "Newline"
             _advance tokens state
         else
-            statements.add (_statement tokens state)
+            statements.add (try _statement tokens state)
     if nested
         fail "SE parser expected the block to finish with Dedent."
     give statements
 
 make _body tokens:List[List[Text]] state:List[Int] -> List[Text]
-    _expect tokens state "Newline"
-    _expect tokens state "Indent"
-    give _block tokens state true
+    try _expect tokens state "Newline"
+    try _expect tokens state "Indent"
+    give try _block tokens state true
 
 make _statement tokens:List[List[Text]] state:List[Int] -> Text
     kind = _kind tokens state
     if kind == "say" or kind == "give"
         _advance tokens state
-        expr = _expression tokens state 1
-        _expect tokens state "Newline"
+        expr = try _expression tokens state 1
+        try _expect tokens state "Newline"
         give json.stringify ([kind, "", expr, ""])
     if kind == "if"
         _advance tokens state
-        condition = _expression tokens state 1
-        yes = _body tokens state
+        condition = try _expression tokens state 1
+        yes = try _body tokens state
         no = []
         if _kind tokens state == "else"
             _advance tokens state
-            no = _body tokens state
+            no = try _body tokens state
         give json.stringify (["If", condition, json.stringify yes, json.stringify no])
     if kind == "while" or kind == "repeat"
         _advance tokens state
-        condition = _expression tokens state 1
-        body = _body tokens state
+        condition = try _expression tokens state 1
+        body = try _body tokens state
         give json.stringify ([kind, condition, json.stringify body, ""])
     if kind == "make"
         _advance tokens state
@@ -118,20 +119,20 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
         while _kind tokens state == "Identifier"
             param = _advance tokens state
             params.add param[1]
-        body = _body tokens state
+        body = try _body tokens state
         give json.stringify (["Make", name[1], json.stringify params, json.stringify body])
     if kind == "Identifier"
         name = _advance tokens state
-        _expect tokens state "="
-        expr = _expression tokens state 1
-        _expect tokens state "Newline"
+        try _expect tokens state "="
+        expr = try _expression tokens state 1
+        try _expect tokens state "Newline"
         give json.stringify (["Assign", name[1], expr, ""])
     fail "Unsupported SE statement in bootstrap parser: " + kind + " at line " + tokens[state[0]][2]
 
 make parse_tokens tokens:List[List[Text]] -> List[Text]
     state = [0]
-    give _block tokens state false
+    give try _block tokens state false
 
 make parse source:Text -> List[Text]
-    tokens = lex source
-    give parse_tokens tokens
+    tokens = try lex source
+    give try parse_tokens tokens
