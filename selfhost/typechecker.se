@@ -40,6 +40,8 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             record = lookup_symbol symbols node[2]
             if record[0] == ""
                 fail "Undefined identifier: " + node[2]
+            if record[1] == "UserType"
+                give record[0]
             give record[1]
     if kind == "Unary"
         operand = try _infer node[2] symbols
@@ -173,6 +175,18 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             give "Function"
         if object_type == "Module"
             give "Function"
+        user_type = lookup_symbol symbols object_type
+        if user_type[1] == "UserType"
+            fields = _node user_type[4]
+            for encoded_field in fields
+                field = _node encoded_field
+                if field[0] == member
+                    give try _infer field[1] symbols
+            methods = _node user_type[5]
+            for encoded_method in methods
+                method = _node encoded_method
+                if method[1] == member
+                    give method[4]
         fail "Unknown member " + member + " of " + object_type
     if kind == "Call"
         callee = _node node[1]
@@ -248,6 +262,23 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 if args.len != 1
                     fail "List.add expects one argument."
                 give "Unknown"
+            user_type = lookup_symbol symbols owner_type
+            if user_type[1] == "UserType"
+                methods = _node user_type[5]
+                for encoded_method in methods
+                    method = _node encoded_method
+                    if method[1] == callee[2]
+                        parameters = _node method[2]
+                        if parameters.len != args.len
+                            fail "Wrong arity for method " + callee[2]
+                        j = 0
+                        while j < parameters.len
+                            parameter = _node parameters[j]
+                            found_type = try _infer args[j] symbols
+                            if not _compatible parameter[1] found_type
+                                fail "Method argument type mismatch."
+                            j += 1
+                        give method[4]
         fail "Unsupported call expression in bootstrap checker."
     if kind == "Ask"
         got = try _infer node[1] symbols
@@ -298,6 +329,28 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         inferred = try _infer node[2] symbols
         try assign_symbol symbols node[1] inferred
         give "OK"
+    if kind == "AssignInit"
+        type_name = try _infer node[2] symbols
+        user_type = lookup_symbol symbols type_name
+        if user_type[1] != "UserType"
+            fail "Initializer block requires a user-defined type."
+        fields = _node user_type[4]
+        initializers = _node node[3]
+        for encoded_init in initializers
+            init = _node encoded_init
+            matched = false
+            for encoded_field in fields
+                field = _node encoded_field
+                if field[0] == init[0]
+                    matched = true
+                    declared = try _infer field[1] symbols
+                    actual = try _infer init[1] symbols
+                    if not _compatible declared actual
+                        fail "Initializer field type mismatch: " + init[0]
+            if not matched
+                fail "Unknown initializer field: " + init[0]
+        try assign_symbol symbols node[1] type_name
+        give "OK"
     if kind == "AssignIndex"
         target_type = try _infer node[1] symbols
         index_type = try _infer node[2] symbols
@@ -335,7 +388,20 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             fail "Collection assignment expects " + element + ", got " + value_type
         give "OK"
     if kind == "AssignMember"
-        fail "Object field assignment is not yet supported in SE bootstrap."
+        type_name = try _infer node[1] symbols
+        user_type = lookup_symbol symbols type_name
+        if user_type[1] != "UserType"
+            fail "Field assignment requires an object."
+        fields = _node user_type[4]
+        for encoded_field in fields
+            field = _node encoded_field
+            if field[0] == node[2]
+                declared = try _infer field[1] symbols
+                actual = try _infer node[3] symbols
+                if not _compatible declared actual
+                    fail "Object field assignment type mismatch."
+                give "OK"
+        fail "Unknown object field: " + node[2]
     if kind == "MultiAsk"
         fields = _node node[1]
         for item in fields
@@ -442,6 +508,26 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         body = _node node[3]
         try _check_block body local return_type
         give "OK"
+    if kind == "TypeDecl"
+        fields = _node node[2]
+        local = clone_symbols symbols
+        for encoded_field in fields
+            field = _node encoded_field
+            field_type = try _infer field[1] local
+            try define_symbol local field[0] field_type "0" ""
+        methods = _node node[3]
+        for encoded_method in methods
+            method = _node encoded_method
+            parameters = _node method[2]
+            inner = clone_symbols local
+            for encoded_param in parameters
+                parameter = _node encoded_param
+                try define_symbol inner parameter[0] parameter[1] "0" ""
+            body = _node method[3]
+            try _check_block body inner method[4]
+            if method[4] != "Unknown" and not _guarantees_return body
+                fail "Method " + method[1] + " requires a return on all paths."
+        give "OK"
     if kind == "Make"
         params = _node node[2]
         local = clone_symbols symbols
@@ -458,6 +544,14 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
 make check_program statements:List[Text] -> List[List[Text]]
     symbols = [["", "", "", ""]]
     symbols = collections.take symbols 0
+    # Register user type shapes first, enabling forward constructors/methods.
+    for item in statements
+        node = _node item
+        if node[0] == "TypeDecl"
+            try define_symbol symbols node[1] "UserType" "0" ""
+            entry = lookup_symbol symbols node[1]
+            entry.add node[2]
+            entry.add node[3]
     # Register functions first, enabling forward calls.
     for item in statements
         node = _node item
