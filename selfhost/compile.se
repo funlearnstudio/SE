@@ -2,10 +2,49 @@
 use parser
 use typechecker
 use codegen
+use path
+use json
+use collections
+
+make _builtin_module name:Text -> Bool
+    give name in ["math","text","collections","file","json","os","random","path","time"]
+
+# Load source modules relative to their importing source file. Modules are
+# inserted before the importing code so their declarations are visible; each
+# module is loaded only once and circular imports are rejected.
+make _load_source source_path:Text loaded:List[Text] active:List[Text] -> List[Text]
+    if source_path in active
+        fail "Cyclic SE module import: " + source_path
+
+    seed = [""]
+    combined = collections.take seed 0
+    if source_path in loaded
+        give combined
+
+    loaded.add source_path
+    stack = collections.take active active.len
+    stack.add source_path
+    source = try read source_path
+    statements = try parse source
+    for encoded in statements
+        node = json.parse encoded
+        if node[0] == "Use" and not (_builtin_module node[1])
+            module_path = path.join (path.parent source_path) (node[1] + ".se")
+            if not path.exists module_path
+                fail "SE module not found: " + module_path
+            expanded = try _load_source module_path loaded stack
+            for stmt in expanded
+                combined.add stmt
+        else
+            combined.add encoded
+    give combined
 
 make compile_file source_path:Text output_path:Text -> Text
-    source = try read source_path
-    nodes = try parse source
+    seen = [""]
+    seen = collections.take seen 0
+    active = [""]
+    active = collections.take active 0
+    nodes = try _load_source source_path seen active
     try check_program nodes
     cpp = try emit_program nodes
     try write output_path cpp
