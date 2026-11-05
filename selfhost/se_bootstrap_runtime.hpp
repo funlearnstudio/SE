@@ -475,3 +475,18 @@ template<class T> decltype(auto) se_index(SEMap<T>& items,const std::string& key
 template<class T> decltype(auto) se_index(const SEMap<T>& items,const std::string& key){return items.at(key);}
 template<class T> inline void se_add_item(std::vector<T>& values,const T& value){values.push_back(value);}
 template<class T> inline void se_add_item(SESet<T>& values,const T& value){values.add(value);}
+template<class T> inline bool se_remove_item(std::vector<T>& values,const T& value){
+  const auto it=std::find(values.begin(),values.end(),value);
+  if(it==values.end())return false;
+  values.erase(it); return true;
+}
+template<class T> inline bool se_remove_item(SESet<T>& values,const T& value){
+  const auto it=std::find(values.items.begin(),values.items.end(),value);
+  if(it==values.items.end())return false;
+  values.items.erase(it); return true;
+}
+template<class T> inline bool se_remove_item(SEMap<T>& values,const std::string& key){
+  for(auto it=values.items.begin();it!=values.items.end();++it)
+    if(it->first==key){values.items.erase(it);return true;}
+  return false;
+}
