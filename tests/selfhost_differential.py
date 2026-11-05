@@ -32,7 +32,7 @@ def run(*argv: str, input_text: str = "", env: dict[str, str] | None = None) -> 
     )
 
 
-def verify_positive(case: str, data: str, tmp: Path) -> None:
+def verify_positive(case: str, data: str, tmp: Path, *, expected_output: str | None = None) -> None:
     src = CASE_DIR / case
     cpp = tmp / (case + ".cpp")
     exe = tmp / (case + (".exe" if os.name == "nt" else ""))
@@ -43,6 +43,15 @@ def verify_positive(case: str, data: str, tmp: Path) -> None:
     compiled = run(CXX, "-std=c++20", "-O0", "-g0", "-I", str(ROOT / "selfhost"), str(cpp), "-o", str(exe))
     assert compiled.returncode == 0, (case, "g++", compiled.stderr)
     actual = run(str(exe), input_text=data)
+    if expected_output is not None:
+        # Some valid bootstrap-subset syntax (typed multi-ask) has not yet
+        # been implemented in the production interpreter. Verify the actual
+        # generated executable against an explicit output oracle, not a fake
+        # interpreter result.
+        assert actual.returncode == 0, (case, actual.stderr)
+        assert actual.stdout == expected_output, (case, repr(actual.stdout), repr(expected_output))
+        print(f"PASS bootstrap execution: {case}")
+        return
     expected = run(str(SE), "run", str(src), input_text=data)
     assert actual.returncode == expected.returncode, (case, actual.stderr, expected.stderr)
     native_stdout = re.sub(r"^Input \d+ space-separated values: ", "", expected.stdout)
@@ -73,7 +82,7 @@ def main() -> None:
         tmp = Path(folder)
         verify_positive("language_core.se", "", tmp)
         verify_positive("language_text.se", "", tmp)
-        verify_positive("language_input.se", "5 7 hello\n", tmp)
+        verify_positive("language_input.se", "5 7 hello\n", tmp, expected_output="12\nhello\n")
         verify_positive("language_index_assignment.se", "", tmp)
         verify_positive("language_map_set.se", "", tmp)
         verify_positive("language_recursion.se", "", tmp)
