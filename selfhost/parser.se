@@ -260,6 +260,32 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
                     error_name = error_token[1]
                 recovery = try _body tokens state
             give json.stringify (["TryStmt", json.stringify protected, error_name, json.stringify recovery])
+    if kind == "type"
+        _advance tokens state
+        type_token = _advance tokens state
+        if type_token[0] != "Identifier"
+            fail "Expected type name after type."
+        try _expect tokens state "Newline"
+        try _expect tokens state "Indent"
+        fields = []
+        methods = []
+        while _kind tokens state != "Dedent"
+            current = _kind tokens state
+            if current == "Newline"
+                _advance tokens state
+            else if current == "make"
+                method = try _statement tokens state
+                methods.add method
+            else if current == "Identifier"
+                field = _advance tokens state
+                try _expect tokens state "="
+                value = try _expression tokens state 1
+                try _expect tokens state "Newline"
+                fields.add (json.stringify ([field[1], value]))
+            else
+                fail "Expected a field or method inside type " + type_token[1]
+        try _expect tokens state "Dedent"
+        give json.stringify (["TypeDecl", type_token[1], json.stringify fields, json.stringify methods])
     if kind == "match"
         _advance tokens state
         subject = try _expression tokens state 1
@@ -379,6 +405,24 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
             _advance tokens state
             expr = try _expression tokens state 1
             try _expect tokens state "Newline"
+            initializer = []
+            if _kind tokens state == "Indent"
+                if op != "="
+                    fail "Only plain assignment can initialize a type."
+                _advance tokens state
+                while _kind tokens state != "Dedent"
+                    current = _kind tokens state
+                    if current == "Newline"
+                        _advance tokens state
+                    else
+                        field = _advance tokens state
+                        if field[0] != "Identifier"
+                            fail "Expected a field name in type initialization."
+                        try _expect tokens state "="
+                        field_value = try _expression tokens state 1
+                        try _expect tokens state "Newline"
+                        initializer.add (json.stringify ([field[1], field_value]))
+                try _expect tokens state "Dedent"
             if op != "="
                 binary_op = "+"
                 if op == "-="
@@ -392,6 +436,8 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
                 expr = json.stringify (["Binary", binary_op, target_expr, expr])
             target = _node target_expr
             if target[0] == "Atom" and target[1] == "Identifier"
+                if initializer.len > 0
+                    give json.stringify (["AssignInit", target[2], expr, json.stringify initializer])
                 give json.stringify (["Assign", target[2], expr, ""])
             if target[0] == "Index"
                 give json.stringify (["AssignIndex", target[1], target[2], expr])
