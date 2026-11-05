@@ -15,7 +15,8 @@ make is_word c:Text -> Bool
     give is_letter c or is_digit c
 
 make add_token tokens:List[List[Text]] kind:Text value:Text line:Int column:Int
-    tokens.add [kind, value, string(line), string(column)]
+    entry = [kind, value, string(line), string(column)]
+    tokens.add entry
 
 make lex source:Text -> List[List[Text]]
     chars = text.split source ""
