@@ -6,6 +6,7 @@ on:
       - "selfhost/**"
       - "tests/selfhost_*.py"
       - "tests/selfhost_*.cpp"
+      - "tests/production_native_prebuilt.py"
       - ".github/workflows/selfhost-fast.yml"
       - "CMakeLists.txt"
       - "src/**"
@@ -15,6 +16,7 @@ on:
       - "selfhost/**"
       - "tests/selfhost_*.py"
       - "tests/selfhost_*.cpp"
+      - "tests/production_native_prebuilt.py"
       - ".github/workflows/selfhost-fast.yml"
       - "CMakeLists.txt"
       - "src/**"
@@ -41,3 +43,5 @@ jobs:
           ./build/selfhost_runtime_tests
       - name: Run SE selfhost compiler unit and differential cases
         run: python3 tests/selfhost_differential.py "$(realpath build/se)"
+      - name: Verify production SE native prebuilt-core parity
+        run: python3 tests/production_native_prebuilt.py "$(realpath build/se)"
