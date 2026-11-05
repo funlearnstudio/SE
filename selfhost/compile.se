@@ -5,6 +5,7 @@ use codegen
 use path
 use json
 use collections
+use os
 
 make _node encoded:Text -> List[Text]
     give json.parse encoded
@@ -12,10 +13,25 @@ make _node encoded:Text -> List[Text]
 make _builtin_module name:Text -> Bool
     give name in ["math","text","collections","file","json","os","random","path","time","base64","test","statistics","regex","re"]
 
+# Port of the source candidates and environment precedence in ModuleLoader::resolve.
+make _resolve_source name:Text importer:Text root:Text -> Text
+    bases = [string (path.parent importer), root]
+    home = os.getenv "SE_HOME"
+    if home == ""
+        home = os.getenv "S_HOME"
+    if home != ""
+        bases.add (string (path.join home "packages"))
+    for base in bases
+        candidates = [string (path.join base (name + ".se")), string (path.join base name (name + ".se")), string (path.join base (name + ".s")), string (path.join base name (name + ".s"))]
+        for candidate in candidates
+            if path.is_file candidate
+                give candidate
+    fail "SE module not found: " + name + " (project and package directories searched)"
+
 # Load source modules relative to their importing source file. Modules are
 # inserted before the importing code so their declarations are visible; each
 # module is loaded only once and circular imports are rejected.
-make _load_source source_path:Text loaded:List[Text] active:List[Text] -> List[Text]
+make _load_source source_path:Text root:Text loaded:List[Text] active:List[Text] -> List[Text]
     if source_path in active
         fail "Cyclic SE module import: " + source_path
 
@@ -34,13 +50,8 @@ make _load_source source_path:Text loaded:List[Text] active:List[Text] -> List[T
         module_name = node[1]
         builtin = _builtin_module module_name
         if node[0] == "Use" and not builtin
-            module_path = string (path.join (path.parent source_path) (module_name + ".se"))
-            if not path.exists module_path
-                alternate_path = string (path.join (path.parent source_path) (module_name + ".s"))
-                if not path.exists alternate_path
-                    fail "SE module not found: " + module_path + " or " + alternate_path
-                module_path = alternate_path
-            expanded = try _load_source module_path loaded stack
+            module_path = try _resolve_source module_name source_path root
+            expanded = try _load_source module_path root loaded stack
             for stmt in expanded
                 combined.add stmt
         else
@@ -52,7 +63,7 @@ make compile_file source_path:Text output_path:Text -> Text
     seen = collections.take seen 0
     active = [""]
     active = collections.take active 0
-    nodes = try _load_source source_path seen active
+    nodes = try _load_source source_path (string (path.parent source_path)) seen active
     try check_program nodes
     cpp = try emit_program nodes
     try write output_path cpp

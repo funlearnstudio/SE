@@ -113,6 +113,7 @@ def main() -> None:
         verify_positive("language_cpp_keywords.se", "", tmp)
         verify_positive("language_source_imports.se", "", tmp)
         verify_positive("language_s_imports.se", "", tmp)
+        verify_positive("language_package_imports.se", "", tmp)
         verify_positive("language_duration.se", "", tmp, expected_output="duration ok\n")
         verify_positive("language_elif.se", "", tmp, expected_output="middle\n")
         for case, message in (
