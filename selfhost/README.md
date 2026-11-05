@@ -43,7 +43,7 @@ Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defa
 ## Supported compiler features / 已支援
 
 - **Lexer**: ASCII identifiers, numeric and string literals, comments, indent/dedent, operators, typed function tokens and source locations.
-- **Parser**: expression precedence including unary and binary operators, list literals, indexing, member access, calls, `ask` and `try` expressions; statements `say`, `give`, `fail`, assignments including `+=` etc., `if/else if/else`, `match/case/else`, `while`, `repeat`, `for`, typed and untyped `make`, `use`, and multi-variable typed `ask`.
+- **Parser**: expression precedence including unary and binary operators, list literals, indexing, member access, calls, `ask` and `try` expressions; statements `say`, `give`, `fail`, assignments including `+=` etc., `if/else if/else`, `match/case/else`, `while`, `repeat`, `for`, typed and untyped `make`, `use`, multi-variable typed `ask`, `try/else error` recovery, and `for key value in map`.
 - **Static checks**: symbol existence, assignments, numeric and boolean operands, homogeneous lists, indexing, function arity, declared parameter types, annotated return types, selected block scopes, `ask` types and explicit failures.
 - **C++ backend**: Int, Num, Bool, Text, homogeneous Lists, insertion-ordered Maps and Sets, common arithmetic/logic/conditions, inclusive range loops, recursion, indexed collection updates, functions, simple module helpers, input/output and exceptions.
 - **Typed forward functions**: C++20 prototypes are emitted before definitions for functions whose parameter and return types are explicit, enabling forward calls and mutual recursion. Calls requiring return-type deduction are not yet supported forward.

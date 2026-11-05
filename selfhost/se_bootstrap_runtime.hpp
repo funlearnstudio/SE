@@ -16,6 +16,8 @@
 #include <type_traits>
 #include <vector>
 
+struct SEError { std::string message; };
+
 inline std::string se_string(const std::string& value) { return value; }
 inline std::string se_string(const char* value) { return std::string(value); }
 inline std::string se_string(bool value) { return value ? "true" : "false"; }

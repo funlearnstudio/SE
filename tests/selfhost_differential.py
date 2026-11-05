@@ -90,6 +90,8 @@ def main() -> None:
         verify_positive("language_match.se", "", tmp)
         verify_positive("language_char_collections.se", "", tmp)
         verify_positive("language_json_ast.se", "", tmp)
+        verify_positive("language_try_recovery.se", "", tmp)
+        verify_positive("language_for_map_pairs.se", "", tmp)
         for case, message in (
             ("negative_wrong_type.se", "Arithmetic requires numbers"),
             ("negative_undefined.se", "Undefined identifier"),
@@ -102,6 +104,7 @@ def main() -> None:
             ("negative_set_value.se", "Set values must have the same type"),
             ("negative_missing_return.se", "is missing a return"),
             ("negative_match_type.se", "Match case type mismatch"),
+            ("negative_for_pairs_not_map.se", "Two-variable for expects a Map"),
         ):
             verify_negative(case, message, tmp)
     print("SE selfhost differential tests passed")

@@ -218,6 +218,20 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
             else
                 no = try _body tokens state
         give json.stringify (["If", condition, json.stringify yes, json.stringify no])
+    if kind == "try"
+        next_token = tokens[state[0] + 1]
+        if next_token[0] == "Newline"
+            _advance tokens state
+            protected = try _body tokens state
+            error_name = "err"
+            recovery = []
+            if _kind tokens state == "else"
+                _advance tokens state
+                if _kind tokens state == "Identifier"
+                    error_token = _advance tokens state
+                    error_name = error_token[1]
+                recovery = try _body tokens state
+            give json.stringify (["TryStmt", json.stringify protected, error_name, json.stringify recovery])
     if kind == "match"
         _advance tokens state
         subject = try _expression tokens state 1
@@ -259,9 +273,15 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
         name = _advance tokens state
         if name[0] != "Identifier"
             fail "Expected loop variable after for."
+        second_name = ""
+        if _kind tokens state == "Identifier"
+            token = _advance tokens state
+            second_name = token[1]
         try _expect tokens state "in"
         iterable = try _expression tokens state 1
         body = try _body tokens state
+        if second_name != ""
+            give json.stringify (["ForPairs", name[1], second_name, iterable, json.stringify body])
         give json.stringify (["For", name[1], iterable, json.stringify body])
     if kind == "make"
         _advance tokens state

@@ -199,6 +199,8 @@ make _emit_expr encoded:Text -> Text
     if kind == "Member"
         base = try _emit_expr node[1]
         member = node[2]
+        if member == "message"
+            give base + ".message"
         if member == "len"
             give "static_cast<std::int64_t>(" + base + ".size())"
         if member == "upper" or member == "lower"
@@ -285,6 +287,20 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         if node[1] in ["math", "text", "collections", "file", "json", "os"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
+    if kind == "TryStmt"
+        protected_names = _clone_names names
+        protected = try _emit_block node[1] (level + 1) protected_names
+        output = pad + "try {\n" + protected + pad + "} catch (const std::exception& __se_caught) {\n"
+        recovery = _node node[3]
+        if recovery.len > 0
+            error_names = _clone_names names
+            error_names.add node[2]
+            fallback = try _emit_block node[3] (level + 1) error_names
+            output = output + pad + "    SEError " + node[2] + "{__se_caught.what()};\n"
+            output = output + fallback
+        else
+            output = output + pad + "    throw;\n"
+        give output + pad + "}\n"
     if kind == "Match"
         value = try _emit_expr node[1]
         choices = _node node[2]
@@ -333,6 +349,16 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         body = try _emit_block node[2] (level + 1) loop_names
         count = try _emit_expr node[1]
         give pad + "for (std::int64_t _se_i = 0; _se_i < " + count + "; ++_se_i) {\n" + body + pad + "}\n"
+    if kind == "ForPairs"
+        scope = _clone_names names
+        scope.add node[1]
+        scope.add node[2]
+        body = try _emit_block node[4] (level + 1) scope
+        iterable = try _emit_expr node[3]
+        output = pad + "for (const auto& __se_pair : " + iterable + ".items) {\n"
+        output = output + pad + "    auto " + node[1] + " = __se_pair.first;\n"
+        output = output + pad + "    auto " + node[2] + " = __se_pair.second;\n"
+        give output + body + pad + "}\n"
     if kind == "For"
         scope = _clone_names names
         scope.add node[1]
