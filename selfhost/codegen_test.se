@@ -19,4 +19,13 @@ math_cpp = try emit_program (try parse math_source)
 test.ok (text.contains math_cpp "(std::int64_t{3} * std::int64_t{4})")
 test.ok (text.contains math_cpp "se_add(std::int64_t{2}, (std::int64_t{3} * std::int64_t{4}))")
 
+# C++ must see typed declarations before either recursive function definition.
+forward_source = try read "selfhost/cases/language_forward_functions.se"
+forward_ast = try parse forward_source
+forward_cpp = try emit_program forward_ast
+test.ok (text.contains forward_cpp "bool is_even(std::int64_t n);")
+test.ok (text.contains forward_cpp "bool is_odd(std::int64_t n);")
+test.ok (text.contains forward_cpp "return is_odd((n - std::int64_t{1}));")
+test.ok (text.contains forward_cpp "return is_even((n - std::int64_t{1}));")
+
 say "SE selfhost codegen smoke test passed"
