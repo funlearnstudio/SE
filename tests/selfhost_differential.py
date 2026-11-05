@@ -82,6 +82,12 @@ def main() -> None:
         tmp = Path(folder)
         verify_positive("language_core.se", "", tmp)
         verify_positive("language_text.se", "", tmp)
+        verify_positive("language_conversions.se", "", tmp)
+        verify_positive("language_time.se", "", tmp)
+        verify_positive("language_file_module.se", "", tmp)
+        verify_positive("language_generic_tests.se", "", tmp)
+        verify_positive("language_generic_index.se", "", tmp)
+        verify_positive("language_nested_generic.se", "", tmp)
         verify_positive("language_input.se", "5 7 hello\n", tmp, expected_output="12\nhello\n")
         verify_positive("language_index_assignment.se", "", tmp)
         verify_positive("language_map_set.se", "", tmp)
@@ -97,14 +103,18 @@ def main() -> None:
         verify_positive("language_bare_arithmetic.se", "", tmp)
         verify_positive("language_std_basic.se", "", tmp)
         verify_positive("language_user_type.se", "", tmp)
+        verify_positive("language_typed_fields.se", "", tmp)
         verify_positive("language_collections_functional.se", "", tmp)
         verify_positive("language_remove_collections.se", "", tmp)
         verify_positive("language_remove_map.se", "", tmp)
         verify_positive("language_cpp_keywords.se", "", tmp)
         verify_positive("language_source_imports.se", "", tmp)
+        verify_positive("language_s_imports.se", "", tmp)
         verify_positive("language_duration.se", "", tmp, expected_output="duration ok\n")
         verify_positive("language_elif.se", "", tmp, expected_output="middle\n")
         for case, message in (
+            ("negative_required_field.se", "Missing required field"),
+            ("negative_field_default.se", "Field default type mismatch"),
             ("negative_wrong_type.se", "Arithmetic requires numbers"),
             ("negative_undefined.se", "Undefined identifier"),
             ("negative_wrong_arity.se", "Wrong arity"),

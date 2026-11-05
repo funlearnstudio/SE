@@ -1,0 +1,13 @@
+type Person
+    name:Text
+    age:Int = 15
+
+    make label -> Text
+        give name
+
+person = Person
+    name = "SE"
+say person.label
+say person.age
+person.age = 16
+say person.age

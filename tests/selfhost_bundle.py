@@ -14,7 +14,7 @@ import re
 
 ROOT = Path(__file__).resolve().parent.parent
 ROOT_SE = ROOT / "selfhost"
-ORDER = ["lexer", "parser", "symbol_table", "typechecker",
+ORDER = ["type_model", "ast_codec", "lexer", "parser", "symbol_table", "typechecker",
          "codegen", "compile", "compiler"]
 FUNCTION = re.compile(r"^make\s+([A-Za-z_][A-Za-z0-9_]*)\b", re.MULTILINE)
 IMPORT = re.compile(r"^use\s+([A-Za-z_][A-Za-z0-9_]*)\s*$", re.MULTILINE)
@@ -92,7 +92,7 @@ def build() -> str:
             "# Stage0-bundled module: " + module + "\n" + "\n".join(lines).strip() + "\n"
         )
     return ("# Deterministic SE compiler bootstrap bundle.\n"
-            "# Original source: selfhost/{lexer,parser,symbol_table,typechecker,codegen,compile,compiler}.se\n"
+            "# Original source: selfhost/{type_model,ast_codec,lexer,parser,symbol_table,typechecker,codegen,compile,compiler}.se\n"
             + "\n".join("use " + name for name in sorted(builtins)) + "\n\n"
             + "\n".join(sections) + "\n")
 

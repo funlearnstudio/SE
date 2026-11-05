@@ -4,19 +4,19 @@
 use json
 use symbol_table
 use collections
+use ast_codec
+use type_model
 
 make _node encoded:Text -> List[Text]
     give json.parse encoded
 
 make _compatible expected:Text actual:Text -> Bool
-    # Generic type variables are resolved when their function is instantiated.
-    if expected in ["T", "U", "V", "K", "E", "R"]
-        give true
-    if expected == "Unknown" or actual == "Unknown"
-        give true
-    if expected == actual
-        give true
-    give expected == "Num" and actual == "Int"
+    give type_matches expected actual
+
+make _field_type field:List[Text] symbols:List[List[Text]] -> Text
+    if field.len > 2 and field[2] != "Unknown"
+        give field[2]
+    give try _infer field[1] symbols
 
 make _numeric kind:Text -> Bool
     give kind == "Int" or kind == "Num" or kind == "Unknown"
@@ -123,39 +123,24 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
     if kind == "Index"
         container = try _infer node[1] symbols
         index_type = try _infer node[2] symbols
-        if container in ["Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Map[Text,Unknown]"]
-            if index_type != "Text" and index_type != "Unknown"
-                fail "Map key must be Text."
-            if container == "Map[Text,Int]"
-                give "Int"
-            if container == "Map[Text,Num]"
-                give "Num"
-            if container == "Map[Text,Text]"
-                give "Text"
-            if container == "Map[Text,Bool]"
-                give "Bool"
-            give "Unknown"
-        if index_type != "Int" and index_type != "Unknown"
-            fail "List index must be Int."
-        if container == "List[Int]"
-            give "Int"
-        if container == "List[Num]"
-            give "Num"
-        if container == "List[Text]"
-            give "Text"
-        if container == "List[Bool]"
-            give "Bool"
-        if container == "List[List[Text]]"
-            give "List[Text]"
-        if container == "List[List[Int]]"
-            give "List[Int]"
-        if container == "List[Unknown]" or container == "Unknown"
+        parts = decompose_type container
+        if parts[0] == "Map" and parts.len == 3
+            if not (type_matches parts[1] index_type)
+                fail "Map key must be " + parts[1] + "."
+            give parts[2]
+        if parts[0] == "List" and parts.len == 2
+            if index_type != "Int" and index_type != "Unknown"
+                fail "List index must be Int."
+            give parts[1]
+        if container == "Unknown"
             give "Unknown"
         fail "Only List and Map indexing supported, got " + container
     if kind == "Member"
         object_type = try _infer node[1] symbols
         member = node[2]
         owner = _node node[1]
+        if member == "help"
+            give "Text"
         if owner[0] == "Atom" and owner[1] == "Identifier"
             if owner[2] == "math" and member in ["pi", "e"]
                 give "Num"
@@ -163,8 +148,16 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 give "Num"
             if owner[2] == "os" and member in ["platform", "cwd"]
                 give "Text"
+            if owner[2] == "time" and member == "now"
+                give "Time"
         if member == "message" and object_type == "Error"
             give "Text"
+        if member == "kind" and object_type == "Error"
+            give "Text"
+        if object_type == "File" and member == "read"
+            give "Text"
+        if object_type == "File" and member in ["write", "close"]
+            give "Function"
         if member == "len"
             if object_type == "Text" or object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]", "List[List[Text]]", "List[List[Int]]", "Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Set[Int]", "Set[Num]", "Set[Text]", "Set[Bool]"]
                 give "Int"
@@ -181,8 +174,8 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             for encoded_field in fields
                 field = _node encoded_field
                 if field[0] == member
-                    give try _infer field[1] symbols
-            methods = _node user_type[5]
+                    give try _field_type field symbols
+            methods = try unpack_block user_type[5]
             for encoded_method in methods
                 method = _node encoded_method
                 if method[1] == member
@@ -199,6 +192,10 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 if args.len != 1
                     fail "read expects one file path."
                 give "Text"
+            if name == "open"
+                if args.len != 1
+                    fail "open expects one file path."
+                give "File"
             if name == "write" or name == "append"
                 if args.len != 2
                     fail name + " expects path and text."
@@ -214,8 +211,8 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 if args.len != 1
                     fail "char expects one argument."
                 codepoint_type = try _infer args[0] symbols
-                if not _compatible "Int" codepoint_type
-                    fail "char expects an Int codepoint."
+                if codepoint_type != "Int" and codepoint_type != "Text" and codepoint_type != "Unknown"
+                    fail "char expects an Int codepoint or one-character Text."
                 give "Text"
             if name == "int" or name == "integer"
                 if args.len != 1
@@ -225,6 +222,13 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 if args.len != 1
                     fail "num expects one argument."
                 give "Num"
+            if name == "bool" or name == "boolean"
+                if args.len != 1
+                    fail "bool expects one argument."
+                bool_type = try _infer args[0] symbols
+                if bool_type != "Bool" and bool_type != "Text" and bool_type != "Unknown"
+                    fail "bool needs Bool or Text true/false."
+                give "Bool"
             if name == "string" or name == "text"
                 if args.len != 1
                     fail "text expects one argument."
@@ -236,35 +240,66 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 fail "Cannot call non-function: " + name
             if int entry[2] != args.len
                 fail "Wrong arity for " + name + ": expected " + entry[2]
+            bindings = [["", ""]]
+            bindings = collections.take bindings 0
             if entry.len > 4
                 signature = _node entry[4]
                 i = 0
                 while i < signature.len
                     pair = _node signature[i]
                     got = try _infer args[i] symbols
+                    try bind_type pair[1] got bindings
                     if not _compatible pair[1] got
                         fail "Function " + name + " argument " + string(i + 1) + " expects " + pair[1] + ", got " + got
                     i += 1
-            if entry[3] in ["T", "U", "V", "K", "E", "R"] and entry.len > 4
-                signature = _node entry[4]
-                j = 0
-                while j < args.len
-                    pair = _node signature[j]
-                    if pair[1] == entry[3]
-                        give try _infer args[j] symbols
-                    j += 1
-            give entry[3]
+            give resolve_type entry[3] bindings
         if callee[0] == "Member"
             owner_type = try _infer callee[1] symbols
             if owner_type == "Module"
+                owner = _node callee[1]
+                if owner[0] == "Atom" and owner[2] == "time"
+                    if callee[2] == "now"
+                        if args.len != 0
+                            fail "time.now expects no arguments."
+                        give "Time"
+                    if callee[2] == "unix"
+                        if args.len != 1
+                            fail "time.unix expects one Time."
+                        give "Int"
+                    if callee[2] == "from_unix"
+                        if args.len != 1
+                            fail "time.from_unix expects one Int."
+                        give "Time"
+                    if callee[2] == "iso"
+                        if args.len != 1
+                            fail "time.iso expects one Time."
+                        give "Text"
+                if owner[0] == "Atom" and owner[2] == "file"
+                    if callee[2] == "open"
+                        if args.len != 1
+                            fail "file.open expects one path."
+                        give "File"
+                    if callee[2] == "read"
+                        give "Text"
+                    if callee[2] in ["write", "append", "copy", "move", "copytree", "remove", "mkdir"]
+                        give "Unknown"
                 give "Unknown"
+            if owner_type == "File"
+                if callee[2] == "write"
+                    if args.len != 1
+                        fail "File.write expects one Text."
+                    give "Unknown"
+                if callee[2] == "close"
+                    if args.len != 0
+                        fail "File.close expects no arguments."
+                    give "Unknown"
             if callee[2] in ["add", "remove"]
                 if args.len != 1
                     fail "Collection.add/remove expects exactly one value."
                 give "Unknown"
             user_type = lookup_symbol symbols owner_type
             if user_type[1] == "UserType"
-                methods = _node user_type[5]
+                methods = try unpack_block user_type[5]
                 for encoded_method in methods
                     method = _node encoded_method
                     if method[1] == callee[2]
@@ -292,28 +327,28 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
 make _guarantees_return statements:List[Text] -> Bool
     for item in statements
         node = _node item
-        if node[0] == "give"
+        if node[0] == "give" or node[0] == "fail"
             give true
         if node[0] == "TryStmt"
-            protected = _node node[1]
-            recovery = _node node[3]
-            if recovery.len > 0 and _guarantees_return protected and _guarantees_return recovery
+            protected = try unpack_block node[1]
+            recovery = try unpack_block node[3]
+            if recovery.len > 0 and try _guarantees_return protected and try _guarantees_return recovery
                 give true
         if node[0] == "Match"
             options = _node node[2]
-            fallback = _node node[3]
-            if fallback.len > 0 and _guarantees_return fallback
+            fallback = try unpack_block node[3]
+            if fallback.len > 0 and try _guarantees_return fallback
                 every_case = true
                 for encoded_case in options
                     case_pair = _node encoded_case
-                    if not _guarantees_return (_node case_pair[1])
+                    if not (try _guarantees_return (try unpack_block case_pair[1]))
                         every_case = false
                 if every_case
                     give true
         if node[0] == "If"
-            yes = _node node[2]
-            no = _node node[3]
-            if _guarantees_return yes and _guarantees_return no
+            yes = try unpack_block node[2]
+            no = try unpack_block node[3]
+            if try _guarantees_return yes and try _guarantees_return no
                 give true
     give false
 
@@ -327,6 +362,13 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
     kind = node[0]
     if kind == "Assign"
         inferred = try _infer node[2] symbols
+        shape = lookup_symbol symbols inferred
+        if shape[1] == "UserType"
+            fields = _node shape[4]
+            for encoded_field in fields
+                field = _node encoded_field
+                if field.len > 3 and field[3] == "required"
+                    fail "Missing required field: " + field[0]
         try assign_symbol symbols node[1] inferred
         give "OK"
     if kind == "AssignInit"
@@ -343,12 +385,22 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
                 field = _node encoded_field
                 if field[0] == init[0]
                     matched = true
-                    declared = try _infer field[1] symbols
+                    declared = try _field_type field symbols
                     actual = try _infer init[1] symbols
                     if not _compatible declared actual
                         fail "Initializer field type mismatch: " + init[0]
             if not matched
                 fail "Unknown initializer field: " + init[0]
+        for encoded_field in fields
+            field = _node encoded_field
+            if field.len > 3 and field[3] == "required"
+                supplied = false
+                for encoded_init in initializers
+                    init = _node encoded_init
+                    if init[0] == field[0]
+                        supplied = true
+                if not supplied
+                    fail "Missing required field: " + field[0]
         try assign_symbol symbols node[1] type_name
         give "OK"
     if kind == "AssignIndex"
@@ -396,7 +448,7 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         for encoded_field in fields
             field = _node encoded_field
             if field[0] == node[2]
-                declared = try _infer field[1] symbols
+                declared = try _field_type field symbols
                 actual = try _infer node[3] symbols
                 if not _compatible declared actual
                     fail "Object field assignment type mismatch."
@@ -429,8 +481,8 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         give "OK"
     if kind == "TryStmt"
         local = clone_symbols symbols
-        try _check_block (_node node[1]) local return_type
-        recovery = _node node[3]
+        try _check_block (try unpack_block node[1]) local return_type
+        recovery = try unpack_block node[3]
         if recovery.len > 0
             errors = clone_symbols symbols
             try define_symbol errors node[2] "Error" "0" ""
@@ -445,9 +497,9 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             if not _compatible subject_type case_type and not _compatible case_type subject_type
                 fail "Match case type mismatch: " + subject_type + " vs " + case_type
             local = clone_symbols symbols
-            try _check_block (_node choice[1]) local return_type
+            try _check_block (try unpack_block choice[1]) local return_type
         otherwise = clone_symbols symbols
-        try _check_block (_node node[3]) otherwise return_type
+        try _check_block (try unpack_block node[3]) otherwise return_type
         give "OK"
     if kind == "If" or kind == "while" or kind == "repeat"
         condition = try _infer node[1] symbols
@@ -457,10 +509,10 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         if not _compatible expected condition
             fail kind + " requires " + expected + ", got " + condition
         nested = clone_symbols symbols
-        body = _node node[2]
+        body = try unpack_block node[2]
         try _check_block body nested return_type
         if kind == "If"
-            alternative = _node node[3]
+            alternative = try unpack_block node[3]
             nested_else = clone_symbols symbols
             try _check_block alternative nested_else return_type
         give "OK"
@@ -480,7 +532,7 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         local = clone_symbols symbols
         try define_symbol local node[1] "Text" "0" ""
         try define_symbol local node[2] element "0" ""
-        try _check_block (_node node[4]) local return_type
+        try _check_block (try unpack_block node[4]) local return_type
         give "OK"
     if kind == "For"
         iterable = try _infer node[2] symbols
@@ -505,7 +557,7 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             fail "for expects List or Range, got " + iterable
         local = clone_symbols symbols
         try define_symbol local node[1] element_type "0" ""
-        body = _node node[3]
+        body = try unpack_block node[3]
         try _check_block body local return_type
         give "OK"
     if kind == "TypeDecl"
@@ -513,9 +565,13 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         local = clone_symbols symbols
         for encoded_field in fields
             field = _node encoded_field
-            field_type = try _infer field[1] local
+            field_type = try _field_type field local
+            if field.len > 3 and field[3] == "default"
+                actual_default = try _infer field[1] local
+                if not _compatible field_type actual_default
+                    fail "Field default type mismatch: " + field[0]
             try define_symbol local field[0] field_type "0" ""
-        methods = _node node[3]
+        methods = try unpack_block node[3]
         for encoded_method in methods
             method = _node encoded_method
             parameters = _node method[2]
@@ -523,9 +579,9 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             for encoded_param in parameters
                 parameter = _node encoded_param
                 try define_symbol inner parameter[0] parameter[1] "0" ""
-            body = _node method[3]
+            body = try unpack_block method[3]
             try _check_block body inner method[4]
-            if method[4] != "Unknown" and not _guarantees_return body
+            if method[4] != "Unknown" and not (try _guarantees_return body)
                 fail "Method " + method[1] + " requires a return on all paths."
         give "OK"
     if kind == "Make"
@@ -534,9 +590,9 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         for item in params
             pair = _node item
             try define_symbol local pair[0] pair[1] "0" ""
-        body = _node node[3]
+        body = try unpack_block node[3]
         try _check_block body local node[4]
-        if node[4] != "Unknown" and not _guarantees_return body
+        if node[4] != "Unknown" and not (try _guarantees_return body)
             fail "Function " + node[1] + " is missing a return on some code paths."
         give "OK"
     fail "Unsupported AST statement in self-hosted checker: " + kind

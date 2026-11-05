@@ -2,6 +2,8 @@
 # Emits calls to selfhost/se_bootstrap_runtime.hpp for basic SE semantics.
 use json
 use text
+use ast_codec
+use type_model
 
 make _node encoded:Text -> List[Text]
     give json.parse encoded
@@ -16,6 +18,13 @@ make _clone_names entries:List[Text] -> List[Text]
     give names
 
 make _ctype source:Text -> Text
+    parts = decompose_type source
+    if parts[0] == "List" and parts.len == 2
+        give "std::vector<" + (try _ctype parts[1]) + ">"
+    if parts[0] == "Set" and parts.len == 2
+        give "SESet<" + (try _ctype parts[1]) + ">"
+    if parts[0] == "Map" and parts.len == 3 and parts[1] == "Text"
+        give "SEMap<" + (try _ctype parts[2]) + ">"
     if source == "Int"
         give "std::int64_t"
     if source == "Num"
@@ -24,6 +33,10 @@ make _ctype source:Text -> Text
         give "std::string"
     if source == "Bool"
         give "bool"
+    if source == "Time"
+        give "SETime"
+    if source == "File"
+        give "SEFile"
     if source == "List[Int]"
         give "std::vector<std::int64_t>"
     if source == "List[Num]"
@@ -52,7 +65,7 @@ make _ctype source:Text -> Text
         give "SESet<double>"
     if source == "Set[Bool]"
         give "SESet<bool>"
-    if source in ["T", "U", "V", "K", "E", "R"]
+    if source in ["T", "U", "V", "K", "E", "R", "A", "B"]
         give source
     if source == "Unknown"
         give "auto"
@@ -62,7 +75,7 @@ make _ctype source:Text -> Text
 make _parameter_type declared:Text name:Text -> Text
     result = try _ctype declared
     if declared in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[List[Text]]", "List[List[Int]]"]
-        if name in ["state", "tokens", "symbols", "entries", "names", "loaded"]
+        if name in ["state", "tokens", "symbols", "entries", "names", "loaded", "bindings"]
             give result + "&"
         give "const " + result + "&"
     give result
@@ -89,13 +102,10 @@ make _cpp_identifier name:Text -> Text
 
 make _emit_arguments encoded:Text -> Text
     args = _node encoded
-    result = ""
+    parts = []
     for item in args
-        generated = try _emit_expr item
-        if result != ""
-            result = result + ", "
-        result = result + generated
-    give result
+        parts.add (try _emit_expr item)
+    give text.join parts ", "
 
 make _emit_call encoded:Text -> Text
     node = _node encoded
@@ -108,6 +118,8 @@ make _emit_call encoded:Text -> Text
             give "se_int(" + generated + ")"
         if name in ["num", "float", "double"]
             give "se_num(" + generated + ")"
+        if name == "bool" or name == "boolean"
+            give "se_bool(" + generated + ")"
         if name in ["text", "string"]
             give "se_string(" + generated + ")"
         if name == "wait"
@@ -120,6 +132,8 @@ make _emit_call encoded:Text -> Text
             give "se_write(" + generated + ")"
         if name == "append"
             give "se_append(" + generated + ")"
+        if name == "open"
+            give "se_file_open(" + generated + ")"
         cpp_name = _cpp_identifier name
         give cpp_name + "(" + generated + ")"
     if target[0] == "Member"
@@ -145,6 +159,44 @@ make _emit_call encoded:Text -> Text
                 if method == "int"
                     give "se_random_int(" + generated + ")"
                 fail "Random module function not yet supported: " + method
+            if module == "base64"
+                if method == "encode"
+                    give "se_base64_encode(" + generated + ")"
+                if method == "decode"
+                    give "se_base64_decode(" + generated + ")"
+                fail "Base64 module function not yet supported: " + method
+            if module == "time"
+                if method == "now"
+                    give "se_time_now()"
+                if method == "unix"
+                    give "se_time_unix(" + generated + ")"
+                if method == "from_unix"
+                    give "se_time_from_unix(" + generated + ")"
+                if method == "iso"
+                    give "se_time_iso(" + generated + ")"
+                fail "Time module function not yet supported: " + method
+            if module == "file"
+                if method == "read"
+                    give "se_read(" + generated + ")"
+                if method == "write"
+                    give "se_write(" + generated + ")"
+                if method == "append"
+                    give "se_append(" + generated + ")"
+                if method == "open"
+                    give "se_file_open(" + generated + ")"
+                if method in ["copy", "move", "copytree", "remove", "mkdir"]
+                    give "se_file_" + method + "(" + generated + ")"
+                fail "File module function not yet supported: " + method
+            if module == "test"
+                if method == "ok"
+                    give "se_test_ok(" + generated + ")"
+                if method == "equal"
+                    give "se_test_equal(" + generated + ")"
+                if method == "not_equal"
+                    give "se_test_not_equal(" + generated + ")"
+                if method == "fail"
+                    give "se_test_fail(" + generated + ")"
+                fail "Test module function not supported: " + method
             if module == "math"
                 if method in ["sqrt", "pow", "abs", "floor", "ceil", "round", "sin", "cos", "tan", "log", "log10", "exp", "hypot", "min", "max"]
                     give "std::" + method + "(" + generated + ")"
@@ -252,6 +304,8 @@ make _emit_expr encoded:Text -> Text
         member = node[2]
         if owner[0] == "Atom" and owner[1] == "Identifier"
             module = owner[2]
+            if member == "help"
+                give "se_module_help(" + (json.stringify module) + ")"
             if module == "math"
                 if member == "pi"
                     give "std::numbers::pi_v<double>"
@@ -264,10 +318,16 @@ make _emit_expr encoded:Text -> Text
                     give "se_platform()"
                 if member == "cwd"
                     give "se_cwd()"
+            if module == "time" and member == "now"
+                give "se_time_now()"
         base = try _emit_expr node[1]
         member = node[2]
+        if member == "help"
+            give "se_help_text(" + base + ")"
         if member == "message"
             give base + ".message"
+        if member == "kind"
+            give base + ".kind"
         if member == "len"
             give "static_cast<std::int64_t>(" + base + ".size())"
         if member == "upper" or member == "lower"
@@ -289,7 +349,7 @@ make _emit_expr encoded:Text -> Text
 make _emit_type encoded:Text -> Text
     node = _node encoded
     fields = _node node[2]
-    methods = _node node[3]
+    methods = try unpack_block node[3]
     output = "struct SEType_" + node[1] + " {\n"
     field_names = []
     for encoded_field in fields
@@ -297,7 +357,14 @@ make _emit_type encoded:Text -> Text
         value = try _emit_expr field[1]
         field_names.add field[0]
         cpp_field = _cpp_identifier field[0]
-        output = output + "    decltype(" + value + ") " + cpp_field + " = " + value + ";\n"
+        if field.len > 2 and field[2] != "Unknown"
+            field_cpp_type = try _ctype field[2]
+            if field[3] == "required"
+                output = output + "    " + field_cpp_type + " " + cpp_field + "{};\n"
+            else
+                output = output + "    " + field_cpp_type + " " + cpp_field + " = " + value + ";\n"
+        else
+            output = output + "    decltype(" + value + ") " + cpp_field + " = " + value + ";\n"
     for encoded_method in methods
         method = _node encoded_method
         parameters = _node method[2]
@@ -329,12 +396,12 @@ make _emit_type encoded:Text -> Text
     give output
 
 make _emit_block encoded:Text level:Int names:List[Text] -> Text
-    statements = _node encoded
-    output = ""
+    statements = try unpack_block encoded
+    parts = []
     for item in statements
         generated = try _emit_stmt item level names
-        output = output + generated
-    give output
+        parts.add generated
+    give text.join parts ""
 
 make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     node = _node encoded
@@ -419,17 +486,21 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
             i += 1
         give output
     if kind == "ExprStmt"
+        expr_node = _node node[2]
+        if expr_node[0] == "Member" and expr_node[2] == "help"
+            printable = try _emit_expr node[2]
+            give pad + "se_say(" + printable + ");\n"
         result = try _emit_expr node[2]
         give pad + result + ";\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"
         protected_names = _clone_names names
         protected = try _emit_block node[1] (level + 1) protected_names
         output = pad + "try {\n" + protected + pad + "} catch (const std::exception& __se_caught) {\n"
-        recovery = _node node[3]
+        recovery = try unpack_block node[3]
         if recovery.len > 0
             error_names = _clone_names names
             error_names.add node[2]
@@ -459,7 +530,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
                 output = output + " else if ("
             output = output + local_name + " == " + pattern + ") {\n"
             output = output + body + pad + "    }"
-        fallback = _node node[3]
+        fallback = try unpack_block node[3]
         if fallback.len > 0
             branch_names = _clone_names names
             body = try _emit_block node[3] (level + 2) branch_names
@@ -549,24 +620,30 @@ make _emit_prototype encoded:Text -> Text
     give header + return_type + " " + cpp_function + "(" + arguments + ");\n"
 
 make emit_program ast:List[Text] -> Text
-    type_decls = ""
-    prototypes = ""
-    functions = ""
-    body = ""
+    type_parts = []
+    prototype_parts = []
+    function_parts = []
+    body_parts = []
     names = []
     # C++ needs declarations before definitions for mutual recursion and forward calls.
     for stmt in ast
         node = _node stmt
         if node[0] == "Make"
-            prototypes = prototypes + (try _emit_prototype stmt)
+            prototype_parts.add (try _emit_prototype stmt)
         if node[0] == "TypeDecl"
-            type_decls = type_decls + (try _emit_type stmt) + "\n"
+            type_parts.add (try _emit_type stmt)
+            type_parts.add "\n"
     for stmt in ast
         node = _node stmt
         if node[0] == "Make"
             generated = try _emit_stmt stmt 0 names
-            functions = functions + generated + "\n"
+            function_parts.add generated
+            function_parts.add "\n"
         else if node[0] != "TypeDecl"
             generated = try _emit_stmt stmt 2 names
-            body = body + generated
+            body_parts.add generated
+    type_decls = text.join type_parts ""
+    prototypes = text.join prototype_parts ""
+    functions = text.join function_parts ""
+    body = text.join body_parts ""
     give "#include \"se_bootstrap_runtime.hpp\"\n\n" + type_decls + prototypes + "\n" + functions + "int main() {\n    try {\n" + body + "        return 0;\n    } catch (const std::exception& e) {\n        std::cerr << e.what() << '\\n';\n        return 1;\n    }\n}\n"

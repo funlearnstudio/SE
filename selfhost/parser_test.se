@@ -1,8 +1,13 @@
 # Lexer + parser smoke/regression test for the SE-written bootstrap front end.
 use lexer
 use parser
+use ast_codec
+use json
 use text
 use test
+
+make node encoded:Text -> List[Text]
+    give json.parse encoded
 
 source = "name = \"SE\"\nif name == \"SE\"\n    say \"Hello SE\"\nelse\n    say \"other\"\n"
 tokens = try lex source
@@ -19,7 +24,9 @@ first = ast[0]
 test.ok (text.contains first "\"Assign\"")
 second = ast[1]
 test.ok (text.contains second "\"If\"")
-test.ok (text.contains second "say")
+if_node = node second
+if_yes = try unpack_block (if_node[2])
+test.ok (text.contains if_yes[0] "say")
 
 arithmetic = try parse "value = 1 + 2 * 3\nsay value\n"
 test.equal 2 arithmetic.len
@@ -31,8 +38,14 @@ blocks = try parse "make greet name\n    say name\nrepeat 3\n    say \"Hi\"\nwhi
 test.equal 3 blocks.len
 make_ast = blocks[0]
 test.ok (text.contains make_ast "\"Make\"")
+make_node = node make_ast
+make_body = try unpack_block (make_node[3])
+test.equal 1 make_body.len
 repeat_ast = blocks[1]
 test.ok (text.contains repeat_ast "\"repeat\"")
+repeat_node = node repeat_ast
+repeat_body = try unpack_block (repeat_node[2])
+test.equal 1 repeat_body.len
 while_ast = blocks[2]
 test.ok (text.contains while_ast "\"while\"")
 

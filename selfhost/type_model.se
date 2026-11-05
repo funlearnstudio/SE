@@ -1,0 +1,87 @@
+# Recursive type structure and generic binding, ported from Checker::substitute
+# and Checker::bind_generics in src/type/checker.cpp.
+use text
+use collections
+
+make decompose_type source:Text -> List[Text]
+    chars = text.split source ""
+    result = [""]
+    current = ""
+    depth = 0
+    started = false
+    for c in chars
+        if c == "["
+            if not started
+                result[0] = current
+                current = ""
+                started = true
+            else
+                current = current + c
+            depth += 1
+        else if c == "]"
+            depth -= 1
+            if depth == 0
+                result.add current
+                current = ""
+            else
+                current = current + c
+        else if c == "," and depth == 1
+            result.add current
+            current = ""
+        else if c != " "
+            current = current + c
+    if not started
+        result[0] = current
+    give result
+
+make type_matches expected:Text actual:Text -> Bool
+    if expected == actual or expected == "Unknown" or actual == "Unknown"
+        give true
+    if expected in ["T", "U", "V", "K", "E", "R", "A", "B"]
+        give true
+    if expected == "Num" and actual == "Int"
+        give true
+    left = decompose_type expected
+    right = decompose_type actual
+    if left[0] != right[0] or left.len != right.len
+        give false
+    i = 1
+    while i < left.len
+        if not (type_matches left[i] right[i])
+            give false
+        i += 1
+    give left.len > 1
+
+make bind_type expected:Text actual:Text bindings:List[List[Text]] -> Text
+    if expected in ["T", "U", "V", "K", "E", "R", "A", "B"] and actual != "Unknown"
+        for binding in bindings
+            if binding[0] == expected
+                if not (type_matches binding[1] actual)
+                    fail "Generic type " + expected + " was already inferred as " + binding[1] + ", got " + actual
+                give "OK"
+        bindings.add ([expected, actual])
+        give "OK"
+    left = decompose_type expected
+    right = decompose_type actual
+    if left[0] == right[0] and left.len == right.len
+        i = 1
+        while i < left.len
+            try bind_type left[i] right[i] bindings
+            i += 1
+    give "OK"
+
+make resolve_type source:Text bindings:List[List[Text]] -> Text
+    for binding in bindings
+        if binding[0] == source
+            give binding[1]
+    parts = decompose_type source
+    if parts.len == 1
+        give source
+    output = parts[0] + "["
+    i = 1
+    while i < parts.len
+        if i > 1
+            output = output + ","
+        output = output + (resolve_type parts[i] bindings)
+        i += 1
+    give output + "]"

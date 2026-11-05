@@ -2,9 +2,11 @@
 // Small C++20 runtime for the SE-written bootstrap compiler.
 // This header is NOT the production SE runtime. See selfhost/README.md.
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <cmath>
 #include <chrono>
+#include <ctime>
 #include <filesystem>
 #include <numbers>
 #include <random>
@@ -13,6 +15,7 @@
 #include <cstdint>
 #include <cctype>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <iterator>
 #include <limits>
@@ -22,11 +25,64 @@
 #include <type_traits>
 #include <vector>
 
-struct SEError { std::string message; };
+struct SEError {
+  std::string message;
+  std::string kind = "Error";
+};
+inline std::ostream& operator<<(std::ostream& out,const SEError& error){
+  return out<<error.message;
+}
 struct SEDuration {
   std::int64_t milliseconds;
   bool operator==(const SEDuration&) const = default;
 };
+struct SETime {
+  std::chrono::system_clock::time_point point;
+};
+struct SEFile {
+  std::fstream stream;
+  bool closed=false;
+  std::string read(){
+    if(closed||!stream.is_open())throw std::runtime_error("This file is closed.");
+    stream.clear();stream.seekg(0);
+    return std::string(std::istreambuf_iterator<char>(stream),{});
+  }
+  void write(const std::string& value){
+    if(closed||!stream.is_open())throw std::runtime_error("This file is closed.");
+    stream.clear();stream.seekp(0,std::ios::end);stream<<value;stream.flush();
+    if(!stream)throw std::runtime_error("Writing the file failed.");
+  }
+  void close(){if(!closed&&stream.is_open())stream.close();closed=true;}
+};
+inline SEFile se_file_open(const std::string& path){
+  SEFile file;
+  file.stream.open(path,std::ios::in|std::ios::out|std::ios::binary);
+  if(!file.stream.is_open())throw std::runtime_error("Could not open '"+path+"'.");
+  return file;
+}
+inline std::string se_time_iso(const SETime& value){
+  const auto raw=std::chrono::system_clock::to_time_t(value.point);
+  std::tm tm{};
+#ifdef _WIN32
+  gmtime_s(&tm,&raw);
+#else
+  gmtime_r(&raw,&tm);
+#endif
+  std::ostringstream out;
+  out<<std::put_time(&tm,"%Y-%m-%dT%H:%M:%SZ");
+  return out.str();
+}
+inline std::ostream& operator<<(std::ostream& out,const SETime& value){
+  return out<<se_time_iso(value);
+}
+inline std::ostream& operator<<(std::ostream& out,const SEFile&){return out<<"<file>";}
+inline SETime se_time_now(){return SETime{std::chrono::system_clock::now()};}
+inline SETime se_time_from_unix(std::int64_t value){
+  return SETime{std::chrono::system_clock::from_time_t(static_cast<std::time_t>(value))};
+}
+inline std::int64_t se_time_unix(const SETime& value){
+  return static_cast<std::int64_t>(std::chrono::system_clock::to_time_t(value.point));
+}
 inline std::ostream& operator<<(std::ostream& out,const SEDuration& d){
   return out<<d.milliseconds<<"ms";
 }
@@ -100,6 +156,17 @@ inline double se_random_num(){
 inline std::string se_string(const std::string& value) { return value; }
 inline std::string se_string(const char* value) { return std::string(value); }
 inline std::string se_string(bool value) { return value ? "true" : "false"; }
+inline bool se_bool(bool value) { return value; }
+inline bool se_bool(std::string value) {
+  auto begin=value.find_first_not_of(" \t\n\r\f\v");
+  if(begin==std::string::npos)throw std::runtime_error("Could not convert empty Text to Bool. Use true or false.");
+  auto end=value.find_last_not_of(" \t\n\r\f\v");
+  value=value.substr(begin,end-begin+1);
+  std::transform(value.begin(),value.end(),value.begin(),[](unsigned char c){return static_cast<char>(std::tolower(c));});
+  if(value=="true")return true;
+  if(value=="false")return false;
+  throw std::runtime_error("Could not convert Text to Bool. Use true or false.");
+}
 template<class N> inline std::string se_string(N value) {
   std::ostringstream out;
   out << value;
@@ -160,6 +227,16 @@ inline std::string se_char(std::int64_t value) {
     out+=static_cast<char>(0x80|(cp&0x3f));
   }
   return out;
+}
+inline std::string se_char(const std::string& value) {
+  if(value.empty())throw std::runtime_error("char needs exactly one Unicode character.");
+  const auto first=static_cast<unsigned char>(value[0]);
+  std::size_t width=first<=0x7f?1:first>=0xc2&&first<=0xdf?2:first>=0xe0&&first<=0xef?3:first>=0xf0&&first<=0xf4?4:0;
+  if(width==0||value.size()!=width)throw std::runtime_error("char needs exactly one Unicode character.");
+  for(std::size_t i=1;i<width;++i)if((static_cast<unsigned char>(value[i])&0xc0)!=0x80)throw std::runtime_error("char needs valid UTF-8.");
+  if(width==3){auto second=static_cast<unsigned char>(value[1]);if((first==0xe0&&second<0xa0)||(first==0xed&&second>=0xa0))throw std::runtime_error("char needs valid UTF-8.");}
+  if(width==4){auto second=static_cast<unsigned char>(value[1]);if((first==0xf0&&second<0x90)||(first==0xf4&&second>0x8f))throw std::runtime_error("char needs valid UTF-8.");}
+  return value;
 }
 
 // Standalone JSON facilities for the SE compiler's own String/List[String]
@@ -337,6 +414,38 @@ inline std::string se_join(const std::vector<std::string>& parts,const std::stri
   for(std::size_t i=0;i<parts.size();++i){if(i)out+=delim;out+=parts[i];}
   return out;
 }
+inline std::string se_base64_encode(const std::string& input){
+  static constexpr char alphabet[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  std::string output;
+  output.reserve(((input.size()+2)/3)*4);
+  int value=0,bits=-6;
+  for(unsigned char byte:input){
+    value=(value<<8)+byte;
+    bits+=8;
+    while(bits>=0){output.push_back(alphabet[(value>>bits)&0x3F]);bits-=6;}
+  }
+  if(bits>-6)output.push_back(alphabet[((value<<8)>>(bits+8))&0x3F]);
+  while(output.size()%4)output.push_back('=');
+  return output;
+}
+inline std::string se_base64_decode(const std::string& input){
+  static constexpr char alphabet[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  std::array<int,256> table{};
+  table.fill(-1);
+  for(int i=0;i<64;++i)table[static_cast<unsigned char>(alphabet[i])]=i;
+  std::string output;
+  int value=0,bits=-8;
+  for(unsigned char byte:input){
+    if(std::isspace(byte))continue;
+    if(byte=='=')break;
+    const int digit=table[byte];
+    if(digit<0)throw std::runtime_error("Invalid Base64 in SE bootstrap AST.");
+    value=(value<<6)+digit;
+    bits+=6;
+    if(bits>=0){output.push_back(static_cast<char>((value>>bits)&0xFF));bits-=8;}
+  }
+  return output;
+}
 template<class T> inline std::vector<T> se_take(const std::vector<T>& values,std::int64_t amount){
   if(amount<0)throw std::runtime_error("collections.take requires nonnegative count");
   const auto n=std::min<std::size_t>(values.size(),static_cast<std::size_t>(amount));
@@ -398,6 +507,28 @@ inline void se_append(const std::string& path,const std::string& data) {
   if(!file)throw std::runtime_error("Cannot append: "+path);
   file<<data;
 }
+inline void se_file_copy(const std::string& source,const std::string& target){
+  std::error_code error;
+  std::filesystem::copy_file(source,target,std::filesystem::copy_options::overwrite_existing,error);
+  if(error)throw std::runtime_error("file.copy: "+error.message());
+}
+inline void se_file_move(const std::string& source,const std::string& target){
+  std::error_code error;std::filesystem::rename(source,target,error);
+  if(error)throw std::runtime_error("file.move: "+error.message());
+}
+inline void se_file_copytree(const std::string& source,const std::string& target){
+  std::error_code error;
+  std::filesystem::copy(source,target,std::filesystem::copy_options::recursive|std::filesystem::copy_options::overwrite_existing,error);
+  if(error)throw std::runtime_error("file.copytree: "+error.message());
+}
+inline void se_file_remove(const std::string& path){
+  std::error_code error;std::filesystem::remove_all(path,error);
+  if(error)throw std::runtime_error("file.remove: "+error.message());
+}
+inline void se_file_mkdir(const std::string& path){
+  std::error_code error;std::filesystem::create_directories(path,error);
+  if(error)throw std::runtime_error("file.mkdir: "+error.message());
+}
 
 // Ordered Map and Set use the same insertion-order semantics as SE runtime.
 template<class T> struct SEMap {
@@ -423,6 +554,39 @@ template<class T> struct SESet {
   }
   std::size_t size() const{return items.size();}
 };
+inline std::string se_module_help(const std::string& module){
+  if(module=="math")return "members: help, pi, e, sqrt, pow, abs, floor, ceil, round, sin, cos, tan, log, log10, exp, hypot, min, max";
+  if(module=="time")return "members: help, now, unix, from_unix, iso";
+  if(module=="text")return "members: help, split, trim, contains, repeat, join";
+  if(module=="collections")return "members: help, sort, reverse, take, drop, slice, filter, map, reduce, sort_with";
+  if(module=="path")return "members: help, join, name, ext, parent, exists, is_file, is_dir";
+  if(module=="os")return "members: help, getenv, platform, cwd";
+  if(module=="random")return "members: help, int, num";
+  if(module=="json")return "members: help, parse, stringify";
+  if(module=="file")return "members: help, read, write, append, open, copy, move, copytree, remove";
+  if(module=="base64")return "members: help, encode, decode";
+  if(module=="test")return "members: help, ok, equal, not_equal, fail";
+  return "members: help";
+}
+inline std::string se_help_text(const std::string&){return "members: help, len, upper, lower";}
+template<class T> inline std::string se_help_text(const std::vector<T>&){return "members: help, len, add value, remove value";}
+template<class T> inline std::string se_help_text(const SEMap<T>&){return "members: help, len, remove key; index with map[key]";}
+template<class T> inline std::string se_help_text(const SESet<T>&){return "members: help, len, add value, remove value";}
+inline std::string se_help_text(const SEError&){return "members: help, message, kind";}
+inline std::string se_help_text(const SEFile&){return "members: help, read, write text, close";}
+template<class T> inline std::string se_help_text(const T&){return "members: help";}
+inline void se_test_ok(bool value){if(!value)throw std::runtime_error("test.ok failed");}
+template<class A,class B> inline void se_test_equal(const A& actual,const B& expected){
+  if constexpr(requires { actual==expected; }){
+    if(!(actual==expected))throw std::runtime_error("test.equal failed");
+  }else throw std::runtime_error("test.equal does not support these value types");
+}
+template<class A,class B> inline void se_test_not_equal(const A& actual,const B& expected){
+  if constexpr(requires { actual==expected; }){
+    if(actual==expected)throw std::runtime_error("test.not_equal failed");
+  }else throw std::runtime_error("test.not_equal does not support these value types");
+}
+inline void se_test_fail(const std::string& message){throw std::runtime_error(message);}
 template<class K,class V,class... Pairs> auto se_map(std::pair<K,V> first, Pairs... rest) {
   using Element=std::common_type_t<V,typename Pairs::second_type...>;
   SEMap<Element> out;

@@ -32,8 +32,16 @@ int main() {
     assert(se_add("name=", std::int64_t{7}) == "name=7");
     assert(se_char(65) == "A");
     assert(se_char(20013) == "\xe4\xb8\xad");
+    assert(se_char(std::string("\xe4\xb8\xad")) == "\xe4\xb8\xad");
     caught = false;
     try { (void)se_char(0xd800); }
+    catch (const std::runtime_error&) { caught = true; }
+    assert(caught);
+    assert(se_bool(std::string(" TRUE \n")));
+    assert(!se_bool(std::string("FALSE")));
+    assert(se_bool(true));
+    caught = false;
+    try { (void)se_bool(std::string("yes")); }
     catch (const std::runtime_error&) { caught = true; }
     assert(caught);
     assert((se_take(numbers, 2) == std::vector<std::int64_t>{1, 9}));
@@ -81,6 +89,18 @@ int main() {
     catch (const std::runtime_error&) { caught = true; }
     assert(caught);
 
+    std::string packed_ast = "nested AST: \xe4\xb8\xad\\\n";
+    packed_ast.push_back('\0');
+    packed_ast += "tail";
+    const auto encoded_ast = se_base64_encode(packed_ast);
+    assert(se_base64_decode(encoded_ast) == packed_ast);
+    assert(se_base64_encode("") == "");
+    assert(se_base64_decode("") == "");
+    caught = false;
+    try { (void)se_base64_decode("%%%invalid%%%"); }
+    catch (const std::runtime_error&) { caught = true; }
+    assert(caught);
+
     assert(se_duration("500ms").milliseconds == 500);
     assert(se_duration("2s").milliseconds == 2000);
     assert(se_duration("1min").milliseconds == 60000);
@@ -98,6 +118,21 @@ int main() {
     assert(se_path_is_dir("selfhost"));
     assert(se_path_is_file("selfhost/sample.se"));
     assert(se_path_exists("selfhost/sample.se"));
+
+    const auto temp_root=std::filesystem::temp_directory_path()/"se-bootstrap-runtime-test";
+    const auto original=(temp_root/"original.txt").string();
+    const auto copied=(temp_root/"copied.txt").string();
+    const auto moved=(temp_root/"moved.txt").string();
+    se_file_mkdir(temp_root.string());
+    se_write(original,"first");
+    se_append(original," second");
+    assert(se_read(original)=="first second");
+    se_file_copy(original,copied);
+    assert(se_read(copied)=="first second");
+    se_file_move(copied,moved);
+    assert(!se_path_exists(copied) && se_read(moved)=="first second");
+    se_file_remove(temp_root.string());
+    assert(!se_path_exists(temp_root.string()));
 
     assert((se_range(3, 1) == std::vector<std::int64_t>{3, 2, 1}));
     std::cout << "SE bootstrap standalone runtime passed\n";

@@ -10,7 +10,7 @@ make _node encoded:Text -> List[Text]
     give json.parse encoded
 
 make _builtin_module name:Text -> Bool
-    give name in ["math","text","collections","file","json","os","random","path","time"]
+    give name in ["math","text","collections","file","json","os","random","path","time","base64","test"]
 
 # Load source modules relative to their importing source file. Modules are
 # inserted before the importing code so their declarations are visible; each
@@ -36,7 +36,10 @@ make _load_source source_path:Text loaded:List[Text] active:List[Text] -> List[T
         if node[0] == "Use" and not builtin
             module_path = string (path.join (path.parent source_path) (module_name + ".se"))
             if not path.exists module_path
-                fail "SE module not found: " + module_path
+                alternate_path = string (path.join (path.parent source_path) (module_name + ".s"))
+                if not path.exists alternate_path
+                    fail "SE module not found: " + module_path + " or " + alternate_path
+                module_path = alternate_path
             expanded = try _load_source module_path loaded stack
             for stmt in expanded
                 combined.add stmt

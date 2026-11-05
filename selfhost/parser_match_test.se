@@ -1,5 +1,6 @@
 use parser
 use json
+use ast_codec
 use test
 
 make node encoded:Text -> List[Text]
@@ -13,8 +14,8 @@ test.equal "Match" match_node[0]
 choices = node match_node[2]
 test.equal 2 choices.len
 first = node choices[0]
-first_body = node first[1]
+first_body = try unpack_block (first[1])
 test.equal 1 first_body.len
-fallback = node match_node[3]
+fallback = try unpack_block (match_node[3])
 test.equal 1 fallback.len
 say "SE selfhost match parser passed"

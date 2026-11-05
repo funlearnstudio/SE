@@ -1,0 +1,9 @@
+use test
+
+make identity[T] value:T -> T
+    give value
+
+test.equal (identity 7) 7
+test.equal (identity "SE") "SE"
+test.not_equal (identity 8) 9
+test.ok true

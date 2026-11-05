@@ -37,6 +37,11 @@ make assign_symbol entries:List[List[Text]] name:Text kind:Text -> Text
         item = entries[i]
         if item[0] == name
             previous = item[1]
+            if previous == "List[Unknown]" and kind in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[List[Text]]", "List[List[Int]]"]
+                item[1] = kind
+                give "OK"
+            if kind == "List[Unknown]" and previous in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[List[Text]]", "List[List[Int]]"]
+                give "OK"
             if kind != "Unknown" and previous != "Unknown" and previous != kind
                 if not (previous == "Num" and kind == "Int")
                     fail "Cannot assign " + kind + " to " + previous + " variable " + name
