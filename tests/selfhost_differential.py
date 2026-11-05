@@ -95,6 +95,7 @@ def main() -> None:
         verify_positive("language_generic_functions.se", "", tmp)
         verify_positive("language_fibonacci_canonical.se", "", tmp)
         verify_positive("language_std_basic.se", "", tmp)
+        verify_positive("language_user_type.se", "", tmp)
         verify_positive("language_duration.se", "", tmp, expected_output="duration ok\n")
         verify_positive("language_elif.se", "", tmp, expected_output="middle\n")
         for case, message in (
@@ -110,6 +111,7 @@ def main() -> None:
             ("negative_missing_return.se", "is missing a return"),
             ("negative_match_type.se", "Match case type mismatch"),
             ("negative_for_pairs_not_map.se", "Two-variable for expects a Map"),
+            ("negative_unknown_type_field.se", "Unknown initializer field"),
         ):
             verify_negative(case, message, tmp)
     print("SE selfhost differential tests passed")
