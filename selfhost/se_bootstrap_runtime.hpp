@@ -25,7 +25,18 @@
 #include <string>
 #include <sstream>
 #include <type_traits>
+#include <utility>
 #include <vector>
+
+// Production SE automatically evaluates zero-parameter function values.
+// Keep non-callable values (including mutable collections) as references, and
+// preserve function values that require one or more explicit arguments.
+template<class T> decltype(auto) se_implicit_call(T&& value) {
+  if constexpr (std::is_invocable_v<T&&>)
+    return std::forward<T>(value)();
+  else
+    return std::forward<T>(value);
+}
 
 struct SEError {
   std::string message;

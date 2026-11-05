@@ -116,12 +116,14 @@ def main() -> None:
         verify_positive("language_package_imports.se", "", tmp)
         verify_positive("language_duration.se", "", tmp, expected_output="duration ok\n")
         verify_positive("language_elif.se", "", tmp, expected_output="middle\n")
+        verify_positive("language_zero_arg_functions.se", "", tmp)
         for case, message in (
             ("negative_required_field.se", "Missing required field"),
             ("negative_field_default.se", "Field default type mismatch"),
             ("negative_wrong_type.se", "Arithmetic requires numbers"),
             ("negative_undefined.se", "Undefined identifier"),
             ("negative_wrong_arity.se", "Wrong arity"),
+            ("negative_zero_arg_wrong_arity.se", "Wrong arity"),
             ("negative_wrong_return.se", "Function return type"),
             ("negative_hetero_list.se", "List element type mismatch"),
             ("negative_bad_ask.se", "ask supports Text, Int or Num"),

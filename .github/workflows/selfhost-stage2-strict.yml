@@ -9,6 +9,9 @@ on:
       - ".github/workflows/selfhost-stage2-strict.yml"
       - "tests/selfhost_bundle.py"
       - "tests/selfhost_stage2.py"
+      - "selfhost/**"
+      - "tests/selfhost_differential.py"
+      - "tests/selfhost_runtime.cpp"
 
 jobs:
   strict-bootstrap:

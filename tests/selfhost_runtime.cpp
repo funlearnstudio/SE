@@ -6,6 +6,15 @@
 #include <vector>
 
 int main() {
+    // SE automatically invokes zero-parameter callables in value positions.
+    auto zero = []() -> std::int64_t { return 42; };
+    auto unary = [](std::int64_t n) -> std::int64_t { return n + 1; };
+    std::int64_t mutable_value = 9;
+    assert(se_implicit_call(zero) == 42);
+    assert(se_implicit_call(unary)(5) == 6);
+    se_implicit_call(mutable_value) += 1;
+    assert(mutable_value == 10);
+
     auto numbers = se_list(std::int64_t{1}, std::int64_t{2});
     se_add_item(numbers, std::int64_t{3});
     assert(numbers.size() == 3);

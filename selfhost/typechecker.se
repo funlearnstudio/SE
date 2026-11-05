@@ -42,6 +42,10 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 fail "Undefined identifier: " + node[2]
             if record[1] == "UserType"
                 give record[0]
+            # A bare reference to a zero-parameter SE function evaluates the
+            # function immediately, just as the production interpreter does.
+            if record[1] == "Function" and record[2] == "0"
+                give record[3]
             give record[1]
     if kind == "Unary"
         operand = try _infer node[2] symbols

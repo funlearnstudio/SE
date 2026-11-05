@@ -28,4 +28,9 @@ test.ok (text.contains forward_cpp "bool is_odd(std::int64_t n);")
 test.ok (text.contains forward_cpp "return is_odd((n - std::int64_t{1}));")
 test.ok (text.contains forward_cpp "return is_even((n - std::int64_t{1}));")
 
+zero_source = "make answer -> Int\n    give 42\nsay answer\nsay answer + 1\n"
+zero_cpp = try emit_program (try parse zero_source)
+test.ok (text.contains zero_cpp "se_implicit_call(answer)")
+test.ok (text.contains zero_cpp "se_add(se_implicit_call(answer), std::int64_t{1})")
+
 say "SE selfhost codegen smoke test passed"

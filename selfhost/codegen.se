@@ -257,7 +257,9 @@ make _emit_expr encoded:Text -> Text
         if value_kind == "Duration"
             give "se_duration(" + (json.stringify raw) + ")"
         if value_kind == "Identifier"
-            give _cpp_identifier raw
+            # Production SE auto-invokes zero-argument functions referenced as
+            # values. Preserve ordinary values and higher-arity callbacks.
+            give "se_implicit_call(" + (_cpp_identifier raw) + ")"
         if value_kind in ["Number", "true", "false"]
             give raw
         fail "Unrecognized literal: " + value_kind
