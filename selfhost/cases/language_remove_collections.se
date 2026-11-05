@@ -1,0 +1,11 @@
+nums = [1, 2, 2, 3]
+nums.remove 2
+say nums
+
+unique = set [1, 2, 3]
+unique.remove 2
+say unique
+
+record = ["a": 1, "b": 2]
+record.remove "a"
+say record
