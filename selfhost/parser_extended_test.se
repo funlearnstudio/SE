@@ -16,6 +16,8 @@ second = node ast[1]
 test.equal "Assign" second[0]
 xnode = node ast[2]
 expr = node xnode[2]
+say "DEBUG xnode: " + xnode
+say "DEBUG expr: " + expr
 test.equal "Call" expr[0]
 item = node ast[3]
 index = node item[2]
