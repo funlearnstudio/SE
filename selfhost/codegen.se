@@ -62,7 +62,7 @@ make _ctype source:Text -> Text
 make _parameter_type declared:Text name:Text -> Text
     result = try _ctype declared
     if declared in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[List[Text]]", "List[List[Int]]"]
-        if name in ["state", "tokens", "symbols", "entries", "names"]
+        if name in ["state", "tokens", "symbols", "entries", "names", "loaded"]
             give result + "&"
         give "const " + result + "&"
     give result
