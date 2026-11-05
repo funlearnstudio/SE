@@ -46,7 +46,7 @@ make _precedence op:Text -> Int
     give 0
 
 make _argument_start kind:Text -> Bool
-    give kind in ["Integer", "Number", "Duration", "String", "Identifier", "true", "false", "(", "[", "ask"]
+    give kind in ["Integer", "Number", "Duration", "String", "Identifier", "true", "false", "(", "[", "ask", "try", "set", "map"]
 
 make _type_ref tokens:List[List[Text]] state:List[Int] -> Text
     tok = _advance tokens state
@@ -302,12 +302,13 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
             protected = try _body tokens state
             error_name = "err"
             recovery = []
-            if _kind tokens state == "else"
-                _advance tokens state
-                if _kind tokens state == "Identifier"
-                    error_token = _advance tokens state
-                    error_name = error_token[1]
-                recovery = try _body tokens state
+            if _kind tokens state != "else"
+                fail "A try block needs else to handle an error."
+            _advance tokens state
+            if _kind tokens state == "Identifier"
+                error_token = _advance tokens state
+                error_name = error_token[1]
+            recovery = try _body tokens state
             give json.stringify (["TryStmt", try pack_block protected, error_name, try pack_block recovery])
     if kind == "type"
         _advance tokens state
@@ -478,7 +479,7 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
             fail "Expected module name after use."
         try _expect tokens state "Newline"
         give json.stringify (["Use", name[1], "", ""])
-    if kind == "Identifier"
+    if kind == "Identifier" or kind == "("
         saved = state[0]
         target_expr = try _expression tokens state 9
         op = _kind tokens state

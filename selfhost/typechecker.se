@@ -194,14 +194,18 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             give "Text"
         if object_type == "File" and member in ["write", "close"]
             give "Function"
+        parts = decompose_type object_type
         if member == "len"
-            if object_type == "Text" or object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]", "List[List[Text]]", "List[List[Int]]", "Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Set[Int]", "Set[Num]", "Set[Text]", "Set[Bool]"]
+            if object_type == "Text" or object_type == "Unknown" or parts[0] in ["List", "Map", "Set"]
                 give "Int"
         if member == "upper" or member == "lower"
             if object_type == "Text" or object_type == "Unknown"
                 give "Text"
-        if member in ["add", "remove"] and (object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]", "List[List[Text]]", "List[List[Int]]", "Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]", "Set[Int]", "Set[Num]", "Set[Text]", "Set[Bool]"])
-            give "Function"
+        if member in ["add", "remove"]
+            if object_type == "Unknown" or parts[0] in ["List", "Set"]
+                give "Function"
+            if member == "remove" and parts[0] == "Map"
+                give "Function"
         if object_type == "Module"
             give "Function"
         user_type = _user_shape object_type symbols
@@ -449,34 +453,17 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         index_type = try _infer node[2] symbols
         value_type = try _infer node[3] symbols
         element = "Unknown"
-        if target_type in ["Map[Text,Int]", "Map[Text,Num]", "Map[Text,Text]", "Map[Text,Bool]"]
-            if index_type != "Text"
+        parts = decompose_type target_type
+        if parts[0] == "Map" and parts.len == 3
+            if not (type_matches parts[1] index_type)
                 fail "Map key assignment requires Text key."
-            if target_type == "Map[Text,Int]"
-                element = "Int"
-            if target_type == "Map[Text,Num]"
-                element = "Num"
-            if target_type == "Map[Text,Text]"
-                element = "Text"
-            if target_type == "Map[Text,Bool]"
-                element = "Bool"
-        else
-            if index_type != "Int"
+            element = parts[2]
+        else if parts[0] == "List" and parts.len == 2
+            if index_type != "Int" and index_type != "Unknown"
                 fail "List index assignment requires Int index."
-            if target_type == "List[Int]"
-                element = "Int"
-            if target_type == "List[Num]"
-                element = "Num"
-            if target_type == "List[Text]"
-                element = "Text"
-            if target_type == "List[Bool]"
-                element = "Bool"
-            if target_type == "List[List[Text]]"
-                element = "List[Text]"
-            if target_type == "List[List[Int]]"
-                element = "List[Int]"
-            if target_type != "Unknown" and element == "Unknown"
-                fail "Assignment index target must be a List or Map."
+            element = parts[1]
+        else if target_type != "Unknown"
+            fail "Assignment index target must be a List or Map."
         if not _compatible element value_type
             fail "Collection assignment expects " + element + ", got " + value_type
         give "OK"
@@ -560,43 +547,29 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         give "OK"
     if kind == "ForPairs"
         iterable = try _infer node[3] symbols
-        if not (iterable in ["Unknown", "Map[Text,Int]", "Map[Text,Text]", "Map[Text,Num]", "Map[Text,Bool]"])
+        parts = decompose_type iterable
+        if iterable != "Unknown" and not (parts[0] == "Map" and parts.len == 3)
             fail "Two-variable for expects a Map, got " + iterable
         element = "Unknown"
-        if iterable == "Map[Text,Int]"
-            element = "Int"
-        if iterable == "Map[Text,Text]"
-            element = "Text"
-        if iterable == "Map[Text,Num]"
-            element = "Num"
-        if iterable == "Map[Text,Bool]"
-            element = "Bool"
+        key_type = "Text"
+        if parts[0] == "Map" and parts.len == 3
+            key_type = parts[1]
+            element = parts[2]
         local = clone_symbols symbols
-        try define_symbol local node[1] "Text" "0" ""
+        try define_symbol local node[1] key_type "0" ""
         try define_symbol local node[2] element "0" ""
         try _check_block (try unpack_block node[4]) local return_type
         give "OK"
     if kind == "For"
         iterable = try _infer node[2] symbols
         element_type = "Unknown"
-        if iterable == "List[Int]"
-            element_type = "Int"
-        if iterable == "List[Text]"
-            element_type = "Text"
-        if iterable == "List[Num]"
-            element_type = "Num"
-        if iterable == "List[Bool]"
-            element_type = "Bool"
-        if iterable == "List[List[Text]]"
-            element_type = "List[Text]"
-        if iterable == "List[List[Int]]"
-            element_type = "List[Int]"
-        if iterable == "Set[Int]"
-            element_type = "Int"
-        if iterable == "Set[Text]"
-            element_type = "Text"
+        parts = decompose_type iterable
+        if parts[0] in ["List", "Set"] and parts.len == 2
+            element_type = parts[1]
+        if parts[0] == "Map" and parts.len == 3
+            element_type = parts[1]
         if iterable != "Unknown" and element_type == "Unknown"
-            fail "for expects List or Range, got " + iterable
+            fail "for expects List, Set or Map, got " + iterable
         local = clone_symbols symbols
         try define_symbol local node[1] element_type "0" ""
         body = try unpack_block node[3]
