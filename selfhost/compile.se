@@ -6,6 +6,9 @@ use path
 use json
 use collections
 
+make _node encoded:Text -> List[Text]
+    give json.parse encoded
+
 make _builtin_module name:Text -> Bool
     give name in ["math","text","collections","file","json","os","random","path","time"]
 
@@ -27,7 +30,7 @@ make _load_source source_path:Text loaded:List[Text] active:List[Text] -> List[T
     source = try read source_path
     statements = try parse source
     for encoded in statements
-        node = json.parse encoded
+        node = _node encoded
         module_name = node[1]
         builtin = _builtin_module module_name
         if node[0] == "Use" and not builtin
