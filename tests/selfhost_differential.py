@@ -76,7 +76,7 @@ def main() -> None:
         assert result.returncode == 0, (filename, result.stdout, result.stderr)
     for filename in ("parser_test.se", "parser_extended_test.se", "parser_match_test.se", "typechecker_test.se", "typechecker_extended_test.se", "codegen_test.se"):
         result = run(str(SE), "run", str(ROOT / "selfhost" / filename))
-        assert result.returncode == 0, (filename, result.stderr)
+        assert result.returncode == 0, (filename, result.stdout, result.stderr)
         print(f"PASS unit: {filename}")
     with tempfile.TemporaryDirectory(prefix="se-selfhost-") as folder:
         tmp = Path(folder)
