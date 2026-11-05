@@ -386,6 +386,16 @@ inline std::string se_lower(std::string s){
   for(auto& c:s)c=static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
   return s;
 }
+inline bool se_starts(const std::string& value,const std::string& prefix){return value.starts_with(prefix);}
+inline bool se_ends(const std::string& value,const std::string& suffix){return value.ends_with(suffix);}
+inline std::string se_replace(std::string value,const std::string& from,const std::string& to){
+  if(from.empty())return value;
+  std::size_t position=0;
+  while((position=value.find(from,position))!=std::string::npos){
+    value.replace(position,from.size(),to);position+=to.size();
+  }
+  return value;
+}
 inline std::string se_trim(const std::string& s){
   auto i=s.find_first_not_of(" \r\n\t");
   if(i==std::string::npos)return {};

@@ -202,7 +202,7 @@ make _emit_call encoded:Text -> Text
                     give "std::" + method + "(" + generated + ")"
                 fail "Math module function not yet supported: " + method
             if module == "text"
-                if method in ["split", "trim", "contains", "repeat", "join"]
+                if method in ["split", "trim", "contains", "repeat", "join", "starts", "ends", "replace"]
                     give "se_" + method + "(" + generated + ")"
                 fail "Text module function not yet supported: " + method
             if module == "collections"

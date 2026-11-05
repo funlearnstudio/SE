@@ -82,6 +82,7 @@ def main() -> None:
         tmp = Path(folder)
         verify_positive("language_core.se", "", tmp)
         verify_positive("language_text.se", "", tmp)
+        verify_positive("language_text_replace.se", "", tmp)
         verify_positive("language_conversions.se", "", tmp)
         verify_positive("language_time.se", "", tmp)
         verify_positive("language_file_module.se", "", tmp)
