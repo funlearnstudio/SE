@@ -169,6 +169,8 @@ make _emit_call encoded:Text -> Text
         obj = try _emit_expr target[1]
         if method == "add"
             give "se_add_item(" + obj + ", " + generated + ")"
+        if method == "remove"
+            give "se_remove_item(" + obj + ", " + generated + ")"
         # A user-defined object's method is a regular C++20 member call.
         give obj + "." + method + "(" + generated + ")"
     fail "Only named functions and supported module methods can be called."
