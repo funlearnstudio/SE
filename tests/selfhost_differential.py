@@ -77,6 +77,7 @@ def main() -> None:
         verify_positive("language_index_assignment.se", "", tmp)
         verify_positive("language_map_set.se", "", tmp)
         verify_positive("language_recursion.se", "", tmp)
+        verify_positive("language_forward_functions.se", "", tmp)
         for case, message in (
             ("negative_wrong_type.se", "Arithmetic requires numbers"),
             ("negative_undefined.se", "Undefined identifier"),
