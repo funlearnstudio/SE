@@ -44,7 +44,7 @@ make _precedence op:Text -> Int
     give 0
 
 make _argument_start kind:Text -> Bool
-    give kind in ["Integer", "Number", "String", "Identifier", "true", "false", "(", "[", "ask"]
+    give kind in ["Integer", "Number", "Duration", "String", "Identifier", "true", "false", "(", "[", "ask"]
 
 make _type_ref tokens:List[List[Text]] state:List[Int] -> Text
     tok = _advance tokens state
@@ -122,7 +122,7 @@ make _prefix tokens:List[List[Text]] state:List[Int] -> Text
         if forced == "Map"
             give json.stringify (["Map", json.stringify pairs, "", ""])
         give json.stringify ([forced, json.stringify items, "", ""])
-    if kind in ["Integer", "Number", "String", "true", "false", "Identifier"]
+    if kind in ["Integer", "Number", "Duration", "String", "true", "false", "Identifier"]
         tok = _advance tokens state
         give json.stringify (["Atom", tok[0], tok[1], ""])
     tok = tokens[state[0]]
