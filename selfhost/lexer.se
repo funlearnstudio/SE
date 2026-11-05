@@ -21,6 +21,8 @@ make add_token tokens:List[List[Text]] kind:Text value:Text line:Int column:Int
 make lex source:Text -> List[List[Text]]
     chars = text.split source ""
     n = chars.len
+    # Seed the nested List type, then empty it (SE uses homogeneous Lists).
+    tokens = [["", "", "", ""]]
     tokens = []
     levels = [0]
     i = 0
