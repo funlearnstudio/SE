@@ -258,9 +258,9 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             owner_type = try _infer callee[1] symbols
             if owner_type == "Module"
                 give "Unknown"
-            if callee[2] == "add"
+            if callee[2] in ["add", "remove"]
                 if args.len != 1
-                    fail "List.add expects one argument."
+                    fail "Collection.add/remove expects exactly one value."
                 give "Unknown"
             user_type = lookup_symbol symbols owner_type
             if user_type[1] == "UserType"
