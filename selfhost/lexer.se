@@ -107,6 +107,17 @@ make lex source:Text -> List[List[Text]]
                         number = number + chars[i]
                         i += 1
                         column += 1
+            if kind == "Integer" and i < n
+                suffix = ""
+                if is_letter chars[i]
+                    while i < n and is_letter chars[i]
+                        suffix = suffix + chars[i]
+                        i += 1
+                        column += 1
+                    if not (suffix in ["ms", "s", "min"])
+                        fail "Invalid numeric/duration suffix: " + suffix
+                    kind = "Duration"
+                    number = number + suffix
             add_token tokens kind number line start_col
         else if c == "\""
             start_col = column
