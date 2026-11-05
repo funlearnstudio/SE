@@ -347,6 +347,34 @@ template<class T> inline std::vector<T> se_drop(const std::vector<T>& values,std
   const auto n=std::min<std::size_t>(values.size(),static_cast<std::size_t>(amount));
   return {values.begin()+static_cast<std::ptrdiff_t>(n),values.end()};
 }
+template<class T> inline std::vector<T> se_slice(const std::vector<T>& items,std::int64_t first,std::int64_t last){
+  if(first<0 || last<0)throw std::runtime_error("collections.slice expects nonnegative indices");
+  const auto left=std::min<std::size_t>(items.size(),static_cast<std::size_t>(first));
+  const auto right=std::min<std::size_t>(items.size(),static_cast<std::size_t>(last));
+  if(right<left)return {};
+  return {items.begin()+static_cast<std::ptrdiff_t>(left),
+          items.begin()+static_cast<std::ptrdiff_t>(right)};
+}
+template<class T,class Pred> inline std::vector<T> se_filter(const std::vector<T>& items,Pred predicate){
+  std::vector<T> result;
+  for(const auto& item:items)if(predicate(item))result.push_back(item);
+  return result;
+}
+template<class T,class F> inline auto se_transform(const std::vector<T>& items,F function){
+  using Output=std::decay_t<decltype(function(std::declval<T>()))>;
+  std::vector<Output> out;
+  out.reserve(items.size());
+  for(const auto& item:items)out.push_back(function(item));
+  return out;
+}
+template<class T,class A,class F> inline A se_reduce(const std::vector<T>& items,A state,F combine){
+  for(const auto& item:items)state=combine(state,item);
+  return state;
+}
+template<class T,class F> inline std::vector<T> se_sort_with(std::vector<T> values,F before){
+  std::stable_sort(values.begin(),values.end(),before);
+  return values;
+}
 template<class T> inline std::vector<T> se_sorted(std::vector<T> items){std::sort(items.begin(),items.end());return items;}
 template<class T> inline std::vector<T> se_reversed(std::vector<T> items){std::reverse(items.begin(),items.end());return items;}
 
