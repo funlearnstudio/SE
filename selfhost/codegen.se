@@ -1,7 +1,5 @@
-# SE self-hosting bootstrap: generate C++20 from the initial SE AST subset.
-# Expressions/statement nodes are JSON-encoded List[Text] from parser.se.
-# This is an experimental bootstrap backend; it is not a replacement for
-# the production C++ compiler and does not yet include full SE type semantics.
+# C++20 backend written in SE for the bootstrap subset.
+# Emits calls to selfhost/se_bootstrap_runtime.hpp for basic SE semantics.
 use json
 use text
 
@@ -11,11 +9,87 @@ make _node encoded:Text -> List[Text]
 make _indent depth:Int -> Text
     give text.repeat "    " depth
 
-make _clone_names existing:List[Text] -> List[Text]
-    result = []
-    for name in existing
-        result.add name
+make _clone_names entries:List[Text] -> List[Text]
+    names = []
+    for item in entries
+        names.add item
+    give names
+
+make _ctype source:Text -> Text
+    if source == "Int"
+        give "std::int64_t"
+    if source == "Num"
+        give "double"
+    if source == "Text"
+        give "std::string"
+    if source == "Bool"
+        give "bool"
+    if source == "List[Int]"
+        give "std::vector<std::int64_t>"
+    if source == "List[Num]"
+        give "std::vector<double>"
+    if source == "List[Text]"
+        give "std::vector<std::string>"
+    if source == "List[Bool]"
+        give "std::vector<bool>"
+    if source == "Unknown"
+        give "auto"
+    fail "Unsupported C++ type annotation: " + source
+
+make _emit_arguments encoded:Text -> Text
+    args = _node encoded
+    result = ""
+    for item in args
+        generated = try _emit_expr item
+        if result != ""
+            result = result + ", "
+        result = result + generated
     give result
+
+make _emit_call encoded:Text -> Text
+    node = _node encoded
+    target = _node node[1]
+    args = _node node[2]
+    generated = try _emit_arguments node[2]
+    if target[0] == "Atom" and target[1] == "Identifier"
+        name = target[2]
+        if name in ["int", "integer"]
+            give "se_int(" + generated + ")"
+        if name in ["num", "float", "double"]
+            give "se_num(" + generated + ")"
+        if name in ["text", "string"]
+            give "se_string(" + generated + ")"
+        if name == "read"
+            give "se_read(" + generated + ")"
+        if name == "write"
+            give "se_write(" + generated + ")"
+        if name == "append"
+            give "se_append(" + generated + ")"
+        give name + "(" + generated + ")"
+    if target[0] == "Member"
+        owner = _node target[1]
+        method = target[2]
+        if owner[0] == "Atom" and owner[1] == "Identifier"
+            module = owner[2]
+            if module == "math"
+                if method in ["sqrt", "pow", "abs", "floor", "ceil", "round", "sin", "cos", "tan", "log", "log10", "exp", "hypot", "min", "max"]
+                    give "std::" + method + "(" + generated + ")"
+                fail "Math module function not yet supported: " + method
+            if module == "text"
+                if method in ["split", "trim", "contains", "repeat", "join"]
+                    give "se_" + method + "(" + generated + ")"
+                fail "Text module function not yet supported: " + method
+            if module == "collections"
+                if method == "sort"
+                    give "se_sorted(" + generated + ")"
+                if method == "reverse"
+                    give "se_reversed(" + generated + ")"
+                fail "Collection function not yet supported: " + method
+        obj = try _emit_expr target[1]
+        if method == "add"
+            give obj + ".push_back(" + generated + ")"
+        fail "Unsupported method: " + method
+    fail "Only named functions and supported module methods can be called."
 
 make _emit_expr encoded:Text -> Text
     node = _node encoded
@@ -26,93 +100,169 @@ make _emit_expr encoded:Text -> Text
         if value_kind == "String"
             quoted = json.stringify raw
             give "std::string(" + quoted + ")"
-        if value_kind in ["Integer", "Number", "true", "false", "Identifier"]
+        if value_kind == "Integer"
+            give "std::int64_t{" + raw + "}"
+        if value_kind in ["Number", "true", "false", "Identifier"]
             give raw
-        fail "Unsupported SE literal in C++ bootstrap: " + value_kind
+        fail "Unrecognized literal: " + value_kind
     if kind == "Unary"
         op = node[1]
         if op == "not"
             op = "!"
-        operand = try _emit_expr node[2]
-        give "(" + op + operand + ")"
+        rhs = try _emit_expr node[2]
+        give "(" + op + rhs + ")"
     if kind == "Binary"
         op = node[1]
         left = try _emit_expr node[2]
         right = try _emit_expr node[3]
         if op == "**"
             give "std::pow(" + left + ", " + right + ")"
+        if op == ".."
+            give "se_range(" + left + ", " + right + ")"
+        if op == "in"
+            give "se_contains(" + right + ", " + left + ")"
+        if op == "+"
+            give "se_add(" + left + ", " + right + ")"
         if op == "and"
             op = "&&"
         if op == "or"
             op = "||"
+        if op == "/"
+            give "(se_num(" + left + ") / se_num(" + right + "))"
         give "(" + left + " " + op + " " + right + ")"
-    fail "Unknown SE expression AST node: " + kind
+    if kind == "List"
+        items = try _emit_arguments node[1]
+        give "se_list(" + items + ")"
+    if kind == "Index"
+        base = try _emit_expr node[1]
+        index = try _emit_expr node[2]
+        give base + ".at(static_cast<std::size_t>(" + index + "))"
+    if kind == "Member"
+        base = try _emit_expr node[1]
+        member = node[2]
+        if member == "len"
+            give "static_cast<std::int64_t>(" + base + ".size())"
+        if member == "upper" or member == "lower"
+            give "se_" + member + "(" + base + ")"
+        fail "Only .len, .upper, .lower and .add calls are implemented in bootstrap C++ backend."
+    if kind == "Call"
+        give try _emit_call encoded
+    if kind == "Ask"
+        question = try _emit_expr node[1]
+        give "se_ask(" + question + ")"
+    if kind == "Try"
+        give try _emit_expr node[1]
+    fail "Unsupported AST expression for C++ codegen: " + kind
 
-make _emit_block encoded:Text level:Int symbols:List[Text] -> Text
+make _emit_block encoded:Text level:Int names:List[Text] -> Text
     statements = _node encoded
     output = ""
     for item in statements
-        part = try _emit_stmt item level symbols
-        output = output + part
+        generated = try _emit_stmt item level names
+        output = output + generated
     give output
 
-make _emit_stmt encoded:Text level:Int symbols:List[Text] -> Text
+make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     node = _node encoded
     kind = node[0]
     pad = _indent level
     if kind == "Assign"
         name = node[1]
         expr = try _emit_expr node[2]
-        if name in symbols
+        if name in names
             give pad + name + " = " + expr + ";\n"
-        symbols.add name
+        names.add name
         give pad + "auto " + name + " = " + expr + ";\n"
     if kind == "say"
         printable = try _emit_expr node[2]
-        give pad + "std::cout << " + printable + " << \"\\n\";\n"
+        give pad + "se_say(" + printable + ");\n"
     if kind == "give"
-        returned = try _emit_expr node[2]
-        give pad + "return " + returned + ";\n"
+        result = try _emit_expr node[2]
+        give pad + "return " + result + ";\n"
+    if kind == "fail"
+        result = try _emit_expr node[2]
+        give pad + "throw std::runtime_error(se_string(" + result + "));\n"
+    if kind == "MultiAsk"
+        fields = _node node[1]
+        suffix = string names.len
+        line_name = "__se_line_" + suffix
+        values_name = "__se_values_" + suffix
+        stream_name = "__se_stream_" + suffix
+        token_name = "__se_token_" + suffix
+        output = pad + "std::string " + line_name + ";\n"
+        output = output + pad + "if (!std::getline(std::cin, " + line_name + ")) throw std::runtime_error(\"Input ended\");\n"
+        output = output + pad + "std::istringstream " + stream_name + "(" + line_name + ");\n"
+        output = output + pad + "std::vector<std::string> " + values_name + ";\n"
+        output = output + pad + "std::string " + token_name + ";\n"
+        output = output + pad + "while (" + stream_name + " >> " + token_name + ") " + values_name + ".push_back(" + token_name + ");\n"
+        output = output + pad + "if (" + values_name + ".size() != " + string fields.len + ") throw std::runtime_error(\"Wrong ask field count\");\n"
+        i = 0
+        for item in fields
+            field = _node item
+            expr = values_name + ".at(" + string i + ")"
+            if field[1] == "Int"
+                expr = "se_int(" + expr + ")"
+            if field[1] == "Num"
+                expr = "se_num(" + expr + ")"
+            if field[0] in names
+                output = output + pad + field[0] + " = " + expr + ";\n"
+            else
+                names.add field[0]
+                typename = try _ctype field[1]
+                output = output + pad + typename + " " + field[0] + " = " + expr + ";\n"
+            i += 1
+        give output
+    if kind == "ExprStmt"
+        result = try _emit_expr node[2]
+        give pad + result + ";\n"
+    if kind == "Use"
+        if node[1] in ["math", "text", "collections", "file"]
+            give ""
+        fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "If"
         yes_ast = node[2]
         no_ast = node[3]
         test_ast = node[1]
-        yes_names = _clone_names symbols
-        no_names = _clone_names symbols
-        yes = try _emit_block yes_ast (level + 1) yes_names
-        no = try _emit_block no_ast (level + 1) no_names
-        test_cpp = try _emit_expr test_ast
-        output = pad + "if (" + test_cpp + ") {\n" + yes + pad + "}"
+        then_names = _clone_names names
+        else_names = _clone_names names
+        yes = try _emit_block yes_ast (level + 1) then_names
+        no = try _emit_block no_ast (level + 1) else_names
+        condition = try _emit_expr test_ast
+        output = pad + "if (" + condition + ") {\n" + yes + pad + "}"
         if no != ""
             output = output + " else {\n" + no + pad + "}"
         give output + "\n"
     if kind == "while"
-        loop_ast = node[2]
-        test_ast = node[1]
-        loop_names = _clone_names symbols
-        body = try _emit_block loop_ast (level + 1) loop_names
-        test_cpp = try _emit_expr test_ast
-        give pad + "while (" + test_cpp + ") {\n" + body + pad + "}\n"
+        loop_names = _clone_names names
+        body = try _emit_block node[2] (level + 1) loop_names
+        condition = try _emit_expr node[1]
+        give pad + "while (" + condition + ") {\n" + body + pad + "}\n"
     if kind == "repeat"
-        loop_ast = node[2]
-        count_ast = node[1]
-        loop_names = _clone_names symbols
-        body = try _emit_block loop_ast (level + 1) loop_names
-        count_cpp = try _emit_expr count_ast
-        give pad + "for (int _se_i = 0; _se_i < " + count_cpp + "; ++_se_i) {\n" + body + pad + "}\n"
+        loop_names = _clone_names names
+        body = try _emit_block node[2] (level + 1) loop_names
+        count = try _emit_expr node[1]
+        give pad + "for (std::int64_t _se_i = 0; _se_i < " + count + "; ++_se_i) {\n" + body + pad + "}\n"
+    if kind == "For"
+        scope = _clone_names names
+        scope.add node[1]
+        body = try _emit_block node[3] (level + 1) scope
+        iterable = try _emit_expr node[2]
+        give pad + "for (auto " + node[1] + " : " + iterable + ") {\n" + body + pad + "}\n"
     if kind == "Make"
         params = _node node[2]
         local_names = []
         args = ""
         for item in params
+            param = _node item
+            typename = try _ctype param[1]
             if args != ""
                 args = args + ", "
-            args = args + "auto " + item
-            local_names.add item
-        function_ast = node[3]
-        body = try _emit_block function_ast 1 local_names
-        give "auto " + node[1] + "(" + args + ") {\n" + body + "}\n"
-    fail "Unsupported SE statement in C++ bootstrap: " + kind
+            args = args + typename + " " + param[0]
+            local_names.add param[0]
+        result_type = try _ctype node[4]
+        body = try _emit_block node[3] 1 local_names
+        give result_type + " " + node[1] + "(" + args + ") {\n" + body + "}\n"
+    fail "Unsupported AST statement for C++ codegen: " + kind
 
 make emit_program ast:List[Text] -> Text
     functions = ""
@@ -124,6 +274,6 @@ make emit_program ast:List[Text] -> Text
             generated = try _emit_stmt stmt 0 names
             functions = functions + generated + "\n"
         else
-            generated = try _emit_stmt stmt 1 names
+            generated = try _emit_stmt stmt 2 names
             body = body + generated
-    give "#include <iostream>\n#include <string>\n#include <cmath>\n\n" + functions + "int main() {\n" + body + "    return 0;\n}\n"
+    give "#include \"se_bootstrap_runtime.hpp\"\n\n" + functions + "int main() {\n    try {\n" + body + "        return 0;\n    } catch (const std::exception& e) {\n        std::cerr << e.what() << '\\n';\n        return 1;\n    }\n}\n"

@@ -1,0 +1,275 @@
+# SE self-hosted compiler: semantic analysis and static type checking.
+# Supported subset: typed/untyped functions, List, numeric/boolean/Text
+# expressions, local scopes, bounded loops, declarations and module names.
+use json
+use symbol_table
+
+make _node encoded:Text -> List[Text]
+    give json.parse encoded
+
+make _compatible expected:Text actual:Text -> Bool
+    if expected == "Unknown" or actual == "Unknown"
+        give true
+    if expected == actual
+        give true
+    give expected == "Num" and actual == "Int"
+
+make _numeric kind:Text -> Bool
+    give kind == "Int" or kind == "Num" or kind == "Unknown"
+
+make _infer encoded:Text symbols:List[List[Text]] -> Text
+    node = _node encoded
+    kind = node[0]
+    if kind == "Atom"
+        token = node[1]
+        if token == "Integer"
+            give "Int"
+        if token == "Number"
+            give "Num"
+        if token == "String"
+            give "Text"
+        if token == "true" or token == "false"
+            give "Bool"
+        if token == "Identifier"
+            record = lookup_symbol symbols node[2]
+            if record[0] == ""
+                fail "Undefined identifier: " + node[2]
+            give record[1]
+    if kind == "Unary"
+        operand = try _infer node[2] symbols
+        if node[1] == "not"
+            if not _compatible "Bool" operand
+                fail "not expects Bool, got " + operand
+            give "Bool"
+        if not _numeric operand
+            fail "Unary - needs a number, got " + operand
+        give operand
+    if kind == "Binary"
+        left = try _infer node[2] symbols
+        right = try _infer node[3] symbols
+        op = node[1]
+        if op == "and" or op == "or"
+            if not _compatible "Bool" left or not _compatible "Bool" right
+                fail "Logical operation requires Bool operands."
+            give "Bool"
+        if op in ["==", "!=", "in"]
+            give "Bool"
+        if op in ["<", "<=", ">", ">="]
+            if not _numeric left or not _numeric right
+                fail "Comparison requires numeric operands."
+            give "Bool"
+        if op == ".."
+            if left != "Int" or right != "Int"
+                fail "Range endpoints must be Int."
+            give "List[Int]"
+        if op == "+" and (left == "Text" or right == "Text")
+            give "Text"
+        if not _numeric left or not _numeric right
+            fail "Arithmetic requires numbers, got " + left + " and " + right
+        if op == "/" or op == "**" or left == "Num" or right == "Num"
+            give "Num"
+        give "Int"
+    if kind == "List"
+        items = _node node[1]
+        element = "Unknown"
+        for item in items
+            got = try _infer item symbols
+            if element == "Unknown"
+                element = got
+            else if not _compatible element got
+                if element == "Int" and got == "Num"
+                    element = "Num"
+                else
+                    fail "List element type mismatch: " + element + " vs " + got
+        give "List[" + element + "]"
+    if kind == "Index"
+        container = try _infer node[1] symbols
+        index_type = try _infer node[2] symbols
+        if index_type != "Int" and index_type != "Unknown"
+            fail "List index must be Int."
+        if container == "List[Int]"
+            give "Int"
+        if container == "List[Num]"
+            give "Num"
+        if container == "List[Text]"
+            give "Text"
+        if container == "List[Bool]"
+            give "Bool"
+        if container == "List[Unknown]" or container == "Unknown"
+            give "Unknown"
+        fail "Only List indexing is supported by bootstrap checker, got " + container
+    if kind == "Member"
+        object_type = try _infer node[1] symbols
+        member = node[2]
+        if member == "len"
+            if object_type == "Text" or object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]"]
+                give "Int"
+        if member == "upper" or member == "lower"
+            if object_type == "Text" or object_type == "Unknown"
+                give "Text"
+        if member == "add" and (object_type == "Unknown" or object_type in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[Unknown]"])
+            give "Function"
+        if object_type == "Module"
+            give "Function"
+        fail "Unknown member " + member + " of " + object_type
+    if kind == "Call"
+        callee = _node node[1]
+        args = _node node[2]
+        for item in args
+            try _infer item symbols
+        if callee[0] == "Atom" and callee[1] == "Identifier"
+            name = callee[2]
+            if name == "int" or name == "integer"
+                if args.len != 1
+                    fail "int expects one argument."
+                give "Int"
+            if name == "num" or name == "float" or name == "double"
+                if args.len != 1
+                    fail "num expects one argument."
+                give "Num"
+            if name == "string" or name == "text"
+                if args.len != 1
+                    fail "text expects one argument."
+                give "Text"
+            entry = lookup_symbol symbols name
+            if entry[0] == ""
+                fail "Undefined function: " + name
+            if entry[1] != "Function"
+                fail "Cannot call non-function: " + name
+            if int entry[2] != args.len
+                fail "Wrong arity for " + name + ": expected " + entry[2]
+            if entry.len > 4
+                signature = _node entry[4]
+                i = 0
+                while i < signature.len
+                    pair = _node signature[i]
+                    got = try _infer args[i] symbols
+                    if not _compatible pair[1] got
+                        fail "Function " + name + " argument " + string(i + 1) + " expects " + pair[1] + ", got " + got
+                    i += 1
+            give entry[3]
+        if callee[0] == "Member"
+            owner_type = try _infer callee[1] symbols
+            if owner_type == "Module"
+                give "Unknown"
+            if callee[2] == "add"
+                if args.len != 1
+                    fail "List.add expects one argument."
+                give "Unknown"
+        fail "Unsupported call expression in bootstrap checker."
+    if kind == "Ask"
+        got = try _infer node[1] symbols
+        if got != "Text" and got != "Unknown"
+            fail "ask needs a Text question."
+        give "Text"
+    if kind == "Try"
+        give try _infer node[1] symbols
+    fail "Unsupported AST expression in self-hosted checker: " + kind
+
+make _guarantees_return statements:List[Text] -> Bool
+    for item in statements
+        node = _node item
+        if node[0] == "give"
+            give true
+        if node[0] == "If"
+            yes = _node node[2]
+            no = _node node[3]
+            if _guarantees_return yes and _guarantees_return no
+                give true
+    give false
+
+make _check_block statements:List[Text] symbols:List[List[Text]] return_type:Text -> Text
+    for item in statements
+        try _check_statement item symbols return_type
+    give "OK"
+
+make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> Text
+    node = _node encoded
+    kind = node[0]
+    if kind == "Assign"
+        inferred = try _infer node[2] symbols
+        try assign_symbol symbols node[1] inferred
+        give "OK"
+    if kind == "MultiAsk"
+        fields = _node node[1]
+        for item in fields
+            field = _node item
+            try assign_symbol symbols field[0] field[1]
+        give "OK"
+    if kind == "ExprStmt"
+        try _infer node[2] symbols
+        give "OK"
+    if kind == "Use"
+        try define_symbol symbols node[1] "Module" "0" ""
+        give "OK"
+    if kind == "fail"
+        got = try _infer node[2] symbols
+        if got != "Text" and got != "Unknown"
+            fail "fail message must be Text."
+        give "OK"
+    if kind == "say" or kind == "give"
+        got = try _infer node[2] symbols
+        if kind == "give"
+            if return_type == "TopLevel"
+                fail "give may only occur inside a function."
+            if not _compatible return_type got
+                fail "Function return type is " + return_type + ", got " + got
+        give "OK"
+    if kind == "If" or kind == "while" or kind == "repeat"
+        condition = try _infer node[1] symbols
+        expected = "Bool"
+        if kind == "repeat"
+            expected = "Int"
+        if not _compatible expected condition
+            fail kind + " requires " + expected + ", got " + condition
+        nested = clone_symbols symbols
+        body = _node node[2]
+        try _check_block body nested return_type
+        if kind == "If"
+            alternative = _node node[3]
+            nested_else = clone_symbols symbols
+            try _check_block alternative nested_else return_type
+        give "OK"
+    if kind == "For"
+        iterable = try _infer node[2] symbols
+        element_type = "Unknown"
+        if iterable == "List[Int]"
+            element_type = "Int"
+        if iterable == "List[Text]"
+            element_type = "Text"
+        if iterable == "List[Num]"
+            element_type = "Num"
+        if iterable == "List[Bool]"
+            element_type = "Bool"
+        if iterable != "Unknown" and element_type == "Unknown"
+            fail "for expects List or Range, got " + iterable
+        local = clone_symbols symbols
+        try define_symbol local node[1] element_type "0" ""
+        body = _node node[3]
+        try _check_block body local return_type
+        give "OK"
+    if kind == "Make"
+        params = _node node[2]
+        local = clone_symbols symbols
+        for item in params
+            pair = _node item
+            try define_symbol local pair[0] pair[1] "0" ""
+        body = _node node[3]
+        try _check_block body local node[4]
+        if node[4] != "Unknown" and not _guarantees_return body
+            fail "Function " + node[1] + " is missing a return on some code paths."
+        give "OK"
+    fail "Unsupported AST statement in self-hosted checker: " + kind
+
+make check_program statements:List[Text] -> List[List[Text]]
+    symbols = []
+    # Register functions first, enabling forward calls.
+    for item in statements
+        node = _node item
+        if node[0] == "Make"
+            params = _node node[2]
+            try define_symbol symbols node[1] "Function" (string params.len) node[4]
+            entry = lookup_symbol symbols node[1]
+            entry.add node[2]
+    try _check_block statements symbols "TopLevel"
+    give symbols

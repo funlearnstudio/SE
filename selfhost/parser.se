@@ -1,26 +1,28 @@
-# SE self-hosting bootstrap: typed recursive-descent + Pratt parser.
-# AST is JSON-encoded Text in a List[Text] to respect SE's homogeneous Lists.
-# An expression node: [kind, value_or_operator, left, right]
-# A statement node:  [kind, value_or_name, expr_or_body, else_or_body]
-# Supported: literals, identifiers, (), unary -, not, binary expressions,
-# assignments, say/give, if/else, while, repeat, make with untyped parameters.
-# This is a bootstrap subset, not yet the full SE language grammar.
+# SE self-hosting compiler parser (recursive descent + Pratt precedence).
+# AST is JSON Text nodes inside List[Text] to respect homogeneous SE Lists.
+# Expr: Atom / Unary / Binary / List / Index / Member / Call / Ask / Try.
+# Stmt: Assign / ExprStmt / say / give / If / while / repeat / For / Make / Use / fail.
 use lexer
 use json
+
+make _node encoded:Text -> List[Text]
+    give json.parse encoded
 
 make _kind tokens:List[List[Text]] state:List[Int] -> Text
     give tokens[state[0]][0]
 
 make _advance tokens:List[List[Text]] state:List[Int] -> List[Text]
     token = tokens[state[0]]
-    state[0] = state[0] + 1
+    state[0] += 1
     give token
 
-make _expect tokens:List[List[Text]] state:List[Int] wanted:Text
+make _expect tokens:List[List[Text]] state:List[Int] wanted:Text -> Text
     found = _kind tokens state
     if found != wanted
-        fail "SE parser expected " + wanted + " but got " + found + " at line " + tokens[state[0]][2]
+        tok = tokens[state[0]]
+        fail "SE parser expected " + wanted + ", got " + found + " at " + tok[2] + ":" + tok[3]
     _advance tokens state
+    give "OK"
 
 make _precedence op:Text -> Int
     if op == "or"
@@ -29,33 +31,109 @@ make _precedence op:Text -> Int
         give 2
     if op == "==" or op == "!="
         give 3
-    if op in ["<", "<=", ">", ">="]
+    if op in ["<", "<=", ">", ">=", "in"]
         give 4
-    if op == "+" or op == "-"
+    if op == ".."
         give 5
-    if op in ["*", "/", "%"]
+    if op == "+" or op == "-"
         give 6
-    if op == "**"
+    if op in ["*", "/", "%"]
         give 7
+    if op == "**"
+        give 8
     give 0
 
-make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
-    kind = _kind tokens state
-    left = ""
-    if kind == "-" or kind == "not"
-        op = _advance tokens state
-        right = try _expression tokens state 7
-        left = json.stringify (["Unary", op[0], right, ""])
-    else if kind == "("
-        _advance tokens state
-        left = try _expression tokens state 1
-        try _expect tokens state ")"
-    else if kind in ["Integer", "Number", "String", "true", "false", "Identifier"]
-        token = _advance tokens state
-        left = json.stringify (["Atom", token[0], token[1], ""])
-    else
-        fail "SE parser expected an expression, got " + kind + " at line " + tokens[state[0]][2]
+make _argument_start kind:Text -> Bool
+    give kind in ["Integer", "Number", "String", "Identifier", "true", "false", "(", "[", "ask"]
 
+make _type_ref tokens:List[List[Text]] state:List[Int] -> Text
+    tok = _advance tokens state
+    if tok[0] != "Identifier"
+        fail "Expected type name in annotation."
+    result = tok[1]
+    if _kind tokens state == "["
+        _advance tokens state
+        first = try _type_ref tokens state
+        result = result + "[" + first
+        while _kind tokens state == ","
+            _advance tokens state
+            nested = try _type_ref tokens state
+            result = result + "," + nested
+        try _expect tokens state "]"
+        result = result + "]"
+    give result
+
+make _prefix tokens:List[List[Text]] state:List[Int] -> Text
+    kind = _kind tokens state
+    if kind == "-" or kind == "not"
+        tok = _advance tokens state
+        rhs = try _expression tokens state 8
+        give json.stringify (["Unary", tok[0], rhs, ""])
+    if kind == "ask" or kind == "try"
+        tok = _advance tokens state
+        rhs = try _expression tokens state 9
+        name = "Ask"
+        if kind == "try"
+            name = "Try"
+        give json.stringify ([name, rhs, "", ""])
+    if kind == "("
+        _advance tokens state
+        value = try _expression tokens state 1
+        try _expect tokens state ")"
+        give value
+    if kind == "["
+        _advance tokens state
+        items = []
+        if _kind tokens state != "]"
+            first = try _expression tokens state 1
+            items.add first
+            while _kind tokens state == ","
+                _advance tokens state
+                item = try _expression tokens state 1
+                items.add item
+        try _expect tokens state "]"
+        give json.stringify (["List", json.stringify items, "", ""])
+    if kind in ["Integer", "Number", "String", "true", "false", "Identifier"]
+        tok = _advance tokens state
+        give json.stringify (["Atom", tok[0], tok[1], ""])
+    tok = tokens[state[0]]
+    fail "Expected SE expression, got " + kind + " at line " + tok[2]
+
+make _postfix tokens:List[List[Text]] state:List[Int] start:Text -> Text
+    left = start
+    looping = true
+    while looping
+        kind = _kind tokens state
+        if kind == "."
+            _advance tokens state
+            member = _advance tokens state
+            if member[0] != "Identifier" and member[0] != "map"
+                fail "Expected member name after '.'"
+            left = json.stringify (["Member", left, member[1], ""])
+        else if kind == "["
+            _advance tokens state
+            index = try _expression tokens state 1
+            try _expect tokens state "]"
+            left = json.stringify (["Index", left, index, ""])
+        else
+            looping = false
+    give left
+
+make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
+    first = try _prefix tokens state
+    left = try _postfix tokens state first
+    # Bare SE function calls. A parenthesized expression can be one argument.
+    first_node = _node left
+    can_call = first_node[0] == "Member"
+    if first_node[0] == "Atom" and first_node[1] == "Identifier"
+        can_call = true
+    if can_call and _argument_start (_kind tokens state)
+        arguments = []
+        while _argument_start (_kind tokens state)
+            raw_arg = try _prefix tokens state
+            arg = try _postfix tokens state raw_arg
+            arguments.add arg
+        left = json.stringify (["Call", left, json.stringify arguments, ""])
     while true
         op = _kind tokens state
         precedence = _precedence op
@@ -71,17 +149,19 @@ make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
 make _block tokens:List[List[Text]] state:List[Int] nested:Bool -> List[Text]
     statements = []
     while _kind tokens state != "End"
-        if _kind tokens state == "Dedent"
+        kind = _kind tokens state
+        if kind == "Dedent"
             if not nested
                 fail "Unexpected dedent in top-level SE source."
             _advance tokens state
             give statements
-        if _kind tokens state == "Newline"
+        if kind == "Newline"
             _advance tokens state
         else
-            statements.add (try _statement tokens state)
+            stmt = try _statement tokens state
+            statements.add stmt
     if nested
-        fail "SE parser expected the block to finish with Dedent."
+        fail "Expected Dedent before end of SE file."
     give statements
 
 make _body tokens:List[List[Text]] state:List[Int] -> List[Text]
@@ -91,7 +171,7 @@ make _body tokens:List[List[Text]] state:List[Int] -> List[Text]
 
 make _statement tokens:List[List[Text]] state:List[Int] -> Text
     kind = _kind tokens state
-    if kind == "say" or kind == "give"
+    if kind == "say" or kind == "give" or kind == "fail"
         _advance tokens state
         expr = try _expression tokens state 1
         try _expect tokens state "Newline"
@@ -103,31 +183,94 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
         no = []
         if _kind tokens state == "else"
             _advance tokens state
-            no = try _body tokens state
+            if _kind tokens state == "if"
+                elseif_stmt = try _statement tokens state
+                no.add elseif_stmt
+            else
+                no = try _body tokens state
         give json.stringify (["If", condition, json.stringify yes, json.stringify no])
     if kind == "while" or kind == "repeat"
         _advance tokens state
         condition = try _expression tokens state 1
         body = try _body tokens state
         give json.stringify ([kind, condition, json.stringify body, ""])
+    if kind == "for"
+        _advance tokens state
+        name = _advance tokens state
+        if name[0] != "Identifier"
+            fail "Expected loop variable after for."
+        try _expect tokens state "in"
+        iterable = try _expression tokens state 1
+        body = try _body tokens state
+        give json.stringify (["For", name[1], iterable, json.stringify body])
     if kind == "make"
         _advance tokens state
         name = _advance tokens state
         if name[0] != "Identifier"
-            fail "SE parser expected a function name."
+            fail "Expected function name after make."
         params = []
         while _kind tokens state == "Identifier"
             param = _advance tokens state
-            params.add param[1]
+            annotation = "Unknown"
+            if _kind tokens state == ":"
+                _advance tokens state
+                annotation = try _type_ref tokens state
+            params.add (json.stringify ([param[1], annotation]))
+        return_type = "Unknown"
+        if _kind tokens state == "->"
+            _advance tokens state
+            return_type = try _type_ref tokens state
         body = try _body tokens state
-        give json.stringify (["Make", name[1], json.stringify params, json.stringify body])
-    if kind == "Identifier"
+        give json.stringify (["Make", name[1], json.stringify params, json.stringify body, return_type])
+    if kind == "ask"
+        next_token = tokens[state[0] + 1]
+        if next_token[0] == "Identifier"
+            _advance tokens state
+            fields = []
+            while _kind tokens state == "Identifier"
+                name = _advance tokens state
+                declared = "Text"
+                if _kind tokens state == ":"
+                    _advance tokens state
+                    declared = try _type_ref tokens state
+                if not (declared in ["Text", "Int", "Num"])
+                    fail "ask supports Text, Int or Num only."
+                fields.add (json.stringify ([name[1], declared]))
+            if fields.len < 2
+                fail "Multi-value ask requires at least two variables."
+            try _expect tokens state "Newline"
+            give json.stringify (["MultiAsk", json.stringify fields, "", ""])
+    if kind == "use"
+        _advance tokens state
         name = _advance tokens state
-        try _expect tokens state "="
-        expr = try _expression tokens state 1
+        if name[0] != "Identifier"
+            fail "Expected module name after use."
         try _expect tokens state "Newline"
-        give json.stringify (["Assign", name[1], expr, ""])
-    fail "Unsupported SE statement in bootstrap parser: " + kind + " at line " + tokens[state[0]][2]
+        give json.stringify (["Use", name[1], "", ""])
+    if kind == "Identifier"
+        next = tokens[state[0] + 1]
+        op = next[0]
+        if op in ["=", "+=", "-=", "*=", "/=", "%="]
+            name = _advance tokens state
+            _advance tokens state
+            expr = try _expression tokens state 1
+            try _expect tokens state "Newline"
+            if op != "="
+                base = json.stringify (["Atom", "Identifier", name[1], ""])
+                binary_op = "+"
+                if op == "-="
+                    binary_op = "-"
+                if op == "*="
+                    binary_op = "*"
+                if op == "/="
+                    binary_op = "/"
+                if op == "%="
+                    binary_op = "%"
+                expr = json.stringify (["Binary", binary_op, base, expr])
+            give json.stringify (["Assign", name[1], expr, ""])
+    expr = try _expression tokens state 1
+    try _expect tokens state "Newline"
+    give json.stringify (["ExprStmt", "", expr, ""])
 
 make parse_tokens tokens:List[List[Text]] -> List[Text]
     state = [0]

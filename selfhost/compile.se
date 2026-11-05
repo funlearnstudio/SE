@@ -1,0 +1,17 @@
+# SE-written compiler orchestrator (lexer/parser/semantic analysis/codegen).
+use parser
+use typechecker
+use codegen
+
+make compile_file source_path:Text output_path:Text -> Text
+    source = try read source_path
+    nodes = try parse source
+    try check_program nodes
+    cpp = try emit_program nodes
+    try write output_path cpp
+    give output_path
+
+make compile_text source:Text -> Text
+    nodes = try parse source
+    try check_program nodes
+    give try emit_program nodes

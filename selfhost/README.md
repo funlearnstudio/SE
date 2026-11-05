@@ -1,56 +1,76 @@
-# SE Self-hosting Compiler Bootstrap (Experimental)
+# SE Self-Hosted Compiler — Experimental Bootstrap
 
-本目錄是用 **SE 語言本身**編寫 SE 編譯器的實驗分支，**不是**目前正式版的 C++20 編譯器。
+This compiler is **implemented in SE** and translates a supported core SE subset to C++20. The existing production SE compiler is still written in C++ and remains authoritative; the experimental bootstrap has **not** compiled itself. Neither full SE syntax nor all 117+ standard-library modules are supported. Unsupported features fail explicitly.
 
-## 目前已實作
+本目錄是用 **SE 語言本身**編寫的編譯器前端與 C++20 後端。保留原本正式 C++ 編譯器不動。這是經端到端測試的 **SE 子集編譯器**，還不是完成自我編譯的完整 SE Compiler。
 
-1. `lexer.se` — 將原始碼切成 token；記錄 `[kind, lexeme, line, column]`，四欄均以 Text 儲存，符合 SE List 的元素同型別限制。
-2. `parser.se` — Recursive Descent + Pratt precedence parsing。解析整數、浮點、字串、Bool、名稱、括號、單元與二元運算、賦值、`say`、`give`、`if/else`、`while`、`repeat`、不帶型別標註的 `make`。
-3. `codegen.se` — 將上述語法子集的 AST 產生 C++20。
-4. `bootstrap.se` — 串接 SE Lexer → Parser → Codegen，輸出 `selfhost/generated_sample.cpp`。
-5. `parser_test.se` 與 `codegen_test.se` — 用 SE 寫的基本回歸測試，並在 CTest 註冊。
+## Architecture / 架構
 
-## 使用方式（從儲存庫根目錄執行）
+```
+source.se
+  ↓
+lexer.se               token stream [kind, lexeme, line, column]
+  ↓
+parser.se              Pratt expression parser and structured JSON AST
+  ↓
+symbol_table.se        symbol registration and scope snapshots
+  ↓
+typechecker.se         static checks: types, arity, undeclared names, returns
+  ↓
+codegen.se             C++20 translation
+  + se_bootstrap_runtime.hpp (small supporting runtime)
+  ↓
+output.cpp → c++ -std=c++20 → native executable
+```
+
+The SE-written public driver is `compiler.se`, which uses `compile.se` to orchestrate the stages. The AST uses JSON-encoded `Text` nodes in a `List[Text]` to respect SE's homogeneous List constraints.
+
+## Run / 執行
+
+From the **repository root**, after installing SE 0.7.6 or later:
+
+```sh
+se check selfhost/compiler.se
+SE_SELFHOST_SOURCE=selfhost/cases/language_core.se \
+SE_SELFHOST_OUTPUT=selfhost/generated.cpp \
+se run selfhost/compiler.se
+c++ -std=c++20 -O0 -Iselfhost selfhost/generated.cpp -o selfhost/program
+./selfhost/program
+```
+
+Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defaults are `selfhost/sample.se` and `selfhost/generated_sample.cpp`. The C++ output includes `se_bootstrap_runtime.hpp`; keep that header accessible via the `-Iselfhost` include option.
+
+## Supported compiler features / 已支援
+
+- **Lexer**: ASCII identifiers, numeric and string literals, comments, indent/dedent, operators, typed function tokens and source locations.
+- **Parser**: expression precedence including unary and binary operators, list literals, indexing, member access, calls, `ask` and `try` expressions; statements `say`, `give`, `fail`, assignments including `+=` etc., `if/else if/else`, `while`, `repeat`, `for`, typed and untyped `make`, `use`, and multi-variable typed `ask`.
+- **Static checks**: symbol existence, assignments, numeric and boolean operands, homogeneous lists, indexing, function arity, declared parameter types, annotated return types, selected block scopes, `ask` types and explicit failures.
+- **C++ backend**: Int, Num, Bool, Text, nonempty homogeneous Lists, common arithmetic/logic/conditions, basic range loops, functions, simple module helpers, input/output and exceptions.
+- **Library subset**: common `math`, `text`, `collections`, `file` and core conversion/read/write/append operations only. This **does not imply** general library compatibility.
+
+## Tests / 測試
 
 ```sh
 se run selfhost/parser_test.se
+se run selfhost/parser_extended_test.se
+se run selfhost/typechecker_test.se
+se run selfhost/typechecker_extended_test.se
 se run selfhost/codegen_test.se
-se run selfhost/bootstrap.se
-c++ -std=c++20 -O0 selfhost/generated_sample.cpp -o selfhost/sample-selfhost
-./selfhost/sample-selfhost
+python3 tests/selfhost_differential.py $(command -v se)
 ```
 
-預期 sample 的輸出為 `Hello SE`。CLI 也可以先檢查：
+The differential test compiles generated C++20, runs the result, compares output with the production SE interpreter, and asserts that invalid programs are rejected. It covers arithmetic, functions, collections, for/while/repeat, string operations, typed multi-input and diagnostic failures.
 
-```sh
-se check selfhost/lexer.se
-se check selfhost/parser.se
-se check selfhost/codegen.se
-```
+A separately bootstrapped native compiler program can be produced from `selfhost/compiler.se` **using the production C++ SE compiler**. That binary may still link the production `s_core` VM, so it **does not prove true self-hosting or independent compiler runtime**.
 
-## AST 格式
+## What is NOT finished / 尚待完成
 
-基於 SE 目前 List 的同型別元素限制，AST 使用 `List[Text]`，每筆節點以 JSON Text 表示：
+- Complete parser and checker for `type`, Map/Set, generics, closures, `match`, async, native modules, SE Web and all language forms.
+- Complete standard library and platform/ABI compatibility.
+- Comprehensive error recovery, Unicode/UTF-8 identifiers, source maps and source-accurate diagnostics.
+- Self-compile and reproducibility: compiler written in SE compiling **its own** sources, then stage2-stage3 binary equivalence.
+- Cross-platform SE-only bootstrap verified on Linux/macOS/Windows. Differential tests currently verified in Linux; GitHub Actions needed for other platforms.
 
-- `["Atom", "Integer", "123", ""]`
-- `["Binary", "+", "<left-json>", "<right-json>"]`
-- `["Assign", "name", "<expr-json>", ""]`
-- `["If", "<expr-json>", "<then-list-json>", "<else-list-json>"]`
+### Principle
 
-這是 bootstrap 過渡格式，未來可換成真正的 `type` AST 與型別檢查器。
-
-## 限制
-
-- **尚未 self-hosting**：產生的 C++20 是簡單語法子集，而不是完整 SE compiler。
-- 尚未有 Symbol Table / Type Checker、完整函式呼叫、`use`、List / Map / Set、泛型、例外處理、SE Web、原生 ABI。
-- 此 codegen 使用 C++20 `auto` 進行型別推斷，和正式 SE 的數值／字串型別與動態運算語義未必完全相同。
-- 同樣的變數名稱、作用域、函式回傳型別等需後續擴充。
-- Lexer 以 UTF-8 byte split 實作，暫時主要支援 ASCII 的語法字元。
-- 在 SE 的無括號函式呼叫中，負數與連續引數可能產生解析歧義；新的 bootstrap AST 只涵蓋部分形式。
-
-## 後續順序
-
-1. 確保 Lexer / Parser / C++20 Codegen smoke tests 在 Linux、macOS、Windows 全部通過。
-2. 完成 AST nodes 與 Symbol Table、靜態型別檢查。
-3. 支援所有核心 SE syntax 和 standard library，並對照 C++ compiler 做 differential tests。
-4. 讓用 SE 寫的 compiler 編譯自身，再驗證 bootstrap equivalence。
+Unsupported syntax must error instead of silently generating incorrect code. Compare both behavior and diagnostics against the production SE implementation before expanding the accepted language.

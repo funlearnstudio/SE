@@ -10,13 +10,13 @@ cpp = try emit_program ast
 test.equal 2 ast.len
 test.ok (text.contains cpp "auto name = std::string")
 test.ok (text.contains cpp "if (")
-test.ok (text.contains cpp "std::cout <<")
+test.ok (text.contains cpp "se_say(")
 test.ok (text.contains cpp "return 0;")
 try write "selfhost/generated_sample.cpp" cpp
 
 math_source = "x = 2 + 3 * 4\nsay x\n"
 math_cpp = try emit_program (try parse math_source)
-test.ok (text.contains math_cpp "(3 * 4)")
-test.ok (text.contains math_cpp "(2 + (3 * 4))")
+test.ok (text.contains math_cpp "(std::int64_t{3} * std::int64_t{4})")
+test.ok (text.contains math_cpp "se_add(std::int64_t{2}, (std::int64_t{3} * std::int64_t{4}))")
 
 say "SE selfhost codegen smoke test passed"
