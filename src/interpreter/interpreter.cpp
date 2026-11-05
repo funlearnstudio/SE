@@ -142,7 +142,7 @@ std::string help_text(const Value&v){
   if(std::holds_alternative<std::string>(v.data()))out<<"members: help, len, upper, lower\nexample: text.upper";
   else if(std::holds_alternative<std::shared_ptr<ByteBufferData>>(v.data()))out<<"members: help, len";
   else if(std::holds_alternative<std::shared_ptr<ListData>>(v.data()))out<<"members: help, len, add value, remove value\nexample: nums.add 4";
-  else if(std::holds_alternative<std::shared_ptr<MapData>>(v.data()))out<<"members: help, len\nindex with map[\"key\"]";
+  else if(std::holds_alternative<std::shared_ptr<MapData>>(v.data()))out<<"members: help, len, remove key\nindex with map[\"key\"]";
   else if(std::holds_alternative<std::shared_ptr<SetData>>(v.data()))out<<"members: help, len, add value, remove value";
   else if(auto o=std::get_if<std::shared_ptr<ObjectData>>(&v.data())){out<<"members: help";if((*o)->type){for(auto&[name,value]:(*o)->fields){(void)value;out<<", "<<name;}for(auto&[name,method]:(*o)->type->methods){(void)method;out<<", "<<name;}}}
   else if(auto m=std::get_if<std::shared_ptr<ModuleData>>(&v.data())){out<<"members: help";for(auto&[name,value]:(*m)->exports){(void)value;out<<", "<<name;}}
@@ -219,6 +219,17 @@ Value Interpreter::member(Value v,const std::string&name,SourcePos p,bool auto_c
   if(name=="len"){if(auto t=std::get_if<std::string>(&v.data()))return static_cast<std::int64_t>(t->size());if(auto b=std::get_if<std::shared_ptr<ByteBufferData>>(&v.data()))return static_cast<std::int64_t>((*b)->bytes.size());if(auto l=std::get_if<std::shared_ptr<ListData>>(&v.data()))return static_cast<std::int64_t>((*l)->items.size());if(auto m=std::get_if<std::shared_ptr<MapData>>(&v.data()))return static_cast<std::int64_t>((*m)->items.size());if(auto s=std::get_if<std::shared_ptr<SetData>>(&v.data()))return static_cast<std::int64_t>((*s)->items.size());}
   if((name=="upper"||name=="lower")&&std::holds_alternative<std::string>(v.data())){auto t=std::get<std::string>(v.data());std::transform(t.begin(),t.end(),t.begin(),[&](unsigned char c){return static_cast<char>(name=="upper"?std::toupper(c):std::tolower(c));});return t;}
   if(auto l=std::get_if<std::shared_ptr<ListData>>(&v.data())){if(name=="add")return callable("List.add",1,1,[list=*l](const std::vector<Value>&a,SourcePos){list->items.push_back(a[0]);return Value{};});if(name=="remove")return callable("List.remove",1,1,[list=*l](const std::vector<Value>&a,SourcePos){auto i=std::find_if(list->items.begin(),list->items.end(),[&](const Value&x){return value_equal(x,a[0]);});if(i==list->items.end())return Value(false);list->items.erase(i);return Value(true);});}
+  if(auto m=std::get_if<std::shared_ptr<MapData>>(&v.data())){
+    if(name=="remove")return callable("Map.remove",1,1,[map=*m](const std::vector<Value>&a,SourcePos p){
+      const auto key=std::get_if<std::string>(&a[0].data());
+      if(!key)throw Error(p,"Map.remove needs a Text key.");
+      auto& items=map->items;
+      auto it=std::find_if(items.begin(),items.end(),[&](const auto& pair){return pair.first==*key;});
+      if(it==items.end())return Value(false);
+      items.erase(it);
+      return Value(true);
+    });
+  }
   if(auto s=std::get_if<std::shared_ptr<SetData>>(&v.data())){if(name=="add")return callable("Set.add",1,1,[set=*s](const std::vector<Value>&a,SourcePos){for(auto&x:set->items)if(value_equal(x,a[0]))return Value{};set->items.push_back(a[0]);return Value{};});if(name=="remove")return callable("Set.remove",1,1,[set=*s](const std::vector<Value>&a,SourcePos){auto i=std::find_if(set->items.begin(),set->items.end(),[&](const Value&x){return value_equal(x,a[0]);});if(i==set->items.end())return Value(false);set->items.erase(i);return Value(true);});}
   if(auto o=std::get_if<std::shared_ptr<ObjectData>>(&v.data())){if(auto f=(*o)->fields.find(name);f!=(*o)->fields.end())return f->second;auto type=(*o)->type;if(type){if(auto m=type->methods.find(name);m!=type->methods.end()){auto method=m->second;auto object=*o;auto c=callable(type->name+"."+name,method->params.size(),method->params.size(),[this,object,method,type](const std::vector<Value>&a,SourcePos)->Value{auto local=std::make_shared<Environment>(type->closure,object);for(std::size_t i=0;i<a.size();++i)local->define(method->params[i],a[i]);try{execute_block(method->body,local);}catch(ReturnSignal&r){return r.value;}return {};});if(auto_call&&method->params.empty())return call(c,{},p);return c;}}}
   if(auto m=std::get_if<std::shared_ptr<ModuleData>>(&v.data())){if(auto x=(*m)->exports.find(name);x!=(*m)->exports.end()){auto r=x->second;if(auto_call)if(auto c=std::get_if<std::shared_ptr<CallableData>>(&r.data());c&&(*c)->min_args==0&&!(*c)->variadic)return call(r,{},p);return r;}}

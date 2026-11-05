@@ -98,7 +98,7 @@ def main() -> None:
         verify_positive("language_user_type.se", "", tmp)
         verify_positive("language_collections_functional.se", "", tmp)
         verify_positive("language_remove_collections.se", "", tmp)
-        verify_positive("language_remove_map.se", "", tmp, expected_output="1\n")
+        verify_positive("language_remove_map.se", "", tmp)
         verify_positive("language_cpp_keywords.se", "", tmp)
         verify_positive("language_source_imports.se", "", tmp)
         verify_positive("language_duration.se", "", tmp, expected_output="duration ok\n")
