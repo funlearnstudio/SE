@@ -1,0 +1,137 @@
+# SE self-hosting bootstrap: typed recursive-descent + Pratt parser.
+# AST is JSON-encoded Text in a List[Text] to respect SE's homogeneous Lists.
+# An expression node: [kind, value_or_operator, left, right]
+# A statement node:  [kind, value_or_name, expr_or_body, else_or_body]
+# Supported: literals, identifiers, (), unary -, not, binary expressions,
+# assignments, say/give, if/else, while, repeat, make with untyped parameters.
+# This is a bootstrap subset, not yet the full SE language grammar.
+use lexer
+use json
+
+make _kind tokens:List[List[Text]] state:List[Int] -> Text
+    give tokens[state[0]][0]
+
+make _advance tokens:List[List[Text]] state:List[Int] -> List[Text]
+    token = tokens[state[0]]
+    state[0] = state[0] + 1
+    give token
+
+make _expect tokens:List[List[Text]] state:List[Int] wanted:Text
+    found = _kind tokens state
+    if found != wanted
+        fail "SE parser expected " + wanted + " but got " + found + " at line " + tokens[state[0]][2]
+    _advance tokens state
+
+make _precedence op:Text -> Int
+    if op == "or"
+        give 1
+    if op == "and"
+        give 2
+    if op == "==" or op == "!="
+        give 3
+    if op in ["<", "<=", ">", ">="]
+        give 4
+    if op == "+" or op == "-"
+        give 5
+    if op in ["*", "/", "%"]
+        give 6
+    if op == "**"
+        give 7
+    give 0
+
+make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
+    kind = _kind tokens state
+    if kind == "-" or kind == "not"
+        op = _advance tokens state
+        right = _expression tokens state 7
+        left = json.stringify ["Unary", op[0], right, ""]
+    else if kind == "("
+        _advance tokens state
+        left = _expression tokens state 1
+        _expect tokens state ")"
+    else if kind in ["Integer", "Number", "String", "true", "false", "Identifier"]
+        token = _advance tokens state
+        left = json.stringify ["Atom", token[0], token[1], ""]
+    else
+        fail "SE parser expected an expression, got " + kind + " at line " + tokens[state[0]][2]
+
+    while true
+        op = _kind tokens state
+        precedence = _precedence op
+        if precedence == 0 or precedence < minimum
+            give left
+        _advance tokens state
+        next_minimum = precedence + 1
+        if op == "**"
+            next_minimum = precedence
+        right = _expression tokens state next_minimum
+        left = json.stringify ["Binary", op, left, right]
+
+make _block tokens:List[List[Text]] state:List[Int] nested:Bool -> List[Text]
+    statements = []
+    while _kind tokens state != "End"
+        if _kind tokens state == "Dedent"
+            if not nested
+                fail "Unexpected dedent in top-level SE source."
+            _advance tokens state
+            give statements
+        if _kind tokens state == "Newline"
+            _advance tokens state
+        else
+            statements.add (_statement tokens state)
+    if nested
+        fail "SE parser expected the block to finish with Dedent."
+    give statements
+
+make _body tokens:List[List[Text]] state:List[Int] -> List[Text]
+    _expect tokens state "Newline"
+    _expect tokens state "Indent"
+    give _block tokens state true
+
+make _statement tokens:List[List[Text]] state:List[Int] -> Text
+    kind = _kind tokens state
+    if kind == "say" or kind == "give"
+        _advance tokens state
+        expr = _expression tokens state 1
+        _expect tokens state "Newline"
+        give json.stringify [kind, "", expr, ""]
+    if kind == "if"
+        _advance tokens state
+        condition = _expression tokens state 1
+        yes = _body tokens state
+        no = []
+        if _kind tokens state == "else"
+            _advance tokens state
+            no = _body tokens state
+        give json.stringify ["If", condition, json.stringify yes, json.stringify no]
+    if kind == "while" or kind == "repeat"
+        _advance tokens state
+        condition = _expression tokens state 1
+        body = _body tokens state
+        give json.stringify [kind, condition, json.stringify body, ""]
+    if kind == "make"
+        _advance tokens state
+        name = _advance tokens state
+        if name[0] != "Identifier"
+            fail "SE parser expected a function name."
+        params = []
+        while _kind tokens state == "Identifier"
+            param = _advance tokens state
+            params.add param[1]
+        body = _body tokens state
+        give json.stringify ["Make", name[1], json.stringify params, json.stringify body]
+    if kind == "Identifier"
+        name = _advance tokens state
+        _expect tokens state "="
+        expr = _expression tokens state 1
+        _expect tokens state "Newline"
+        give json.stringify ["Assign", name[1], expr, ""]
+    fail "Unsupported SE statement in bootstrap parser: " + kind + " at line " + tokens[state[0]][2]
+
+make parse_tokens tokens:List[List[Text]] -> List[Text]
+    state = [0]
+    give _block tokens state false
+
+make parse source:Text -> List[Text]
+    tokens = lex source
+    give parse_tokens tokens
