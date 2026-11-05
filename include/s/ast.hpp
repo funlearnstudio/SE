@@ -45,6 +45,10 @@ struct Range final : Expr { Range(SourcePos p,ExprPtr a,ExprPtr b):Expr(p),start
 struct TryExpr final : Expr { TryExpr(SourcePos p,ExprPtr v):Expr(p),value(std::move(v)){} ExprPtr value; };
 
 struct ExprStmt final : Stmt { ExprStmt(SourcePos p,ExprPtr v):Stmt(p),value(std::move(v)){} ExprPtr value; };
+struct MultiAsk final : Stmt {
+  MultiAsk(SourcePos p,std::vector<std::string> n,std::vector<std::string> t):Stmt(p),names(std::move(n)),types(std::move(t)){}
+  std::vector<std::string> names,types;
+};
 struct Assign final : Stmt { Assign(SourcePos p,ExprPtr t,ExprPtr v,Block i={}):Stmt(p),target(std::move(t)),value(std::move(v)),init(std::move(i)){} ExprPtr target,value; Block init; };
 struct Say final : Stmt { Say(SourcePos p,ExprPtr v):Stmt(p),value(std::move(v)){} ExprPtr value; };
 struct If final : Stmt { If(SourcePos p,ExprPtr c,Block t,Block e):Stmt(p),condition(std::move(c)),then_block(std::move(t)),else_block(std::move(e)){} ExprPtr condition; Block then_block,else_block; };
