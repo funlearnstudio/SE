@@ -291,6 +291,19 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             if not _compatible return_type got
                 fail "Function return type is " + return_type + ", got " + got
         give "OK"
+    if kind == "Match"
+        subject_type = try _infer node[1] symbols
+        choices = _node node[2]
+        for encoded_case in choices
+            choice = _node encoded_case
+            case_type = try _infer choice[0] symbols
+            if not _compatible subject_type case_type and not _compatible case_type subject_type
+                fail "Match case type mismatch: " + subject_type + " vs " + case_type
+            local = clone_symbols symbols
+            try _check_block (_node choice[1]) local return_type
+        otherwise = clone_symbols symbols
+        try _check_block (_node node[3]) otherwise return_type
+        give "OK"
     if kind == "If" or kind == "while" or kind == "repeat"
         condition = try _infer node[1] symbols
         expected = "Bool"
