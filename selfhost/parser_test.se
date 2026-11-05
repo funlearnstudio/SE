@@ -5,7 +5,7 @@ use text
 use test
 
 source = "name = \"SE\"\nif name == \"SE\"\n    say \"Hello SE\"\nelse\n    say \"other\"\n"
-tokens = lex source
+tokens = try lex source
 expected = ["Identifier", "=", "String", "Newline", "if", "Identifier", "==", "String", "Newline", "Indent", "say", "String", "Newline", "Dedent", "else", "Newline", "Indent", "say", "String", "Newline", "Dedent", "End"]
 test.equal expected.len tokens.len
 j = 0
@@ -13,21 +13,21 @@ while j < expected.len
     test.equal expected[j] tokens[j][0]
     j += 1
 
-ast = parse source
+ast = try parse source
 test.equal 2 ast.len
 first = ast[0]
 test.ok (text.contains first "\"Assign\"")
 second = ast[1]
 test.ok (text.contains second "\"If\"")
-test.ok (text.contains second "\"say\"")
+test.ok (text.contains second "say")
 
-arithmetic = parse "value = 1 + 2 * 3\nsay value\n"
+arithmetic = try parse "value = 1 + 2 * 3\nsay value\n"
 test.equal 2 arithmetic.len
 math_ast = arithmetic[0]
-test.ok (text.contains math_ast "\"Binary\"")
+test.ok (text.contains math_ast "Binary")
 test.ok (text.contains math_ast "*")
 
-blocks = parse "make greet name\n    say name\nrepeat 3\n    say \"Hi\"\nwhile true\n    give 1\n"
+blocks = try parse "make greet name\n    say name\nrepeat 3\n    say \"Hi\"\nwhile true\n    give 1\n"
 test.equal 3 blocks.len
 make_ast = blocks[0]
 test.ok (text.contains make_ast "\"Make\"")
