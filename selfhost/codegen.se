@@ -301,10 +301,35 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         give result_type + " " + node[1] + "(" + args + ") {\n" + body + "}\n"
     fail "Unsupported AST statement for C++ codegen: " + kind
 
+# Emit forward declarations for functions with explicit signatures. This lets
+# typed SE functions call functions defined later, including mutual recursion.
+# Unknown return or parameter types cannot be safely forward-declared in C++20.
+make _emit_prototype encoded:Text -> Text
+    node = _node encoded
+    if node[4] == "Unknown"
+        give ""
+    params = _node node[2]
+    arguments = ""
+    for item in params
+        param = _node item
+        if param[1] == "Unknown"
+            give ""
+        if arguments != ""
+            arguments = arguments + ", "
+        arguments = arguments + (try _ctype param[1]) + " " + param[0]
+    return_type = try _ctype node[4]
+    give return_type + " " + node[1] + "(" + arguments + ");\n"
+
 make emit_program ast:List[Text] -> Text
+    prototypes = ""
     functions = ""
     body = ""
     names = []
+    # C++ needs declarations before definitions for mutual recursion and forward calls.
+    for stmt in ast
+        node = _node stmt
+        if node[0] == "Make"
+            prototypes = prototypes + (try _emit_prototype stmt)
     for stmt in ast
         node = _node stmt
         if node[0] == "Make"
@@ -313,4 +338,4 @@ make emit_program ast:List[Text] -> Text
         else
             generated = try _emit_stmt stmt 2 names
             body = body + generated
-    give "#include \"se_bootstrap_runtime.hpp\"\n\n" + functions + "int main() {\n    try {\n" + body + "        return 0;\n    } catch (const std::exception& e) {\n        std::cerr << e.what() << '\\n';\n        return 1;\n    }\n}\n"
+    give "#include \"se_bootstrap_runtime.hpp\"\n\n" + prototypes + "\n" + functions + "int main() {\n    try {\n" + body + "        return 0;\n    } catch (const std::exception& e) {\n        std::cerr << e.what() << '\\n';\n        return 1;\n    }\n}\n"
