@@ -52,6 +52,8 @@ make _ctype source:Text -> Text
         give "SESet<double>"
     if source == "Set[Bool]"
         give "SESet<bool>"
+    if source in ["T", "U", "V", "K", "E", "R"]
+        give source
     if source == "Unknown"
         give "auto"
     fail "Unsupported C++ type annotation: " + source
@@ -64,6 +66,20 @@ make _parameter_type declared:Text name:Text -> Text
             give result + "&"
         give "const " + result + "&"
     give result
+
+make _emit_template encoded:Text -> Text
+    node = _node encoded
+    if node.len < 6
+        give ""
+    vars = _node node[5]
+    result = ""
+    for v in vars
+        if result != ""
+            result = result + ", "
+        result = result + "typename " + v
+    if result == ""
+        give ""
+    give "template <" + result + ">\n"
 
 make _emit_arguments encoded:Text -> Text
     args = _node encoded
@@ -378,7 +394,8 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
             local_names.add param[0]
         result_type = try _ctype node[4]
         body = try _emit_block node[3] 1 local_names
-        give result_type + " " + node[1] + "(" + args + ") {\n" + body + "}\n"
+        header = try _emit_template encoded
+        give header + result_type + " " + node[1] + "(" + args + ") {\n" + body + "}\n"
     fail "Unsupported AST statement for C++ codegen: " + kind
 
 # Emit forward declarations for functions with explicit signatures. This lets
@@ -398,7 +415,8 @@ make _emit_prototype encoded:Text -> Text
             arguments = arguments + ", "
         arguments = arguments + (try _parameter_type param[1] param[0]) + " " + param[0]
     return_type = try _ctype node[4]
-    give return_type + " " + node[1] + "(" + arguments + ");\n"
+    header = try _emit_template encoded
+    give header + return_type + " " + node[1] + "(" + arguments + ");\n"
 
 make emit_program ast:List[Text] -> Text
     prototypes = ""

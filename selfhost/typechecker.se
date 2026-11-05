@@ -9,6 +9,9 @@ make _node encoded:Text -> List[Text]
     give json.parse encoded
 
 make _compatible expected:Text actual:Text -> Bool
+    # Generic type variables are resolved when their function is instantiated.
+    if expected in ["T", "U", "V", "K", "E", "R"]
+        give true
     if expected == "Unknown" or actual == "Unknown"
         give true
     if expected == actual
@@ -211,6 +214,13 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                     if not _compatible pair[1] got
                         fail "Function " + name + " argument " + string(i + 1) + " expects " + pair[1] + ", got " + got
                     i += 1
+            if entry[3] in ["T", "U", "V", "K", "E", "R"] and entry.len > 4
+                j = 0
+                while j < args.len
+                    pair = _node signature[j]
+                    if pair[1] == entry[3]
+                        give try _infer args[j] symbols
+                    j += 1
             give entry[3]
         if callee[0] == "Member"
             owner_type = try _infer callee[1] symbols

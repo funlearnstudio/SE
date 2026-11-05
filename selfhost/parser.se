@@ -288,6 +288,20 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
         name = _advance tokens state
         if name[0] != "Identifier"
             fail "Expected function name after make."
+        generics = []
+        if _kind tokens state == "["
+            _advance tokens state
+            while true
+                variable = _advance tokens state
+                if variable[0] != "Identifier"
+                    fail "Expected a generic type parameter."
+                if variable[1] in generics
+                    fail "Duplicate generic type parameter: " + variable[1]
+                generics.add variable[1]
+                if _kind tokens state != ","
+                    break
+                _advance tokens state
+            try _expect tokens state "]"
         params = []
         while _kind tokens state == "Identifier"
             param = _advance tokens state
@@ -301,7 +315,7 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
             _advance tokens state
             return_type = try _type_ref tokens state
         body = try _body tokens state
-        give json.stringify (["Make", name[1], json.stringify params, json.stringify body, return_type])
+        give json.stringify (["Make", name[1], json.stringify params, json.stringify body, return_type, json.stringify generics])
     if kind == "ask"
         next_token = tokens[state[0] + 1]
         if next_token[0] == "Identifier"
