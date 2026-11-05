@@ -93,6 +93,12 @@ make _emit_call encoded:Text -> Text
         method = target[2]
         if owner[0] == "Atom" and owner[1] == "Identifier"
             module = owner[2]
+            if module == "json"
+                if method == "stringify"
+                    give "se_json_stringify(" + generated + ")"
+                if method == "parse"
+                    give "se_json_parse(" + generated + ")"
+                fail "JSON module function not yet supported: " + method
             if module == "math"
                 if method in ["sqrt", "pow", "abs", "floor", "ceil", "round", "sin", "cos", "tan", "log", "log10", "exp", "hypot", "min", "max"]
                     give "std::" + method + "(" + generated + ")"
@@ -263,7 +269,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         result = try _emit_expr node[2]
         give pad + result + ";\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file"]
+        if node[1] in ["math", "text", "collections", "file", "json"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "Match"
