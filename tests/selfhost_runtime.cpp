@@ -69,6 +69,18 @@ int main() {
     catch (const std::exception&) { caught = true; }
     assert(caught);
 
+    const std::vector<std::string> ast = {
+        "Atom", "a\tb", "line\nbreak", "quote\"escape", "\xe4\xb8\xad"
+    };
+    const auto serialized = se_json_stringify(ast);
+    assert(se_json_parse(serialized) == ast);
+    assert(se_json_parse(R"(["\u4e2d","\ud83d\ude00"])")[0] == "\xe4\xb8\xad");
+    assert(se_json_parse(R"(["\u4e2d","\ud83d\ude00"])")[1] == "\xf0\x9f\x98\x80");
+    caught = false;
+    try { (void)se_json_parse("[\"unterminated\""); }
+    catch (const std::runtime_error&) { caught = true; }
+    assert(caught);
+
     assert((se_range(3, 1) == std::vector<std::int64_t>{3, 2, 1}));
     std::cout << "SE bootstrap standalone runtime passed\n";
 }
