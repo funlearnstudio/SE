@@ -215,6 +215,7 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                         fail "Function " + name + " argument " + string(i + 1) + " expects " + pair[1] + ", got " + got
                     i += 1
             if entry[3] in ["T", "U", "V", "K", "E", "R"] and entry.len > 4
+                signature = _node entry[4]
                 j = 0
                 while j < args.len
                     pair = _node signature[j]
