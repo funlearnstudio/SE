@@ -19,6 +19,10 @@ on:
       - "include/**"
   workflow_dispatch:
 
+concurrency:
+  group: selfhost-fast-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   compiler-differential:
     runs-on: ubuntu-latest
@@ -29,5 +33,9 @@ jobs:
         run: cmake -S . -B build -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Debug
       - name: Build production SE CLI
         run: cmake --build build --target se --parallel 2
+      - name: Compile and test standalone C++20 runtime (without s_core)
+        run: |
+          c++ -std=c++20 -O0 -Iselfhost tests/selfhost_runtime.cpp -o build/selfhost_runtime_tests
+          ./build/selfhost_runtime_tests
       - name: Run SE selfhost compiler unit and differential cases
         run: python3 tests/selfhost_differential.py "$(realpath build/se)"
