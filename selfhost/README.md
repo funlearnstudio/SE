@@ -43,13 +43,13 @@ Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defa
 ## Supported compiler features / 已支援
 
 - **Lexer**: ASCII identifiers, numeric and string literals, comments, indent/dedent, operators, typed function tokens and source locations.
-- **Parser**: expression precedence including unary and binary operators, list literals, indexing, member access, calls, `ask` and `try` expressions; statements `say`, `give`, `fail`, assignments including `+=` etc., `if/elif/else if/else`, `match/case/else`, `while`, `repeat`, `for`, typed and untyped `make`, `use`, multi-variable typed `ask`, `try/else error` recovery, and `for key value in map`.
+- **Parser**: expression precedence, lists/maps/sets, indexing and calls, `ask` / `try` expressions, assignments, `if/elif/else if/else`, `match/case/else`, `while/repeat/for`, `try/else error` recovery, `for key value in map`, generic and ordinary functions, and basic `type` declarations with instance field initialization.
 - **Static checks**: symbol existence, assignments, numeric and boolean operands, homogeneous lists, indexing, function arity, declared parameter types, annotated return types, selected block scopes, `ask` types and explicit failures.
 - **C++ backend**: Int, Num, Bool, Text, homogeneous Lists, insertion-ordered Maps and Sets, common arithmetic/logic/conditions, inclusive range loops, recursion, indexed collection updates, functions, simple module helpers, input/output and exceptions.
 - **Generic functions**: simple generic functions such as `make identity[T] item:T -> T` compile to C++ templates. Multiple generic parameters and nested generic type inference still require additional testing.
 - **Canonical bare-call recursion**: parsing the single-argument form `func a - 1 + func a - 2` as two calls whose arguments are decremented, with an end-to-end Fibonacci regression fixture.
 - **Typed forward functions**: C++20 prototypes are emitted before definitions for functions whose parameter and return types are explicit, enabling forward calls and mutual recursion. Calls requiring return-type deduction are not yet supported forward.
-- **Library subset**: selected `math`, `text`, `collections` (`sort`, `reverse`, `take`, `drop`), `file`, and core conversion/read/write/append/Unicode-`char` operations only. This **does not imply** general library compatibility.
+- **Library subset**: math operations and constants, `text` split/trim/contains/repeat/join, `collections` sort/reverse/take/drop/slice/filter/map/reduce/sort_with, `json` String/List[String] wire encoding, `os` getenv/platform/cwd, `random` numeric generators, filesystem `path` operations, and core conversions, files, and Unicode `char`. The native bootstrap runtime is separate from the production VM; this is **not** full standard-library compatibility.
 
 ## Tests / 測試
 
@@ -91,12 +91,26 @@ The current compiler lacks custom-module imports, several standard-library
 functions, mutable nested-list semantics and full language constructs; the
 Stage 2/3 check is therefore not expected to pass yet.
 
+## Native bootstrap build performance / 原生編譯控制
+
+The production CLI now accepts the strictly validated variable
+`SE_NATIVE_OPT=0` for a source-native debug build; default `-O2` behavior is
+unchanged. Example:
+
+```sh
+SE_NATIVE_OPT=0 se build selfhost/compiler.se
+```
+
+The strict self-hosting verifier uses this mode to avoid spending time
+optimizing the very large Stage0 serialized AST. Even if the Stage0 native
+executable builds and runs, the independent Stage2/3/4 proof still has to pass.
+
 ## What is NOT finished / 尚待完成
 
-- Complete parser and checker for `type`, generic Map/Set shapes, generics, closures, `match`, async, native modules, SE Web and all language forms.
+- Full generic user types and all inference combinations, closures and nested functions, managed async/await, native ABI modules, SE Web, complete recovery diagnostics, and all language forms. Basic `type`, generic functions, and value-based `match` are implemented as documented above.
 - Complete standard library and platform/ABI compatibility.
 - Comprehensive error recovery, Unicode/UTF-8 identifiers, source maps and source-accurate diagnostics.
-- Self-compile and reproducibility: compiler written in SE compiling **its own** sources, then stage2-stage3 binary equivalence.
+- Reproducible independent self-compilation: the strict Stage2/Stage3/Stage4 test has **not passed**. Source bundling plus a production Stage0 is not proof. The test must complete all its native generations without linking or invoking the production VM.
 - Cross-platform SE-only bootstrap verified on Linux/macOS/Windows. Differential tests currently verified in Linux; GitHub Actions needed for other platforms.
 
 ### Principle
