@@ -1,0 +1,33 @@
+name: SE selfhost fast CI
+
+on:
+  push:
+    paths:
+      - "selfhost/**"
+      - "tests/selfhost_differential.py"
+      - ".github/workflows/selfhost-fast.yml"
+      - "CMakeLists.txt"
+      - "src/**"
+      - "include/**"
+  pull_request:
+    paths:
+      - "selfhost/**"
+      - "tests/selfhost_differential.py"
+      - ".github/workflows/selfhost-fast.yml"
+      - "CMakeLists.txt"
+      - "src/**"
+      - "include/**"
+  workflow_dispatch:
+
+jobs:
+  compiler-differential:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SE production bootstrap
+        run: cmake -S . -B build -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Debug
+      - name: Build production SE CLI
+        run: cmake --build build --target se --parallel 2
+      - name: Run SE selfhost compiler unit and differential cases
+        run: python3 tests/selfhost_differential.py "$(realpath build/se)"
