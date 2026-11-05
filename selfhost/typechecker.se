@@ -213,6 +213,17 @@ make _guarantees_return statements:List[Text] -> Bool
         node = _node item
         if node[0] == "give"
             give true
+        if node[0] == "Match"
+            options = _node node[2]
+            fallback = _node node[3]
+            if fallback.len > 0 and _guarantees_return fallback
+                every_case = true
+                for encoded_case in options
+                    case_pair = _node encoded_case
+                    if not _guarantees_return (_node case_pair[1])
+                        every_case = false
+                if every_case
+                    give true
         if node[0] == "If"
             yes = _node node[2]
             no = _node node[3]
