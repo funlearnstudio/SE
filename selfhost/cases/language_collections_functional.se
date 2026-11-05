@@ -1,0 +1,20 @@
+use collections
+
+make is_even number:Int -> Bool
+    give number % 2 == 0
+
+make double number:Int -> Int
+    give number * 2
+
+make add a:Int b:Int -> Int
+    give a + b
+
+make less a:Int b:Int -> Bool
+    give a < b
+
+items = [1, 2, 3, 4]
+say collections.filter items is_even
+say collections.map items double
+say collections.reduce items 0 add
+say collections.slice items 1 3
+say collections.sort_with [4, 1, 3] less
