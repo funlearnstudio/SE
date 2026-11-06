@@ -53,7 +53,7 @@ Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defa
 - **Generic functions**: simple generic functions such as `make identity[T] item:T -> T` compile to C++ templates. Declared generic variables may use arbitrary names; repeated bindings, nested collection inference and nested generic functions have execution and rejection tests.
 - **Canonical bare-call arithmetic**: arguments absorb arithmetic (`twice a + b` means `twice(a+b)`), while `func a - 1 + func a - 2` splits into two calls when the next operand starts another call. Both have native/interpreter differential tests.
 - **Block layout**: blank lines and comment-only lines between a block header and its first indented statement are accepted.
-- **Local source modules**: `use helpers` recursively resolves `helpers.se` or `helpers.s` relative to the importer; duplicate imports are deduplicated and circular imports rejected. Imported declarations are flattened, so full module namespaces/encapsulation are not implemented.
+- **Local source modules**: `use helpers` recursively resolves `.se` / `.s` files relative to the importer and package locations. Module declarations receive stable prefixes; private names beginning with `_` remain private, distinct private helpers do not collide, and conflicting public exports are rejected. Imports preserve token adjacency and string contents. Source-module objects are not first-class runtime values.
 - **C++ keyword safety**: SE identifiers such as `class`, `template` and `namespace` are escaped consistently during C++ generation.
 - **Typed forward functions**: C++20 prototypes are emitted before definitions for functions whose parameter and return types are explicit, enabling forward calls and mutual recursion. Calls requiring return-type deduction are not yet supported forward.
 - **Library subset**: math operations and constants, `text` split/trim/contains/repeat/join, `collections` sort/reverse/take/drop/slice/filter/map/reduce/sort_with, `json` String/List[String] wire encoding, `os` getenv/platform/cwd, `random` numeric generators, filesystem `path` operations, `time` clock conversion/formatting, `file` managed handles plus read/write/copy/move/directory operations, basic `test` assertions, and core conversions, help text, and Unicode `char`. The native bootstrap runtime is separate from the production VM; this is **not** full standard-library compatibility.
@@ -78,7 +78,7 @@ build/se run selfhost/compiler.se
 
 After `python3 tests/selfhost_stage2.py build/se` passes, the verifier keeps
 `build/se-selfhost` (or `.exe`) and its standalone C++ source. This executable
-is the verified Stage3 compiler, with no production SE VM linked in:
+is the independently verified compiler from the real multi-file source graph, with no production SE VM linked in:
 
 ```sh
 SE_SELFHOST_SOURCE=selfhost/cases/language_escaping_closures.se \
@@ -127,11 +127,11 @@ self-compiled SE compiler.
 2. Compile the compiler's own source from the generated native executable.
 3. Compile subsequent generations without invoking the production interpreter.
 4. Compare Stage 2, Stage 3 and Stage 4 generated C++ SHA-256 hashes.
-5. Run the native differential and Web suites with the final generated compiler, so new features are exercised after self-compilation as well as during bootstrap.
+5. Compile `selfhost/compiler.se` and its actual source modules directly from the native compiler, without the Python bundler, then recompile that same graph and compare generated C++ hashes.
+6. Run the native differential and Web suites with this final multi-file compiler, then keep the verified executable and C++ source under `build/`.
 
 A failure is a **failure**, never counted as a passing self-host result.
-Local source imports now work in the tested subset, but full module namespace
-semantics, many standard-library APIs, some nested-list mutation rules and
+Local source imports and private-name isolation work in the tested subset, but first-class module values, many standard-library APIs, some nested-list aliasing rules and
 advanced language constructs are missing. A successful Stage2/3/4 proof shows that this supported bundled compiler can compile itself deterministically; it does not imply complete language or extension compatibility.
 
 ## Native bootstrap build performance / 原生編譯控制

@@ -128,17 +128,28 @@ def verify(se: Path) -> None:
                 "Stage2/3/4 source mismatch (determinism not proven): "
                 + ", ".join(hashes)
             )
-        # Exercise the final generated compiler on native and Web programs,
-        # beyond merely hashing its own generated source.
+        # Leave the Stage0-only Python bundle behind: the generated compiler
+        # must load its actual source modules and compile the graph directly.
+        module_cpp = root / "multifile.cpp"
+        module_next_cpp = root / "multifile-next.cpp"
+        module_compiler = root / "multifile"
+        compile_source(stage3, ROOT / "selfhost" / "compiler.se", module_cpp)
+        compile_native(module_cpp, module_compiler)
+        compile_source(module_compiler, ROOT / "selfhost" / "compiler.se", module_next_cpp)
+        module_hash = digest(module_cpp)
+        if module_hash != digest(module_next_cpp):
+            raise RuntimeError("Direct multi-file compiler source mismatch")
+        # The final compiler now comes from the real module graph, rather than
+        # from a Python-bundled input. Exercise both native and Web backends.
         invoke([sys.executable, str(ROOT / "tests" / "selfhost_differential.py"),
-                str(se), str(stage3)], timeout_seconds=420)
+                str(se), str(module_compiler)], timeout_seconds=420)
         invoke([sys.executable, str(ROOT / "tests" / "selfhost_web.py"),
-                str(se), str(stage3)], timeout_seconds=180)
-        # Keep the validated independent compiler available for actual use.
+                str(se), str(module_compiler)], timeout_seconds=180)
         exported_binary = ROOT / "build" / ("se-selfhost.exe" if os.name == "nt" else "se-selfhost")
         exported_binary.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(stage3, exported_binary)
-        shutil.copy2(stage3_cpp, exported_binary.with_suffix(".cpp"))
+        shutil.copy2(module_compiler, exported_binary)
+        shutil.copy2(module_cpp, exported_binary.with_suffix(".cpp"))
+        print("DIRECT MULTI-FILE SELF-HOSTING VERIFIED:", module_hash)
         print("EXPORTED VERIFIED COMPILER:", exported_binary)
         print("STRICT SELF-HOSTING VERIFIED: Stage2 = Stage3 = Stage4")
         print("No production s_core linked into generated native compilers.")

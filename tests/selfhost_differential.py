@@ -120,6 +120,7 @@ def main() -> None:
         verify_positive("language_remove_map.se", "", tmp)
         verify_positive("language_cpp_keywords.se", "", tmp)
         verify_positive("language_source_imports.se", "", tmp)
+        verify_positive("language_module_namespaces.se", "", tmp)
         verify_positive("language_s_imports.se", "", tmp)
         verify_positive("language_package_imports.se", "", tmp)
         verify_positive("language_duration.se", "", tmp, expected_output="duration ok\n")
@@ -130,6 +131,8 @@ def main() -> None:
         verify_positive("language_zero_arg_functions.se", "", tmp, expected_output="42\n43\nready\ntrue\n84\n")
         for case, message in (
             ("negative_unknown_annotation.se", "Unknown type annotation"),
+            ("negative_private_import.se", "Undefined function"),
+            ("negative_duplicate_export.se", "provided by more than one module"),
             ("negative_generic_rebind.se", "was already inferred as"),
             ("negative_required_field.se", "Missing required field"),
             ("negative_generic_wrong_arity.se", "needs 1 type arguments"),
