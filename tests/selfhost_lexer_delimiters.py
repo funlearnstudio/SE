@@ -14,8 +14,12 @@ SELFHOST = ROOT / "selfhost"
 
 def run_lexer(se: Path, source: str) -> subprocess.CompletedProcess[str]:
     # Keep the temporary entrypoint alongside lexer.se for local 'use lexer'.
-    with tempfile.TemporaryDirectory(prefix=".lexer-check-", dir=SELFHOST) as directory:
-        program = Path(directory) / "check.se"
+    with tempfile.NamedTemporaryFile(
+        mode="w", encoding="utf-8", prefix=".lexer-check-", suffix=".se",
+        dir=SELFHOST, delete=False,
+    ) as handle:
+        program = Path(handle.name)
+    try:
         program.write_text(
             "use lexer\n"
             + "tokens = try lex " + json.dumps(source, ensure_ascii=False) + "\n"
@@ -26,6 +30,8 @@ def run_lexer(se: Path, source: str) -> subprocess.CompletedProcess[str]:
             [str(se), "run", str(program)],
             cwd=ROOT, text=True, capture_output=True, check=False, timeout=30,
         )
+    finally:
+        program.unlink(missing_ok=True)
 
 
 def main() -> None:
