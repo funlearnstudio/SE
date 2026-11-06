@@ -50,7 +50,8 @@ while_ast = blocks[2]
 test.ok (text.contains while_ast "\"while\"")
 
 # Windows-style empty/whitespace-only CRLF lines must not create indentation.
-crlf_tokens = try lex "if true\r\n    \r\n    say 1\r\n"
+crlf_source = "if true" + (char 13) + "\n    " + (char 13) + "\n    say 1" + (char 13) + "\n"
+crlf_tokens = try lex crlf_source
 crlf_kinds = ["if", "true", "Newline", "Newline", "Indent", "say", "Integer", "Newline", "Dedent", "End"]
 test.equal crlf_kinds.len crlf_tokens.len
 k = 0
