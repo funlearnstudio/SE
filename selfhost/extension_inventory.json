@@ -2951,28 +2951,28 @@
           "name": "encode",
           "kind": "function",
           "usage": "encode text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "decode",
           "kind": "function",
           "usage": "decode text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "query",
           "kind": "function",
           "usage": "query map",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "parse_query",
           "kind": "function",
           "usage": "parse_query text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2984,21 +2984,21 @@
           "name": "hex",
           "kind": "function",
           "usage": "hex text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "unhex",
           "kind": "function",
           "usage": "unhex text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "utf8_valid",
           "kind": "function",
           "usage": "utf8_valid text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
