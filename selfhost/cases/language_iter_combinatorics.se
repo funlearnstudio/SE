@@ -12,3 +12,7 @@ say orderings[0][0]
 subsets = iter.combinations [1, 2, 3] 2
 say subsets.len
 say subsets[2][0]
+indexed = iter.enumerate [1, 2, 3]
+say indexed.len
+say indexed[0][0]
+say indexed[2][1]
