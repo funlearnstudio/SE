@@ -292,6 +292,18 @@ make _emit_call encoded:Text -> Text
                 if method in ["escape", "render"]
                     give try _apply_or_direct ("se_template_" + method) generated node[2]
                 fail "Unknown template function: " + method
+            if module == "itertools"
+                if method in ["chain", "flatten", "chunked", "take", "drop", "windows", "cycle", "pairs", "unique"]
+                    give try _apply_or_direct ("se_itertools_" + method) generated node[2]
+                fail "Unknown itertools function: " + method
+            if module == "glob"
+                if method in ["match", "find"]
+                    give try _apply_or_direct ("se_glob_" + method) generated node[2]
+                fail "Unknown glob function: " + method
+            if module == "hashlib"
+                if method in ["compare", "to_hex"]
+                    give try _apply_or_direct ("se_hashlib_" + method) generated node[2]
+                fail "Unsupported hashlib function: " + method
             if module == "shutil"
                 if method in ["copy", "move", "copytree", "remove", "mkdir"]
                     give try _apply_or_direct ("se_file_" + method) generated node[2]
@@ -301,6 +313,8 @@ make _emit_call encoded:Text -> Text
                     give try _apply_or_direct "se_dynamic_type" generated node[2]
                 if method == "is"
                     give try _apply_or_direct "se_dynamic_is" generated node[2]
+                if method == "cast"
+                    give try _apply_or_direct "se_typing_cast" generated node[2]
                 fail "Unsupported typing function: " + method
             if module == "cookie"
                 if method in ["parse", "set"]
