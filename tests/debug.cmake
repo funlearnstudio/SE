@@ -11,6 +11,6 @@ execute_process(COMMAND "${SE_EXE}" debug --break 2 "${program}"
   INPUT_FILE "${SE_WORK}/commands.txt" RESULT_VARIABLE debug_code
   OUTPUT_VARIABLE debug_out ERROR_VARIABLE debug_err)
 if(NOT debug_code EQUAL 0 OR NOT debug_out STREQUAL "42\n"
-   OR NOT debug_err MATCHES "\\(se-debug\\)" OR NOT debug_err MATCHES "twice")
+   OR NOT debug_err MATCHES "SE debug" OR NOT debug_err MATCHES "twice")
   message(FATAL_ERROR "SE breakpoint/stack debug failed: ${debug_out} ${debug_err}")
 endif()
