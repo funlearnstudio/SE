@@ -28,7 +28,7 @@ def run(*argv: str, input_text: str = "", env: dict[str, str] | None = None) -> 
         capture_output=True,
         cwd=ROOT,
         env=env,
-        timeout=45,
+        timeout=180 if str(argv[0]) == CXX else 45,
         check=False,
     )
 
@@ -60,6 +60,23 @@ def verify_positive(case: str, data: str, tmp: Path, *, expected_output: str | N
     print(f"PASS differential: {case}")
 
 
+
+def verify_native_load_failure(case: str, tmp: Path) -> None:
+    src = CASE_DIR / case
+    cpp = tmp / (case + ".cpp")
+    exe = tmp / (case + (".exe" if os.name == "nt" else ""))
+    env = dict(os.environ, SE_SELFHOST_SOURCE=str(src), SE_SELFHOST_OUTPUT=str(cpp))
+    produced = run(*([str(NATIVE)] if NATIVE else [str(SE), "run", "selfhost/compiler.se"]), env=env)
+    assert produced.returncode == 0, (case, "self-host compiler", produced.stderr)
+    compiled = run(CXX, "-std=c++20", "-O0", "-g0", "-I", str(ROOT / "selfhost"), str(cpp), "-o", str(exe))
+    assert compiled.returncode == 0, (case, "g++", compiled.stderr)
+    actual = run(str(exe))
+    assert actual.returncode != 0, (case, "missing library should fail during module import")
+    assert "Could not load native library" in actual.stderr, (case, repr(actual.stderr))
+    assert "unreachable" not in actual.stdout, (case, repr(actual.stdout))
+    print(f"PASS eager native load failure: {case}")
+
+
 def verify_negative(case: str, part: str, tmp: Path) -> None:
     src = CASE_DIR / case
     cpp = tmp / (case + ".cpp")
@@ -81,6 +98,19 @@ def main() -> None:
         print(f"PASS unit: {filename}")
     with tempfile.TemporaryDirectory(prefix="se-selfhost-") as folder:
         tmp = Path(folder)
+        verify_positive("language_object_aliases.se", "", tmp)
+        verify_positive("language_collection_aliases.se", "", tmp)
+        verify_positive("language_series.se", "", tmp)
+        verify_positive("language_linear_algebra.se", "", tmp)
+        verify_positive("language_expansion_numeric.se", "", tmp)
+        verify_positive("language_regex_uuid.se", "", tmp)
+        verify_positive("language_operator_module.se", "", tmp)
+        verify_positive("language_dynamic_any.se", "", tmp, expected_output="Int\nText\nBool\ndynamic Any ok\n")
+        verify_positive("language_evaluation_order.se", "one\ntwo\nthree\nfour\n", tmp, expected_output="first: second: [one, two]\nthird: fourth: threefour\n")
+        verify_positive("language_copy.se", "", tmp, expected_output="9\n9\n7\n1\n")
+        verify_positive("language_generic_callbacks.se", "", tmp, expected_output="[1, 2, 3]\n[2, 4, 6]\n42\n12\n7\n22\n3.75\n")
+        verify_positive("language_native_abi.se", "", tmp, expected_output="42\n16\ntrue\nnative text\n88\n11\n89\n11\nNativeError\n42\n0\n")
+        verify_native_load_failure("language_native_eager_failure.se", tmp)
         verify_positive("language_core.se", "", tmp)
         verify_positive("language_text.se", "", tmp)
         verify_positive("language_text_replace.se", "", tmp)

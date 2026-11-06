@@ -1,0 +1,28 @@
+use native_test
+
+say add 20 22
+say square 4.0
+say not_bool false
+say echo "native text"
+data = bytes "hello bytes"
+data_alias = data
+data_alias[0] = 88
+say data[0]
+say bytes_len data
+copy = bytes_echo data
+copy_alias = copy
+copy_alias[1] = 89
+say copy[1]
+say copy.len
+try
+    bad = native_error 1
+    say bad
+else err
+    say err.kind
+
+make scope value:Int -> Int
+    counter = make_counter
+    give counter_value counter
+
+say scope 0
+say live_counters

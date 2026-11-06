@@ -1,0 +1,19 @@
+use matrix
+use linear
+
+a = [[1, 2], [3, 4]]
+b = [[5, 6], [7, 8]]
+say try matrix.transpose a
+say try matrix.multiply a b
+x = [1, 2, 3]
+y = [4, 5, 6]
+say try matrix.dot x y
+say try linear.add a b
+say try linear.subtract b a
+say linear.scale a 2
+say try linear.identity 3
+say try linear.determinant a
+say try linear.inverse a
+coords = [3, 4]
+say linear.norm coords
+say try linear.normalize coords

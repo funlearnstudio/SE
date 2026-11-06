@@ -1,0 +1,15 @@
+use copy
+
+original = [[1]]
+shallow = copy.shallow original
+shallow[0][0] = 9
+say original[0][0]
+deep = copy.deep original
+deep[0][0] = 7
+say original[0][0]
+say deep[0][0]
+
+record = ["items": [1, 2]]
+record_copy = copy.deep record
+record_copy["items"][0] = 8
+say record["items"][0]

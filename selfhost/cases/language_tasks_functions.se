@@ -33,3 +33,5 @@ try
     say try async.await failure
 else err
     say err.message
+
+say function.pipe 3 double double

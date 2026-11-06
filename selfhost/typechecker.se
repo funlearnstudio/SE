@@ -42,11 +42,13 @@ make _user_bindings type_name:Text shape:List[Text] -> List[List[Text]]
     give bindings
 
 make _validate_type source:Text symbols:List[List[Text]] -> Text
+    if text.starts source "Handle:"
+        give "OK"
     if source == "Unknown"
         give "OK"
     parts = decompose_type source
     base = parts[0]
-    if base in ["Int", "Num", "Bool", "Text", "Time", "File", "Duration", "Error"]
+    if base in ["Int", "Num", "Bool", "Text", "Time", "File", "Duration", "Error", "Bytes", "None", "Any"]
         if parts.len != 1
             fail "Type " + base + " does not accept type arguments."
         give "OK"
@@ -82,11 +84,20 @@ make _add_generics encoded:Text symbols:List[List[Text]] -> Text
     give "OK"
 
 make _numeric kind:Text -> Bool
-    give kind == "Int" or kind == "Num" or kind == "Unknown"
+    # Generic type parameters may use operators when the concrete call-site
+    # type supplies that operator. The generated C++ template remains the
+    # final constraint check for unsupported instantiations.
+    give kind == "Int" or kind == "Num" or kind == "Unknown" or kind == "TypeParameter"
+
+make _generic_type kind:Text symbols:List[List[Text]] -> Bool
+    shape = lookup_symbol symbols kind
+    give shape[1] == "TypeParameter"
 
 make _infer encoded:Text symbols:List[List[Text]] -> Text
     node = _node encoded
     kind = node[0]
+    if kind == "NativeCall"
+        give node[4]
     if kind == "Atom"
         token = node[1]
         if token == "Integer"
@@ -125,7 +136,7 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             if not _compatible "Bool" operand
                 fail "not expects Bool, got " + operand
             give "Bool"
-        if not _numeric operand
+        if not _numeric operand and not (_generic_type operand symbols)
             fail "Unary - needs a number, got " + operand
         give operand
     if kind == "Binary"
@@ -139,7 +150,7 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
         if op in ["==", "!=", "in"]
             give "Bool"
         if op in ["<", "<=", ">", ">="]
-            if not _numeric left or not _numeric right
+            if (not _numeric left and not (_generic_type left symbols)) or (not _numeric right and not (_generic_type right symbols))
                 fail "Comparison requires numeric operands."
             give "Bool"
         if op == ".."
@@ -148,8 +159,10 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             give "List[Int]"
         if op == "+" and (left == "Text" or right == "Text")
             give "Text"
-        if not _numeric left or not _numeric right
+        if (not _numeric left and not (_generic_type left symbols)) or (not _numeric right and not (_generic_type right symbols))
             fail "Arithmetic requires numbers, got " + left + " and " + right
+        if left == right and _generic_type left symbols and op != "/"
+            give left
         if op == "/" or op == "**" or left == "Num" or right == "Num"
             give "Num"
         give "Int"
@@ -208,6 +221,10 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             if index_type != "Int" and index_type != "Unknown"
                 fail "List index must be Int."
             give parts[1]
+        if container == "Bytes"
+            if index_type != "Int" and index_type != "Unknown"
+                fail "Bytes index must be Int."
+            give "Int"
         if container == "Unknown"
             give "Unknown"
         fail "Only List and Map indexing supported, got " + container
@@ -218,6 +235,10 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
         if member == "help"
             give "Text"
         if owner[0] == "Atom" and owner[1] == "Identifier"
+            if owner[0] == "Atom" and owner[1] == "Identifier" and owner[2] == "uuid" and member == "v4"
+                give "Text"
+            if owner[2] == "dynamic" and member in ["type_of", "is"]
+                give "Function"
             if owner[2] == "math" and member in ["pi", "e", "tau", "inf"]
                 give "Num"
             if owner[2] == "random" and member == "num"
@@ -236,7 +257,7 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             give "Function"
         parts = decompose_type object_type
         if member == "len"
-            if object_type == "Text" or object_type == "Unknown" or parts[0] in ["List", "Map", "Set"]
+            if object_type in ["Text", "Bytes", "Unknown"] or parts[0] in ["List", "Map", "Set"]
                 give "Int"
         if member == "upper" or member == "lower"
             if object_type == "Text" or object_type == "Unknown"
@@ -265,6 +286,36 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
     if kind == "Call"
         callee = _node node[1]
         args = _node node[2]
+        if callee[0] == "Member"
+            call_owner = _node callee[1]
+            if call_owner[0] == "Atom" and call_owner[1] == "Identifier" and call_owner[2] == "dynamic"
+                method = callee[2]
+                if method == "type_of"
+                    if args.len != 1
+                        fail "dynamic.type_of expects one value."
+                    give "Text"
+                if method == "is"
+                    if args.len != 2
+                        fail "dynamic.is expects a value and a type name."
+                    give "Bool"
+                fail "Unknown dynamic operation: " + method
+            if call_owner[0] == "Atom" and call_owner[1] == "Identifier" and call_owner[2] == "operator"
+                method = callee[2]
+                if not (method in ["add", "sub", "mul", "div", "mod", "eq", "ne", "lt", "le", "gt", "ge"])
+                    fail "Unknown operator function: " + method
+                if args.len != 2
+                    fail "operator." + method + " expects two arguments."
+                left_type = try _infer args[0] symbols
+                right_type = try _infer args[1] symbols
+                if method in ["eq", "ne", "lt", "le", "gt", "ge"]
+                    give "Bool"
+                if left_type == "Text" and right_type == "Text" and method == "add"
+                    give "Text"
+                if not (left_type in ["Int", "Num", "Unknown"]) or not (right_type in ["Int", "Num", "Unknown"])
+                    fail "operator." + method + " expects compatible operands."
+                if method == "div" or left_type == "Num" or right_type == "Num"
+                    give "Num"
+                give "Int"
         for item in args
             try _infer item symbols
         if callee[0] == "Atom" and callee[1] == "Identifier"
@@ -288,6 +339,10 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 if wait_type != "Duration" and wait_type != "Unknown"
                     fail "wait expects a Duration value."
                 give "Unknown"
+            if name == "bytes"
+                if args.len != 1
+                    fail "bytes needs one Text argument."
+                give "Bytes"
             if name == "char"
                 if args.len != 1
                     fail "char expects one argument."
@@ -346,6 +401,36 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             owner_type = try _infer callee[1] symbols
             if owner_type == "Module"
                 owner = _node callee[1]
+                if owner[0] == "Atom" and owner[2] == "collections"
+                    method = callee[2]
+                    if method == "contains"
+                        if args.len != 2
+                            fail "collections.contains expects a collection and a value."
+                        give "Bool"
+                    if method in ["first", "last", "unique", "sort_by", "sort_by_desc"]
+                        expected = 1
+                        if method in ["sort_by", "sort_by_desc"]
+                            expected = 2
+                        if args.len != expected
+                            fail "Wrong argument count for collections."
+                        if method in ["sort_by", "sort_by_desc"]
+                            key_type = try _infer args[1] symbols
+                            if key_type != "Text" and key_type != "Unknown"
+                                fail "collections.sort_by expects a Text key."
+                        collection_type = try _infer args[0] symbols
+                        collection_parts = decompose_type collection_type
+                        if collection_parts[0] == "List" and collection_parts.len == 2
+                            if method in ["first", "last"]
+                                give collection_parts[1]
+                            give collection_type
+                    if method in ["keys", "values"]
+                        if args.len != 1
+                            fail "collections.keys/values expects one Map."
+                        map_type = decompose_type (try _infer args[0] symbols)
+                        if map_type[0] == "Map" and map_type.len == 3
+                            if method == "keys"
+                                give "List[Text]"
+                            give "List[" + map_type[2] + "]"
                 if owner[0] == "Atom" and owner[2] == "time"
                     if callee[2] == "now"
                         if args.len != 0
@@ -515,6 +600,12 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             if index_type != "Int" and index_type != "Unknown"
                 fail "List index assignment requires Int index."
             element = parts[1]
+        else if target_type == "Bytes"
+            if index_type != "Int" and index_type != "Unknown"
+                fail "Bytes index must be Int."
+            if value_type != "Int" and value_type != "Unknown"
+                fail "Bytes assignments require an Int from 0 to 255."
+            give "OK"
         else if target_type != "Unknown"
             fail "Assignment index target must be a List or Map."
         if not _compatible element value_type
@@ -547,6 +638,8 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
         give "OK"
     if kind == "Use"
         try define_symbol symbols node[1] "Module" "0" ""
+        give "OK"
+    if kind == "NativeLoad"
         give "OK"
     if kind == "fail"
         got = try _infer node[2] symbols

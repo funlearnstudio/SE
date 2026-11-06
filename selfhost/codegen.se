@@ -22,11 +22,19 @@ make _clone_names entries:List[Text] -> List[Text]
 make _ctype source:Text -> Text
     parts = decompose_type source
     if parts[0] == "List" and parts.len == 2
-        give "std::vector<" + (try _ctype parts[1]) + ">"
+        give "SEList<" + (try _ctype parts[1]) + ">"
     if parts[0] == "Set" and parts.len == 2
         give "SESet<" + (try _ctype parts[1]) + ">"
     if parts[0] == "Map" and parts.len == 3 and parts[1] == "Text"
         give "SEMap<" + (try _ctype parts[2]) + ">"
+    if text.starts source "Handle:"
+        give "SENativeHandle"
+    if source == "Bytes"
+        give "SEBytes"
+    if source == "Any"
+        give "SEAny"
+    if source == "None"
+        give "void"
     if source == "Int"
         give "std::int64_t"
     if source == "Num"
@@ -44,17 +52,19 @@ make _ctype source:Text -> Text
     if source == "File"
         give "SEFile"
     if source == "List[Int]"
-        give "std::vector<std::int64_t>"
+        give "SEList<std::int64_t>"
     if source == "List[Num]"
-        give "std::vector<double>"
+        give "SEList<double>"
     if source == "List[List[Text]]"
-        give "std::vector<std::vector<std::string>>"
+        give "SEList<SEList<std::string>>"
     if source == "List[List[Int]]"
-        give "std::vector<std::vector<std::int64_t>>"
+        give "SEList<SEList<std::int64_t>>"
     if source == "List[Text]"
-        give "std::vector<std::string>"
+        give "SEList<std::string>"
+    if source == "List[Any]"
+        give "SEList<SEAny>"
     if source == "List[Bool]"
-        give "std::vector<bool>"
+        give "SEList<bool>"
     if source == "Map[Text,Int]"
         give "SEMap<std::int64_t>"
     if source == "Map[Text,Text]"
@@ -63,6 +73,8 @@ make _ctype source:Text -> Text
         give "SEMap<double>"
     if source == "Map[Text,Bool]"
         give "SEMap<bool>"
+    if source == "Map[Text,Any]"
+        give "SEMap<SEAny>"
     if source == "Set[Int]"
         give "SESet<std::int64_t>"
     if source == "Set[Text]"
@@ -86,15 +98,15 @@ make _ctype source:Text -> Text
     if characters.len > 0
         if text.contains "ABCDEFGHIJKLMNOPQRSTUVWXYZ" characters[0]
             give "SEType_" + source
-    fail "Unsupported C++ type annotation: " + source
+    give "SEType_" + source
 
 # Preserve mutable cursor, token and symbol-table arguments across calls.
 make _parameter_type declared:Text name:Text -> Text
     result = try _ctype declared
     if declared in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[List[Text]]", "List[List[Int]]"]
-        if name in ["state", "tokens", "symbols", "entries", "names", "loaded", "bindings"]
-            give result + "&"
-        give "const " + result + "&"
+        # SE List variables alias shared storage; parameter rebinding still
+        # only changes the local wrapper, while element edits remain visible.
+        give result
     give result
 
 make _emit_template encoded:Text -> Text
@@ -113,6 +125,8 @@ make _emit_template encoded:Text -> Text
 
 # Keep SE identifiers distinct from reserved C++20 tokens.
 make _cpp_identifier name:Text -> Text
+    if text.starts name "__se_"
+        give "se_user_" + name
     if name in ["alignas","alignof","and","and_eq","asm","auto","bitand","bitor","bool","break","case","catch","char","char8_t","char16_t","char32_t","class","compl","concept","const","consteval","constexpr","constinit","const_cast","continue","co_await","co_return","co_yield","decltype","default","delete","do","double","dynamic_cast","else","enum","explicit","export","extern","false","float","for","friend","goto","if","inline","int","long","mutable","namespace","new","noexcept","not","not_eq","nullptr","operator","or","or_eq","private","protected","public","register","reinterpret_cast","requires","return","short","signed","sizeof","static","static_assert","static_cast","struct","switch","template","this","thread_local","throw","true","try","typedef","typeid","typename","union","unsigned","using","virtual","void","volatile","wchar_t","while","xor","xor_eq"]
         give "se_keyword_" + name
     give name
@@ -132,11 +146,76 @@ make _callback_arguments encoded:Text -> Text
     for item in args
         node = _node item
         if first and node[0] == "Atom" and node[1] == "Identifier"
-            parts.add (_cpp_identifier node[2])
+            parts.add ("std::ref(" + (_cpp_identifier node[2]) + ")")
         else
             parts.add (try _emit_expr item)
         first = false
     give text.join parts ", "
+
+make _last_callback_arguments encoded:Text -> Text
+    args = _node encoded
+    parts = []
+    last = args.len - 1
+    index = 0
+    for item in args
+        node = _node item
+        if index == last and node[0] == "Atom" and node[1] == "Identifier"
+            parts.add ("std::ref(" + (_cpp_identifier node[2]) + ")")
+        else
+            parts.add (try _emit_expr item)
+        index += 1
+    give text.join parts ", "
+
+make _pipe_arguments encoded:Text -> Text
+    args = _node encoded
+    parts = []
+    first = true
+    for item in args
+        node = _node item
+        if not first and node[0] == "Atom" and node[1] == "Identifier"
+            parts.add ("std::ref(" + (_cpp_identifier node[2]) + ")")
+        else
+            parts.add (try _emit_expr item)
+        first = false
+    give text.join parts ", "
+
+# C++ does not order ordinary function arguments. Build a braced tuple first;
+# its elements are evaluated left-to-right, then invoke SE's callable.
+make _ordered_apply function:Text arguments:Text -> Text
+    give "std::apply([&](auto&&... __se_args) -> decltype(auto) { return " + function + "(std::forward<decltype(__se_args)>(__se_args)...); }, std::tuple{" + arguments + "})"
+
+make _has_side_effect encoded:Text -> Bool
+    node = _node encoded
+    kind = node[0]
+    if kind == "Call" or kind == "Ask" or kind == "Try"
+        give true
+    if kind == "Unary"
+        give try _has_side_effect node[2]
+    if kind == "Member"
+        give try _has_side_effect node[1]
+    if kind == "Binary"
+        give (try _has_side_effect node[2]) or (try _has_side_effect node[3])
+    if kind == "Index"
+        give (try _has_side_effect node[1]) or (try _has_side_effect node[2])
+    if kind == "List" or kind == "Set"
+        for item in (_node node[1])
+            if try _has_side_effect item
+                give true
+        give false
+    if kind == "Map"
+        for encoded_pair in (_node node[1])
+            pair = _node encoded_pair
+            if (try _has_side_effect pair[0]) or (try _has_side_effect pair[1])
+                give true
+        give false
+    give false
+
+make _apply_or_direct function:Text arguments:Text encoded:Text -> Text
+    items = _node encoded
+    for item in items
+        if try _has_side_effect item
+            give try _ordered_apply function arguments
+    give function + "(" + arguments + ")"
 
 make _emit_call encoded:Text -> Text
     node = _node encoded
@@ -146,27 +225,29 @@ make _emit_call encoded:Text -> Text
     if target[0] == "Atom" and target[1] == "Identifier"
         name = target[2]
         if name in ["int", "integer"]
-            give "se_int(" + generated + ")"
+            give try _apply_or_direct "se_int" generated node[2]
         if name in ["num", "float", "double"]
-            give "se_num(" + generated + ")"
+            give try _apply_or_direct "se_num" generated node[2]
         if name == "bool" or name == "boolean"
-            give "se_bool(" + generated + ")"
+            give try _apply_or_direct "se_bool" generated node[2]
         if name in ["text", "string"]
-            give "se_string(" + generated + ")"
+            give try _apply_or_direct "se_string" generated node[2]
         if name == "wait"
-            give "se_wait(" + generated + ")"
+            give try _apply_or_direct "se_wait" generated node[2]
+        if name == "bytes"
+            give try _apply_or_direct "se_bytes" generated node[2]
         if name == "char"
-            give "se_char(" + generated + ")"
+            give try _apply_or_direct "se_char" generated node[2]
         if name == "read"
-            give "se_read(" + generated + ")"
+            give try _apply_or_direct "se_read" generated node[2]
         if name == "write"
-            give "se_write(" + generated + ")"
+            give try _apply_or_direct "se_write" generated node[2]
         if name == "append"
-            give "se_append(" + generated + ")"
+            give try _apply_or_direct "se_append" generated node[2]
         if name == "open"
-            give "se_file_open(" + generated + ")"
+            give try _apply_or_direct "se_file_open" generated node[2]
         cpp_name = _cpp_identifier name
-        give cpp_name + "(" + generated + ")"
+        give try _apply_or_direct cpp_name generated node[2]
     if target[0] == "Member"
         owner = _node target[1]
         method = target[2]
@@ -175,109 +256,175 @@ make _emit_call encoded:Text -> Text
             if module == "async" or module == "threading"
                 if method == "run"
                     callback_args = try _callback_arguments node[2]
-                    give "se_async_run(" + callback_args + ")"
+                    give try _apply_or_direct "se_async_run" callback_args node[2]
                 if method in ["await", "join"]
-                    give "se_async_await(" + generated + ")"
+                    give try _apply_or_direct "se_async_await" generated node[2]
                 if method == "ready"
-                    give "se_async_ready(" + generated + ")"
+                    give try _apply_or_direct "se_async_ready" generated node[2]
                 fail "Unknown task operation: " + method
             if module == "function"
+                if method == "pipe"
+                    pipe_args = try _pipe_arguments node[2]
+                    give try _apply_or_direct "se_function_pipe" pipe_args node[2]
                 if method in ["bind", "partial", "call", "map", "filter", "reduce"]
                     callback_args = try _callback_arguments node[2]
-                    give "se_function_" + method + "(" + callback_args + ")"
+                    give try _apply_or_direct ("se_function_" + method) callback_args node[2]
                 fail "Unknown function operation: " + method
             if module == "os"
                 if method == "getenv"
-                    give "se_getenv(" + generated + ")"
+                    give try _apply_or_direct "se_getenv" generated node[2]
+                if method == "has_env"
+                    give try _apply_or_direct "se_has_env" generated node[2]
                 fail "OS module function not yet supported: " + method
             if module == "json"
                 if method == "stringify"
-                    give "se_json_stringify(" + generated + ")"
+                    give try _apply_or_direct "se_json_stringify" generated node[2]
                 if method == "parse"
-                    give "se_json_parse(" + generated + ")"
+                    give try _apply_or_direct "se_json_parse" generated node[2]
                 fail "JSON module function not yet supported: " + method
+            if module == "csv"
+                if method == "parse"
+                    give try _apply_or_direct "se_csv_parse" generated node[2]
+                if method == "stringify"
+                    give try _apply_or_direct "se_csv_stringify" generated node[2]
+                fail "CSV module function not supported: " + method
             if module == "path"
                 if method in ["join", "name", "ext", "parent", "exists", "is_file", "is_dir"]
-                    give "se_path_" + method + "(" + generated + ")"
+                    give try _apply_or_direct ("se_path_" + method) generated node[2]
                 fail "Path function not yet supported: " + method
             if module == "random"
                 if method == "int"
-                    give "se_random_int(" + generated + ")"
+                    give try _apply_or_direct "se_random_int" generated node[2]
                 fail "Random module function not yet supported: " + method
             if module == "base64"
                 if method == "encode"
-                    give "se_base64_encode(" + generated + ")"
+                    give try _apply_or_direct "se_base64_encode" generated node[2]
                 if method == "decode"
-                    give "se_base64_decode(" + generated + ")"
+                    give try _apply_or_direct "se_base64_decode" generated node[2]
                 fail "Base64 module function not yet supported: " + method
             if module == "time"
                 if method == "now"
                     give "se_time_now()"
                 if method == "unix"
-                    give "se_time_unix(" + generated + ")"
+                    give try _apply_or_direct "se_time_unix" generated node[2]
                 if method == "from_unix"
-                    give "se_time_from_unix(" + generated + ")"
+                    give try _apply_or_direct "se_time_from_unix" generated node[2]
                 if method == "iso"
-                    give "se_time_iso(" + generated + ")"
+                    give try _apply_or_direct "se_time_iso" generated node[2]
                 fail "Time module function not yet supported: " + method
             if module == "file"
                 if method == "read"
-                    give "se_read(" + generated + ")"
+                    give try _apply_or_direct "se_read" generated node[2]
                 if method == "write"
-                    give "se_write(" + generated + ")"
+                    give try _apply_or_direct "se_write" generated node[2]
                 if method == "append"
-                    give "se_append(" + generated + ")"
+                    give try _apply_or_direct "se_append" generated node[2]
                 if method == "open"
-                    give "se_file_open(" + generated + ")"
+                    give try _apply_or_direct "se_file_open" generated node[2]
                 if method in ["copy", "move", "copytree", "remove", "mkdir"]
-                    give "se_file_" + method + "(" + generated + ")"
+                    give try _apply_or_direct ("se_file_" + method) generated node[2]
                 fail "File module function not yet supported: " + method
             if module == "test"
                 if method == "ok"
-                    give "se_test_ok(" + generated + ")"
+                    give try _apply_or_direct "se_test_ok" generated node[2]
                 if method == "equal"
-                    give "se_test_equal(" + generated + ")"
+                    give try _apply_or_direct "se_test_equal" generated node[2]
                 if method == "not_equal"
-                    give "se_test_not_equal(" + generated + ")"
+                    give try _apply_or_direct "se_test_not_equal" generated node[2]
                 if method == "fail"
-                    give "se_test_fail(" + generated + ")"
+                    give try _apply_or_direct "se_test_fail" generated node[2]
                 fail "Test module function not supported: " + method
             if module == "statistics"
                 if method in ["mean", "median", "pvariance", "pstdev", "variance", "stdev"]
-                    give "se_statistics_" + method + "(" + generated + ")"
+                    give try _apply_or_direct ("se_statistics_" + method) generated node[2]
                 fail "Unknown statistics function: " + method
             if module == "regex" or module == "re"
-                if method in ["match", "search", "replace", "split"]
-                    give "se_regex_" + method + "(" + generated + ")"
+                if method in ["match", "search", "replace", "split", "find_all", "count", "escape", "groups"]
+                    give try _apply_or_direct ("se_regex_" + method) generated node[2]
                 fail "Unknown regex function: " + method
+            if module == "uuid"
+                if method == "v4"
+                    give "se_uuid_v4()"
+                if method == "valid"
+                    give try _apply_or_direct "se_uuid_valid" generated node[2]
+                fail "Unknown UUID function: " + method
+            if module == "operator"
+                if method in ["add", "sub", "mul", "div", "mod", "eq", "ne", "lt", "le", "gt", "ge"]
+                    give try _apply_or_direct ("se_operator_" + method) generated node[2]
+                fail "Unknown operator function: " + method
+            if module == "dynamic"
+                if method == "type_of"
+                    give try _apply_or_direct "se_dynamic_type" generated node[2]
+                if method == "is"
+                    give try _apply_or_direct "se_dynamic_is" generated node[2]
+                fail "Unknown dynamic operation: " + method
+            if module == "copy"
+                if method == "shallow"
+                    give try _apply_or_direct "se_copy_shallow" generated node[2]
+                if method == "deep"
+                    give try _apply_or_direct "se_copy_deep" generated node[2]
+                fail "Unknown copy operation: " + method
             if module == "math"
                 if method in ["cbrt", "abs", "floor", "ceil", "round", "trunc", "sin", "cos", "tan", "asin", "acos", "atan", "sinh", "cosh", "tanh", "asinh", "acosh", "atanh", "exp", "exp2", "expm1", "log", "log10", "log2", "log1p", "gamma", "lgamma", "erf", "erfc", "pow", "atan2", "fmod", "remainder", "copysign", "nextafter", "sqrt", "degrees", "radians", "hypot", "min", "max", "clamp", "lerp", "map_range", "sign", "isfinite", "isinf", "isnan", "gcd", "lcm", "factorial", "comb", "perm", "sum", "mean", "median", "variance", "stddev"]
-                    give "se_math_" + method + "(" + generated + ")"
+                    give try _apply_or_direct ("se_math_" + method) generated node[2]
                 fail "Math module function not yet supported: " + method
             if module == "text"
                 if method in ["split", "trim", "contains", "repeat", "join", "starts", "ends", "replace"]
-                    give "se_" + method + "(" + generated + ")"
+                    give try _apply_or_direct ("se_" + method) generated node[2]
                 fail "Text module function not yet supported: " + method
             if module == "collections"
+                if method in ["contains", "first", "last", "unique", "keys", "values"]
+                    give try _apply_or_direct ("se_" + method) generated node[2]
+                if method in ["map", "filter", "reduce", "sort_with"]
+                    callback_args = try _last_callback_arguments node[2]
+                    function_name = "se_" + method
+                    if method == "map"
+                        function_name = "se_transform"
+                    give try _apply_or_direct function_name callback_args node[2]
+                if method in ["sort_by", "sort_by_desc"]
+                    give try _apply_or_direct ("se_" + method) generated node[2]
                 if method == "sort"
-                    give "se_sorted(" + generated + ")"
+                    give try _apply_or_direct "se_sorted" generated node[2]
                 if method == "reverse"
-                    give "se_reversed(" + generated + ")"
+                    give try _apply_or_direct "se_reversed" generated node[2]
                 if method == "take"
-                    give "se_take(" + generated + ")"
+                    give try _apply_or_direct "se_take" generated node[2]
                 if method == "drop"
-                    give "se_drop(" + generated + ")"
+                    give try _apply_or_direct "se_drop" generated node[2]
                 if method == "slice"
-                    give "se_slice(" + generated + ")"
-                if method == "filter"
-                    give "se_filter(" + generated + ")"
-                if method == "map"
-                    give "se_transform(" + generated + ")"
-                if method == "reduce"
-                    give "se_reduce(" + generated + ")"
-                if method == "sort_with"
-                    give "se_sort_with(" + generated + ")"
+                    give try _apply_or_direct "se_slice" generated node[2]
                 fail "Collection function not yet supported: " + method
+            if module == "array" or module == "series"
+                if method in ["sum", "mean", "min", "max", "diff", "lag", "moving_average", "cumulative_sum", "returns", "normalize"]
+                    give try _apply_or_direct ("se_series_" + method) generated node[2]
+                if method == "slice"
+                    give try _apply_or_direct "se_slice" generated node[2]
+                fail "Array/series function not yet supported: " + method
+            if module == "matrix" or module == "linear"
+                if method in ["transpose", "multiply", "dot", "add", "subtract", "scale", "identity", "determinant", "inverse", "norm", "normalize"]
+                    give try _apply_or_direct ("se_linear_" + method) generated node[2]
+                fail "Linear algebra function not yet supported: " + method
+            if module == "probability"
+                if method in ["factorial", "choose"]
+                    give try _apply_or_direct ("se_probability_" + method) generated node[2]
+            if module == "fraction"
+                if method in ["make", "decimal"]
+                    give try _apply_or_direct ("se_fraction_" + method) generated node[2]
+            if module == "complex"
+                if method in ["make", "add", "multiply", "magnitude"]
+                    give try _apply_or_direct ("se_complex_" + method) generated node[2]
+            if module == "calculus"
+                if method in ["polynomial", "derivative", "integral"]
+                    give try _apply_or_direct ("se_calculus_" + method) generated node[2]
+            if module == "units"
+                if method in ["convert", "celsius_to_fahrenheit", "fahrenheit_to_celsius"]
+                    give try _apply_or_direct ("se_units_" + method) generated node[2]
+            if module == "table" or module == "dataset"
+                if method in ["column", "row_count", "select", "columns", "split"]
+                    prefix = "dataset_"
+                    if module == "table"
+                        prefix = "table_"
+                    give try _apply_or_direct ("se_" + prefix + method) generated node[2]
         obj = try _emit_expr target[1]
         if method == "add"
             give "se_add_item(" + obj + ", " + generated + ")"
@@ -285,12 +432,46 @@ make _emit_call encoded:Text -> Text
             give "se_remove_item(" + obj + ", " + generated + ")"
         # A user-defined object's method is a regular C++20 member call.
         cpp_method = _cpp_identifier method
-        give obj + "." + cpp_method + "(" + generated + ")"
+        give "([&](){ auto&& __se_object = " + obj + "; return std::apply([&](auto&&... __se_args) -> decltype(auto) { return __se_object." + cpp_method + "(std::forward<decltype(__se_args)>(__se_args)...); }, std::tuple{" + generated + "}); }())"
     fail "Only named functions and supported module methods can be called."
+
+make _abi_type source:Text -> Text
+    if source in ["Int", "Bool"]
+        give "int"
+    if source == "Text"
+        give "const char*"
+    if source == "Bytes"
+        give "SENativeBytesView"
+    if text.starts source "Handle:"
+        give "void*"
+    give try _ctype source
 
 make _emit_expr encoded:Text -> Text
     node = _node encoded
     kind = node[0]
+    if kind == "NativeCall"
+        types = _node node[5]
+        arguments = _node node[6]
+        values = []
+        index = 0
+        for argument in arguments
+            value = try _emit_expr argument
+            if text.starts types[index] "Handle:"
+                tag = text.replace types[index] "Handle:" ""
+                values.add ("se_native_handle(" + value + ", " + (json.stringify tag) + ")")
+            else if types[index] == "Num"
+                values.add ("static_cast<double>(" + value + ")")
+            else
+                values.add ("se_native_argument(" + value + ")")
+            index += 1
+        suffix = ""
+        if values.len > 0
+            suffix = ", " + (text.join values ", ")
+        tag = text.replace node[4] "Handle:" ""
+        result = "se_native_invoke<" + (try _abi_type node[4]) + ">(" + (json.stringify node[1]) + ", " + (json.stringify node[2]) + ", " + (json.stringify node[3]) + ", " + node[7] + ", " + (json.stringify node[8]) + ", " + (json.stringify tag) + ", " + (json.stringify node[9]) + suffix + ")"
+        if node[4] == "Bool"
+            result = "(" + result + " != 0)"
+        give result
     if kind == "Atom"
         value_kind = node[1]
         raw = node[2]
@@ -324,42 +505,75 @@ make _emit_expr encoded:Text -> Text
         op = node[1]
         left = try _emit_expr node[2]
         right = try _emit_expr node[3]
-        if op == "**"
-            give "std::pow(" + left + ", " + right + ")"
-        if op == ".."
-            give "se_range(" + left + ", " + right + ")"
-        if op == "in"
-            give "se_contains(" + right + ", " + left + ")"
-        if op == "+"
-            give "se_add(" + left + ", " + right + ")"
+        side_effects = (try _has_side_effect node[2]) or (try _has_side_effect node[3])
+        if not side_effects
+            if op == "and"
+                give "(" + left + " && " + right + ")"
+            if op == "or"
+                give "(" + left + " || " + right + ")"
+            if op == ".."
+                give "se_range(" + left + ", " + right + ")"
+            if op == "in"
+                give "se_contains(" + right + ", " + left + ")"
+            if op == "+"
+                give "se_add(" + left + ", " + right + ")"
+            if op == "**"
+                give "std::pow(" + left + ", " + right + ")"
+            if op != "/"
+                give "(" + left + " " + op + " " + right + ")"
         if op == "and"
-            op = "&&"
+            give "([&](){ const auto __se_left = " + left + "; if (!__se_left) return false; return static_cast<bool>(" + right + "); }())"
         if op == "or"
-            op = "||"
+            give "([&](){ const auto __se_left = " + left + "; if (__se_left) return true; return static_cast<bool>(" + right + "); }())"
+        if op == ".."
+            give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return se_range(__se_left, __se_right); }())"
+        if op == "in"
+            give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return se_contains(__se_right, __se_left); }())"
+        if op == "+"
+            give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return se_add(__se_left, __se_right); }())"
+        if op == "**"
+            give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return std::pow(__se_left, __se_right); }())"
         if op == "/"
-            give "(se_num(" + left + ") / se_num(" + right + "))"
-        give "(" + left + " " + op + " " + right + ")"
+            give "([&](){ const auto __se_left = se_num(" + left + "); const auto __se_right = se_num(" + right + "); if (__se_right == 0) throw std::runtime_error(\"Division by zero.\"); return __se_left / __se_right; }())"
+        give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return (__se_left " + op + " __se_right); }())"
     if kind == "List"
         items = try _emit_arguments node[1]
-        give "se_list(" + items + ")"
+        has_effects = false
+        for item in (_node node[1])
+            if try _has_side_effect item
+                has_effects = true
+        if not has_effects
+            give "se_list(" + items + ")"
+        give "se_list_ordered(std::tuple{" + items + "})"
     if kind == "Map"
         pairs = _node node[1]
         output = ""
+        has_effects = false
         for item in pairs
             pair = _node item
+            if (try _has_side_effect pair[0]) or (try _has_side_effect pair[1])
+                has_effects = true
             key = try _emit_expr pair[0]
             value = try _emit_expr pair[1]
             if output != ""
                 output = output + ", "
-            output = output + "std::pair{" + key + ", " + value + "}"
-        give "se_map(" + output + ")"
+            output = output + "se_ordered_pair(std::tuple{" + key + ", " + value + "})"
+        give "se_map_ordered(std::tuple{" + output + "})"
     if kind == "Set"
         items = try _emit_arguments node[1]
-        give "se_set(" + items + ")"
+        has_effects = false
+        for item in (_node node[1])
+            if try _has_side_effect item
+                has_effects = true
+        if not has_effects
+            give "se_set(" + items + ")"
+        give "se_set_ordered(std::tuple{" + items + "})"
     if kind == "Index"
         base = try _emit_expr node[1]
         index = try _emit_expr node[2]
-        give "se_index(" + base + ", " + index + ")"
+        if not (try _has_side_effect node[1]) and not (try _has_side_effect node[2])
+            give "se_index(" + base + ", " + index + ")"
+        give "([&](){ auto __se_container = " + base + "; const auto __se_index = " + index + "; auto __se_result = se_index(__se_container, __se_index); return __se_result; }())"
     if kind == "Member"
         owner = _node node[1]
         member = node[2]
@@ -385,14 +599,12 @@ make _emit_expr encoded:Text -> Text
                     give "se_cwd()"
             if module == "time" and member == "now"
                 give "se_time_now()"
+            if module == "uuid" and member == "v4"
+                give "se_uuid_v4()"
         base = try _emit_expr node[1]
         member = node[2]
         if member == "help"
             give "se_help_text(" + base + ")"
-        if member == "message"
-            give base + ".message"
-        if member == "kind"
-            give base + ".kind"
         if member == "len"
             give "static_cast<std::int64_t>(" + base + ".size())"
         if member == "upper" or member == "lower"
@@ -424,13 +636,15 @@ make _emit_type encoded:Text -> Text
         for variable in generics
             declarations.add ("typename " + (try _ctype variable))
         header = "template <" + (text.join declarations ", ") + ">\n"
-    output = header + "struct SEType_" + node[1] + " {\n"
+    output = header + "struct SEType_" + node[1] + " {\n    struct Storage {\n"
+    accessors = ""
     field_names = []
     for encoded_field in fields
         field = _node encoded_field
         value = try _emit_expr field[1]
         field_names.add field[0]
         cpp_field = _cpp_identifier field[0]
+        accessors = accessors + "    auto& " + cpp_field + "() { return __se_data->" + cpp_field + "; }\n    const auto& " + cpp_field + "() const { return __se_data->" + cpp_field + "; }\n"
         if field.len > 2 and field[2] != "Unknown"
             field_cpp_type = try _ctype field[2]
             if field[3] == "required"
@@ -439,6 +653,8 @@ make _emit_type encoded:Text -> Text
                 output = output + "    " + field_cpp_type + " " + cpp_field + " = " + value + ";\n"
         else
             output = output + "    decltype(" + value + ") " + cpp_field + " = " + value + ";\n"
+    output = output + "    };\n    std::shared_ptr<Storage> __se_data = std::make_shared<Storage>();\n" + accessors
+    output = output + "    bool operator==(const SEType_" + node[1] + "& other) const { return __se_data == other.__se_data; }\n"
     for encoded_method in methods
         method = _node encoded_method
         parameters = _node method[2]
@@ -459,7 +675,7 @@ make _emit_type encoded:Text -> Text
             field = _node encoded_field
             if not (field[0] in parameter_names)
                 cpp_field = _cpp_identifier field[0]
-                prelude = prelude + "        auto& " + cpp_field + " = this->" + cpp_field + ";\n"
+                prelude = prelude + "        auto& " + cpp_field + " = this->" + cpp_field + "();\n"
         return_type = try _ctype method[4]
         body = try _emit_block method[3] 2 local_names
         cpp_method = _cpp_identifier method[1]
@@ -471,7 +687,7 @@ make _emit_type encoded:Text -> Text
     cpp_type = _cpp_identifier node[1]
     output = output + "};\n"
     if generics.len == 0
-        output = output + "inline const SEType_" + node[1] + " " + cpp_type + "{};\n"
+        output = output + "inline auto " + cpp_type + " = [] { return SEType_" + node[1] + "{}; };\n"
     give output
 
 # Shared heap cells preserve lexical mutation after an enclosing call returns.
@@ -560,7 +776,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
             field = _node encoded_field
             value = try _emit_expr field[1]
             cpp_field = _cpp_identifier field[0]
-            output = output + pad + "se_implicit_call(" + cpp_name + ")." + cpp_field + " = " + value + ";\n"
+            output = output + pad + "se_implicit_call(" + cpp_name + ")." + cpp_field + "() = " + value + ";\n"
         give output
     if kind == "TypeDecl"
         give try _emit_type encoded
@@ -577,12 +793,12 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         base = try _emit_expr node[1]
         index = try _emit_expr node[2]
         value = try _emit_expr node[3]
-        give pad + "se_assign_index(" + base + ", " + index + ", " + value + ");\n"
+        give pad + "{ auto __se_rhs = " + value + "; auto __se_base = " + base + "; const auto __se_index = " + index + "; se_assign_index(__se_base, __se_index, std::move(__se_rhs)); }\n"
     if kind == "AssignMember"
         base = try _emit_expr node[1]
         value = try _emit_expr node[3]
         cpp_field = _cpp_identifier node[2]
-        give pad + base + "." + cpp_field + " = " + value + ";\n"
+        give pad + "{ auto __se_rhs = " + value + "; auto&& __se_base = " + base + "; __se_base." + cpp_field + "() = std::move(__se_rhs); }\n"
     if kind == "MultiAsk"
         fields = _node node[1]
         suffix = string names.len
@@ -622,8 +838,10 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
             give pad + "se_say(" + printable + ");\n"
         result = try _emit_expr node[2]
         give pad + result + ";\n"
+    if kind == "NativeLoad"
+        give pad + "se_native_library(" + (json.stringify node[1]) + ", " + (json.stringify node[2]) + ");\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "function", "async", "threading"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"
@@ -636,7 +854,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
             error_names.add node[2]
             fallback = try _emit_block node[3] (level + 1) error_names
             cpp_error = _cpp_identifier node[2]
-            output = output + pad + "    SEError " + cpp_error + "{__se_caught.what()};\n"
+            output = output + pad + "    SEError " + cpp_error + "{__se_caught.what(), se_error_kind(__se_caught)};\n"
             output = output + fallback
         else
             output = output + pad + "    throw;\n"
@@ -688,7 +906,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         loop_names = _clone_names names
         body = try _emit_block node[2] (level + 1) loop_names
         count = try _emit_expr node[1]
-        give pad + "for (std::int64_t _se_i = 0; _se_i < " + count + "; ++_se_i) {\n" + body + pad + "}\n"
+        give pad + "for (std::int64_t __se_repeat_index = 0; __se_repeat_index < " + count + "; ++__se_repeat_index) {\n" + body + pad + "}\n"
     if kind == "ForPairs"
         scope = _clone_names names
         scope.add node[1]
@@ -773,6 +991,8 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
             give _declare_local node[1] expression pad names
         body = try _emit_block node[3] 1 local_names
         header = try _emit_template encoded
+        if header != ""
+            give header + result_type + " SEGeneric_" + cpp_function + "::operator()(" + args + ") const {\n" + prelude + body + "}\n"
         give header + result_type + " " + cpp_function + "(" + args + ") {\n" + prelude + body + "}\n"
     fail "Unsupported AST statement for C++ codegen: " + kind
 
@@ -781,13 +1001,14 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
 # Unknown return or parameter types cannot be safely forward-declared in C++20.
 make _emit_prototype encoded:Text -> Text
     node = _node encoded
-    if node[4] == "Unknown"
+    header = try _emit_template encoded
+    if node[4] == "Unknown" and header == ""
         give ""
     params = _node node[2]
     arguments = ""
     for item in params
         param = _node item
-        if param[1] == "Unknown"
+        if param[1] == "Unknown" and header == ""
             give ""
         if arguments != ""
             arguments = arguments + ", "
@@ -796,6 +1017,8 @@ make _emit_prototype encoded:Text -> Text
     return_type = try _ctype node[4]
     header = try _emit_template encoded
     cpp_function = _cpp_identifier node[1]
+    if header != ""
+        give "struct SEGeneric_" + cpp_function + " {\n" + header + return_type + " operator()(" + arguments + ") const;\n};\ninline constexpr SEGeneric_" + cpp_function + " " + cpp_function + "{};\n"
     give header + return_type + " " + cpp_function + "(" + arguments + ");\n"
 
 make emit_checked_program ast:List[Text] symbols:List[List[Text]] -> Text

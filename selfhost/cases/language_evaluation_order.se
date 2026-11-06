@@ -1,0 +1,4 @@
+values = [ask "first: ", ask "second: "]
+say values
+message = text(ask "third: ") + text(ask "fourth: ")
+say message

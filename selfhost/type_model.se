@@ -37,6 +37,8 @@ make decompose_type source:Text -> List[Text]
 make type_matches expected:Text actual:Text -> Bool
     if expected == actual or expected == "Unknown" or actual == "Unknown"
         give true
+    if expected == "Any" or actual == "Any"
+        give true
     if expected in ["T", "U", "V", "K", "E", "R", "A", "B"]
         give true
     if expected == "Num" and actual == "Int"

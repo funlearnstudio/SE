@@ -133,9 +133,9 @@ def verify(se: Path) -> None:
         module_cpp = root / "multifile.cpp"
         module_next_cpp = root / "multifile-next.cpp"
         module_compiler = root / "multifile"
-        compile_source(stage3, ROOT / "selfhost" / "compiler.se", module_cpp)
+        compile_source(stage3, stage0_source / "compiler.se", module_cpp)
         compile_native(module_cpp, module_compiler)
-        compile_source(module_compiler, ROOT / "selfhost" / "compiler.se", module_next_cpp)
+        compile_source(module_compiler, stage0_source / "compiler.se", module_next_cpp)
         module_hash = digest(module_cpp)
         if module_hash != digest(module_next_cpp):
             raise RuntimeError("Direct multi-file compiler source mismatch")

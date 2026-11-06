@@ -1,5 +1,6 @@
 # SE-written compiler orchestrator (lexer/parser/semantic analysis/codegen).
 use parser
+use native_abi
 use lexer
 use text
 use typechecker
@@ -15,7 +16,7 @@ make _node encoded:Text -> List[Text]
     give json.parse encoded
 
 make _builtin_module name:Text -> Bool
-    give name in ["math","text","collections","file","json","os","random","path","time","base64","test","statistics","regex","re","function","async","threading"]
+    give name in ["math","text","collections","file","json","os","random","path","time","base64","test","statistics","regex","re","uuid","copy","function","async","threading","array","series","matrix","linear","probability","fraction","complex","calculus","units","table","dataset","operator","dynamic","csv"]
 
 # Port of the source candidates and environment precedence in ModuleLoader::resolve.
 make _resolve_source name:Text importer:Text root:Text -> Text
@@ -25,8 +26,9 @@ make _resolve_source name:Text importer:Text root:Text -> Text
         home = os.getenv "S_HOME"
     if home != ""
         bases.add (string (path.join home "packages"))
+    bases.add (string os.cwd)
     for base in bases
-        candidates = [string (path.join base (name + ".se")), string (path.join base name (name + ".se")), string (path.join base (name + ".s")), string (path.join base name (name + ".s"))]
+        candidates = [string (path.join base (name + ".se")), string (path.join base name (name + ".se")), string (path.join base (name + ".s")), string (path.join base name (name + ".s")), string (path.join base (name + ".snative")), string (path.join base "native" (name + ".snative")), string (path.join base name (name + ".snative"))]
         for candidate in candidates
             if path.is_file candidate
                 give candidate
@@ -144,6 +146,18 @@ make _load_source source_path:Text root:Text loaded:List[Text] active:List[Text]
     stack = collections.take active active.len
     stack.add source_path
     source = try read source_path
+    if text.ends source_path ".snative"
+        native_nodes = try parse_native source source_path
+        exports = _own_exports native_nodes prefix
+        entries.add (json.stringify ([source_path, json.stringify exports]))
+        for encoded_native in native_nodes
+            node = _node encoded_native
+            if node[0] == "NativeLoad"
+                combined.add encoded_native
+            else
+                node[1] = prefix + node[1]
+                combined.add (json.stringify node)
+        give combined
     statements = try parse source
     own = _own_exports statements prefix
     cache_index = entries.len

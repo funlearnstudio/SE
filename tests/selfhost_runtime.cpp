@@ -53,16 +53,24 @@ int main() {
     try { (void)se_bool(std::string("yes")); }
     catch (const std::runtime_error&) { caught = true; }
     assert(caught);
-    assert((se_take(numbers, 2) == std::vector<std::int64_t>{1, 9}));
-    assert((se_drop(numbers, 2) == std::vector<std::int64_t>{3}));
+    assert((se_take(numbers, 2) == SEList<std::int64_t>{1, 9}));
+    assert((se_drop(numbers, 2) == SEList<std::int64_t>{3}));
+    auto numbers_alias=numbers;
+    se_assign_index(numbers_alias,0,std::int64_t{41});
+    assert(numbers[0]==41);
+    const auto sorted_numbers=se_sorted(numbers);
+    assert(sorted_numbers[0]==3 && numbers[0]==41);
 
     auto mapping = se_map(std::pair{std::string("a"), std::int64_t{1}},
                           std::pair{std::string("b"), std::int64_t{2}});
     mapping.put("a", 10);
     assert(mapping.size() == 2);
+    auto mapping_alias=mapping;
+    mapping_alias.put("shared",17);
+    assert(mapping.size()==3);
     se_assign_index(mapping,std::string("new"),std::int64_t{12});
     se_assign_index(mapping,std::string("new"),std::int64_t{13});
-    assert(mapping.size()==3 && mapping.items.back().first=="new");
+    assert(mapping.size()==4 && mapping.items.back().first=="new");
     assert(se_index(mapping,std::string("new"))==13);
     assert(se_index(mapping, std::string("a")) == 10);
     assert(se_contains(mapping, std::string("b")));
@@ -78,6 +86,9 @@ int main() {
     assert(unique.size() == 3);
     assert(se_contains(unique, std::int64_t{2}));
     assert(!se_contains(unique, std::int64_t{4}));
+    auto unique_alias=unique;
+    unique_alias.add(5);
+    assert(unique.size()==4);
 
     assert(se_int(std::string("123")) == 123);
     assert(se_num(std::string("2.5")) == 2.5);
@@ -90,7 +101,7 @@ int main() {
     catch (const std::exception&) { caught = true; }
     assert(caught);
 
-    const std::vector<std::string> ast = {
+    const SEList<std::string> ast = {
         "Atom", "a\tb", "line\nbreak", "quote\"escape", "\xe4\xb8\xad"
     };
     const auto serialized = se_json_stringify(ast);
@@ -147,7 +158,7 @@ int main() {
     se_file_remove(temp_root.string());
     assert(!se_path_exists(temp_root.string()));
 
-    assert((se_range(3, 1) == std::vector<std::int64_t>{3, 2, 1}));
+    assert((se_range(3, 1) == SEList<std::int64_t>{3, 2, 1}));
     auto rejects=[](auto operation){bool failed=false;try{operation();}catch(const std::exception&){failed=true;}assert(failed);};
     rejects([]{se_math_sqrt(-1);});
     rejects([]{se_math_clamp(0,2,1);});
@@ -155,8 +166,8 @@ int main() {
     rejects([]{se_math_factorial(21);});
     rejects([]{se_math_comb(67,33);});
     rejects([]{se_math_perm(3,4);});
-    rejects([]{se_math_mean(std::vector<double>{});});
-    rejects([]{se_statistics_variance(std::vector<double>{1});});
+    rejects([]{se_math_mean(SEList<double>{});});
+    rejects([]{se_statistics_variance(SEList<double>{1});});
     rejects([]{se_regex_match("[", "text");});
     assert(se_math_comb(66,33)==7219428434016265740LL);
     assert(se_math_min(3,2.5,4)==2.5);

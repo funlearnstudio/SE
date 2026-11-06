@@ -1,0 +1,10 @@
+use re
+use uuid
+
+say try re.find_all "[0-9]+" "a12 b34"
+say try re.count "[0-9]+" "a12 b34"
+say re.escape "a+b.c"
+say try re.groups "([a-z]+)([0-9]+)" "abc123"
+value = uuid.v4
+say uuid.valid value
+say uuid.valid "invalid"

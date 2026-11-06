@@ -46,17 +46,50 @@ Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defa
 - **Parser**: expression precedence, lists/maps/sets, indexing and calls, `ask` / `try` expressions, assignments, `if/elif/else if/else`, `match/case/else`, `while/repeat/for`, `try/else error` recovery, `for key value in map`, generic and ordinary functions, and basic `type` declarations with instance field initialization.
 - **Static checks**: symbol existence, assignments, numeric and boolean operands, homogeneous lists, indexing, function arity, declared parameter types, annotated return types, selected block scopes, `ask` types, explicit failures, conversion aliases (`bool`/`boolean` included), and Error `message`/`kind` fields.
 - **Zero-argument user functions**: bare identifiers call zero-parameter functions automatically, while ordinary values and callbacks requiring arguments stay unchanged, matching the production evaluator.
-- **C++ backend**: Int, Num, Bool, Text, homogeneous Lists, insertion-ordered Maps and Sets, common arithmetic/logic/conditions, inclusive range loops, recursion, indexed collection updates, functions, simple module helpers, input/output and exceptions.
+- **C++ backend**: Int, Num, Bool, Text, Bytes, homogeneous Lists, insertion-ordered Maps and Sets, common arithmetic/logic/conditions, inclusive range loops, recursion, indexed collection updates, functions, input/output and exceptions. List, Map, Set and Bytes assignments share backing storage; sorting and slicing return independent outer storage.
 - **Recursive collection types**: indexed mutation, `for` loops over nested List/Set/Map types and `for key value in map` now use recursive type decomposition rather than a hard-coded collection-type whitelist.
 - **Nested functions**: lexical nested `make` declarations compile to recursive callables. Captured local bindings use shared heap cells, including parameters and loop values; returning closures preserves their environment. Typed callables use type erasure so distinct branches can return compatible closures.
 - **Generic user types**: `type Box[T]`, multi-parameter user types such as `Pair[A,B]`, specialized constructors (`Box[Int]`) and nested annotated fields are lowered to C++20 class templates with checked argument counts and field types.
-- **Generic functions**: simple generic functions such as `make identity[T] item:T -> T` compile to C++ templates. Declared generic variables may use arbitrary names; repeated bindings, nested collection inference and nested generic functions have execution and rejection tests.
+- **Generic functions**: generic functions compile to C++ templates and first-class callable objects, so they can be passed to collection, function and task APIs. Same-type generic arithmetic and comparisons are accepted and checked again by C++ instantiation. Declared generic variables may use arbitrary names; repeated bindings, nested collection inference and nested generic functions have execution and rejection tests. This remains partial inference, not a full trait/constraint system.
 - **Canonical bare-call arithmetic**: arguments absorb arithmetic (`twice a + b` means `twice(a+b)`), while `func a - 1 + func a - 2` splits into two calls when the next operand starts another call. Both have native/interpreter differential tests.
 - **Block layout**: blank lines and comment-only lines between a block header and its first indented statement are accepted.
 - **Local source modules**: `use helpers` recursively resolves `.se` / `.s` files relative to the importer and package locations. Module declarations receive stable prefixes; private names beginning with `_` remain private, distinct private helpers do not collide, and conflicting public exports are rejected. Imports preserve token adjacency and string contents. Source-module objects are not first-class runtime values.
 - **C++ keyword safety**: SE identifiers such as `class`, `template` and `namespace` are escaped consistently during C++ generation.
 - **Typed forward functions**: C++20 prototypes are emitted before definitions for functions whose parameter and return types are explicit, enabling forward calls and mutual recursion. Calls requiring return-type deduction are not yet supported forward.
-- **Library subset**: math operations and constants, `text` split/trim/contains/repeat/join, `collections` sort/reverse/take/drop/slice/filter/map/reduce/sort_with, `json` String/List[String] wire encoding, `os` getenv/platform/cwd, `random` numeric generators, filesystem `path` operations, `time` clock conversion/formatting, `file` managed handles plus read/write/copy/move/directory operations, basic `test` assertions, and core conversions, help text, and Unicode `char`. The native bootstrap runtime is separate from the production VM; this is **not** full standard-library compatibility.
+- **Library subset**: `math`, text and filesystem helpers; shared `collections` operations including contains/first/last/unique/keys/values/sort-by; `series` and `array`; `matrix` and `linear`; probability, fraction, complex, calculus, units, table and dataset helpers; JSON String/List[String] wire encoding; OS/time/random helpers; managed files; and test assertions. `extension_inventory.json` records 117 production extension modules and 586 advertised members. The bootstrap implements only the subset exercised by its runtime and differential tests; inventory entries do not imply parity.
+
+## Native ABI
+
+The SE-written loader now resolves `.snative` files and lowers metadata into
+ordinary typed function AST wrappers. The independent runtime loads the native
+library without the production VM. Int/Bool use C `int`, Num uses `double`, Text
+uses copied NUL-terminated strings, Bytes uses the existing pointer/size view,
+and tagged Handles retain their library and optional cleanup function. Mixed
+argument signatures are generated directly from the declaration. Returned Bytes
+are copied into owned storage; arguments are borrowed for the call. Missing
+libraries/symbols, null results, tag mismatches and fallible integer failures
+raise `NativeError`. Libraries remain loaded across calls, preserving native
+module state. Cleanup symbols are validated before allocating a resource.
+
+The native fixture requires `cmake --build build --target native_test`. Run
+`c++ -std=c++20 -O0 -Iselfhost tests/selfhost_native_abi.cpp -o /tmp/se-abi-test`
+and `/tmp/se-abi-test` for binary Bytes copying and Handle ownership checks.
+Callbacks and arbitrary by-value C structs still need explicit C wrappers;
+this does not establish complete extension-library compatibility.
+
+The `.snative` grammar is one `library NAME` line and declarations of the form
+`export_name c_symbol ArgType... -> ReturnType [fallible] [cleanup DESTROY]`.
+Supported ABI types are `Int`, `Bool`, `Num`, `Text`, `Bytes`, `None` returns,
+and `Handle:Tag`. `Int` is range-checked before conversion to C `int`; `Text`
+uses NUL-terminated C strings, so embedded NUL requires a `Bytes` signature.
+Native libraries load eagerly when imported and remain cached for the process.
+
+The experimental backend supports an explicit `Any` type for scalar `Int`,
+`Num`, `Bool`, `Text` and `Bytes` values. `dynamic.type_of` and `dynamic.is`
+inspect these values, and `int`, `num` and `text` perform explicit conversions.
+This bounded runtime variant does not erase arbitrary user objects or nested
+containers. The `operator` module lowers its arithmetic and comparison helpers
+with arity and operand-category checks.
 
 ## Added language coverage
 
