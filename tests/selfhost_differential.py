@@ -167,6 +167,8 @@ def main() -> None:
         for case, message in (
             ("negative_unknown_annotation.se", "Unknown type annotation"),
             ("negative_private_import.se", "Undefined function"),
+            ("negative_tilemap_arity.se", "tilemap.at expects 3 arguments"),
+            ("negative_tilemap_type.se", "tilemap.size expects List[Text]"),
             ("negative_codec_type.se", "encoding.hex expects Text"),
             ("negative_codec_arity.se", "url.decode expects one argument"),
             ("negative_codec_member.se", "Unknown url function"),
