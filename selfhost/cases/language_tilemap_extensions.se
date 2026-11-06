@@ -1,0 +1,8 @@
+use tilemap
+
+rows = tilemap.parse "AB\nCD\n"
+dimensions = tilemap.size rows
+say dimensions[0]
+say dimensions[1]
+say tilemap.at rows 1 0
+say tilemap.at rows 0 1
