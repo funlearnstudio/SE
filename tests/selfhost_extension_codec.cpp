@@ -46,7 +46,7 @@ int main() {
       "Access-Control-Allow-Methods")=="GET, POST");
   assert(rejects([] { (void)se_cors_allow_origin("x\r\nInjected: yes"); }));
   assert(rejects([] { (void)se_cors_preflight("x","GET\nInjected"); }));
-  assert(se_template_escape("<&>'\\\"")=="&lt;&amp;&gt;&#39;&quot;");
+  assert(se_template_escape("<&>'\"")=="&lt;&amp;&gt;&#39;&quot;");
   SEMap<std::string> context;
   context.put("name","<SE>");
   assert(se_template_render("Hello {{ name }}!",context)=="Hello &lt;SE&gt;!");
