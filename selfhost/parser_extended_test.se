@@ -24,4 +24,12 @@ forloop = node ast[4]
 test.equal "For" forloop[0]
 last = node ast[5]
 test.equal "Use" last[0]
+generic_ast = try parse "make identity[Item] value:Item -> Item\n    give value\n"
+test.equal 1 generic_ast.len
+generic_node = node generic_ast[0]
+test.equal "Make" generic_node[0]
+generic_parameters = node generic_node[5]
+test.equal 1 generic_parameters.len
+test.equal "Item" generic_parameters[0]
+
 say "SE selfhost extended parser passed"
