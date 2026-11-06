@@ -2892,28 +2892,28 @@
           "name": "make",
           "kind": "function",
           "usage": "make names",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "name",
           "kind": "function",
           "usage": "name enum value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "value",
           "kind": "function",
           "usage": "value enum name",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "has",
           "kind": "function",
           "usage": "has enum name",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
