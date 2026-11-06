@@ -207,3 +207,59 @@ inline bool se_enum_has(const SEMap<std::int64_t>& values,const std::string& nam
   for(const auto& entry:values.items)if(entry.first==name)return true;
   return false;
 }
+
+
+template<class T> SEList<SEList<T>> se_iter_zip(const SEList<T>& left,const SEList<T>& right){
+  SEList<SEList<T>> out;
+  for(std::size_t i=0;i<std::min(left.size(),right.size());++i)
+    out.push_back(SEList<T>{left[i],right[i]});
+  return out;
+}
+template<class T> SEList<SEList<T>> se_iter_product(const SEList<T>& left,const SEList<T>& right){
+  SEList<SEList<T>> out;
+  for(const auto& a:left)for(const auto& b:right)out.push_back(SEList<T>{a,b});
+  return out;
+}
+template<class T> SEList<SEList<T>> se_iter_permutations(const SEList<T>& items,std::int64_t length){
+  if(length<0||static_cast<std::uint64_t>(length)>items.size())
+    throw std::runtime_error("iter.permutations invalid r.");
+  SEList<SEList<T>> result;
+  SEList<T> current;
+  std::vector<bool> used(items.size(),false);
+  std::function<void()> dfs=[&](){
+    if(current.size()==static_cast<std::size_t>(length)){
+      result.push_back(current.clone()); return;
+    }
+    for(std::size_t i=0;i<items.size();++i){
+      if(used[i])continue;
+      used[i]=true;current.push_back(items[i]);
+      dfs();
+      current.pop_back();used[i]=false;
+    }
+  };
+  dfs();
+  return result;
+}
+template<class T> SEList<SEList<T>> se_iter_permutations(const SEList<T>& items){
+  if(items.size()>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()))
+    throw std::runtime_error("iter.permutations invalid r.");
+  return se_iter_permutations(items,static_cast<std::int64_t>(items.size()));
+}
+template<class T> SEList<SEList<T>> se_iter_combinations(const SEList<T>& items,std::int64_t length){
+  if(length<0||static_cast<std::uint64_t>(length)>items.size())
+    throw std::runtime_error("iter.combinations invalid r.");
+  SEList<SEList<T>> result;
+  SEList<T> current;
+  std::function<void(std::size_t)> dfs=[&](std::size_t start){
+    if(current.size()==static_cast<std::size_t>(length)){
+      result.push_back(current.clone());return;
+    }
+    for(std::size_t i=start;i<items.size();++i){
+      current.push_back(items[i]);
+      dfs(i+1);
+      current.pop_back();
+    }
+  };
+  dfs(0);
+  return result;
+}
