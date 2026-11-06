@@ -1,0 +1,32 @@
+use itertools
+use glob
+use hashlib
+use typing
+
+numbers = [1, 2, 3]
+more = [4, 5]
+combined = itertools.chain numbers more
+say combined.len
+chunks = itertools.chunked numbers 2
+say chunks.len
+say chunks[0][1]
+windows = itertools.windows numbers 2
+say windows.len
+pairs = itertools.pairs numbers
+say pairs.len
+nested = [[1, 2], [3]]
+flat = itertools.flatten nested
+say flat.len
+taken = itertools.take numbers 2
+say taken.len
+dropped = itertools.drop numbers 2
+say dropped[0]
+cycled = itertools.cycle more 3
+say cycled.len
+unique = itertools.unique [1, 1, 2]
+say unique.len
+say glob.match "*.se" "test.se"
+say hashlib.compare "abc" "abc"
+say hashlib.to_hex "Hi"
+say typing.cast 7 "INT"
+say typing.is 7 "int"
