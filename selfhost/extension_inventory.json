@@ -1939,7 +1939,7 @@
           "name": "range",
           "kind": "function",
           "usage": "range stop | range start stop step?",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
@@ -2235,35 +2235,35 @@
           "name": "now",
           "kind": "function",
           "usage": "now",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "timestamp",
           "kind": "function",
           "usage": "timestamp",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "from_timestamp",
           "kind": "function",
           "usage": "from_timestamp timestamp",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "format",
           "kind": "function",
           "usage": "format timestamp format",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "add_seconds",
           "kind": "function",
           "usage": "add_seconds timestamp seconds",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2859,28 +2859,28 @@
           "name": "partial",
           "kind": "function",
           "usage": "partial function args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "reduce",
           "kind": "function",
           "usage": "reduce function list initial?",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "map",
           "kind": "function",
           "usage": "map function list",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "filter",
           "kind": "function",
           "usage": "filter function list",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
