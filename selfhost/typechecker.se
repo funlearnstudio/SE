@@ -247,6 +247,11 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 give "Text"
             if owner[2] == "time" and member == "now"
                 give "Time"
+            if owner[2] == "datetime"
+                if member == "now"
+                    give "Text"
+                if member == "timestamp"
+                    give "Int"
         if member == "message" and object_type == "Error"
             give "Text"
         if member == "kind" and object_type == "Error"
@@ -401,6 +406,66 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             owner_type = try _infer callee[1] symbols
             if owner_type == "Module"
                 owner = _node callee[1]
+                if owner[0] == "Atom" and owner[2] == "datetime"
+                    method = callee[2]
+                    required = []
+                    returned = "Text"
+                    if method == "now"
+                        required = []
+                    else if method == "timestamp"
+                        required = []
+                        returned = "Int"
+                    else if method == "from_timestamp"
+                        required = ["Int"]
+                    else if method == "format"
+                        required = ["Int", "Text"]
+                    else if method == "add_seconds"
+                        required = ["Int", "Int"]
+                        returned = "Int"
+                    else
+                        fail "Unknown datetime function: " + method
+                    if args.len != required.len
+                        fail "datetime." + method + " expects " + string(required.len) + " arguments."
+                    i = 0
+                    while i < required.len
+                        got = try _infer args[i] symbols
+                        if not _compatible required[i] got
+                            fail "datetime." + method + " argument type mismatch."
+                        i += 1
+                    give returned
+                if owner[0] == "Atom" and owner[2] == "iter"
+                    if callee[2] != "range"
+                        fail "Unsupported iter function: " + callee[2]
+                    if args.len < 1 or args.len > 3
+                        fail "iter.range expects 1 to 3 Int arguments."
+                    for item in args
+                        got = try _infer item symbols
+                        if not _compatible "Int" got
+                            fail "iter.range requires Int arguments."
+                    give "List[Int]"
+                if owner[0] == "Atom" and owner[2] == "functools"
+                    method = callee[2]
+                    if not (method in ["partial", "reduce", "map", "filter"])
+                        fail "Unknown functools function: " + method
+                    if method == "partial"
+                        if args.len < 1 or args.len > 64
+                            fail "functools.partial needs 1 to 64 arguments."
+                        give "Function"
+                    if method == "reduce"
+                        if args.len < 2 or args.len > 3
+                            fail "functools.reduce expects 2 or 3 arguments."
+                        if args.len == 3
+                            give try _infer args[2] symbols
+                        parts = decompose_type (try _infer args[1] symbols)
+                        if parts[0] == "List" and parts.len == 2
+                            give parts[1]
+                        give "Unknown"
+                    if args.len != 2
+                        fail "functools." + method + " expects function and List."
+                    got = try _infer args[1] symbols
+                    if method == "filter"
+                        give got
+                    give "Unknown"
                 if owner[0] == "Atom" and owner[2] == "glob"
                     method = callee[2]
                     expected = 1
