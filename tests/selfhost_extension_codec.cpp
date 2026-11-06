@@ -52,4 +52,13 @@ int main() {
   assert(se_template_render("Hello {{ name }}!",context)=="Hello &lt;SE&gt;!");
   assert(rejects([&] { (void)se_template_render("{{ missing }}",context); }));
   assert(rejects([&] { (void)se_template_render("{{ name",context); }));
+  const auto map=se_tilemap_parse("AB\nCD\n");
+  const auto dimensions=se_tilemap_size(map);
+  assert(dimensions.size()==2 && dimensions[0]==2 && dimensions[1]==2);
+  assert(se_tilemap_at(map,0,0)=="A");
+  assert(se_tilemap_at(map,1,1)=="D");
+  assert(rejects([] { (void)se_tilemap_parse("AB\nC\n"); }));
+  assert(rejects([] { (void)se_tilemap_parse(""); }));
+  assert(rejects([&] { (void)se_tilemap_at(map,2,0); }));
+  assert(rejects([&] { (void)se_tilemap_at(map,-1,0); }));
 }
