@@ -103,6 +103,8 @@ void print_help(){
     "Commands:\n"
     "  se run file.se                 Run an SE program\n"
     "  se check file.se               Parse and type-check one file\n"
+    "  se fmt file.se                 Normalize valid SE indentation and trailing spaces\n"
+    "  se fmt --check file.se         Check SE formatting without modifying files\n"
     "  se check-all [path]            Check every .se file in a project\n"
     "  se test [path]                 Run *_test.se files recursively\n"
     "  se build file.se               Build a native executable\n"
@@ -272,6 +274,36 @@ int new_project(const std::string&kind,const std::filesystem::path&root){
   throw std::runtime_error("Unknown project kind '"+kind+"'. Use app or web.");
 }
 
+// Conservative, idempotent formatter: normalize source indentation and trailing
+// whitespace while leaving the token sequence, expressions and comments intact.
+int fmt_command(const std::filesystem::path&path,bool check_only){
+  const auto source=read_file(path);
+  try{
+    s::Lexer lexer(source);s::Parser parser(lexer.scan());(void)parser.parse();
+    std::istringstream input(source);
+    std::string result,line;
+    while(std::getline(input,line)){
+      if(!line.empty()&&line.back()=='\r')line.pop_back();
+      const auto end=line.find_last_not_of(" \t");
+      if(end==std::string::npos){result+='\n';continue;}
+      line.resize(end+1);
+      std::size_t p=0,columns=0;
+      while(p<line.size()&&(line[p]==' '||line[p]=='\t')){
+        columns+=line[p]=='\t'?4:1;++p;
+      }
+      result+=std::string(columns,' ')+line.substr(p)+'\n';
+    }
+    if(result==source){std::cout<<path.string()<<" is formatted.\n";return 0;}
+    if(check_only){std::cerr<<path.string()<<" needs formatting.\n";return 1;}
+    write_output_file(path,result);
+    std::cout<<"Formatted "<<path.string()<<"\n";
+    return 0;
+  }catch(const s::Error&e){
+    std::cerr<<s::format_error(e,source);
+    return 1;
+  }
+}
+
 int file_command(const std::string&cmd,const std::filesystem::path&path){
   auto source=read_file(path);
   try{auto p=frontend_file(path);if(cmd=="check"){std::cout<<path.string()<<" is valid SE.\n";return 0;}if(cmd=="run"){s::Interpreter vm(std::cin,std::cout);vm.run(p);return 0;}
@@ -309,6 +341,8 @@ int main(int argc,char**argv){
     if(argc==2&&std::string(argv[1])=="doctor")return doctor_command();
     if((argc==2||argc==3)&&std::string(argv[1])=="check-all")return check_all_command(argc==3?std::filesystem::path(argv[2]):std::filesystem::path("."));
     if((argc==2||argc==3)&&std::string(argv[1])=="test")return test_command(argc==3?std::filesystem::path(argv[2]):std::filesystem::path("."));
+    if(argc==3&&std::string(argv[1])=="fmt")return fmt_command(argv[2],false);
+    if(argc==4&&std::string(argv[1])=="fmt"&&std::string(argv[2])=="--check")return fmt_command(argv[3],true);
     if(argc==4&&std::string(argv[1])=="new")return new_project(argv[2],argv[3]);
     if((argc==4||argc==5)&&std::string(argv[1])=="web"&&std::string(argv[2])=="build")return web_build_command(argv[3],argc==5?std::filesystem::path(argv[4]):std::filesystem::path("dist"));
     if(argc>=3&&std::string(argv[1])=="bind"){
