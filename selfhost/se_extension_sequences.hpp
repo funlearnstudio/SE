@@ -132,3 +132,55 @@ template<class T> T se_typing_cast(const T& value,std::string name){
   if(actual!=name)throw std::runtime_error("typing.cast expected "+name+" but got "+se_dynamic_type(value)+".");
   return value;
 }
+
+
+inline std::string se_datetime_now(){return se_time_iso(se_time_now());}
+inline std::int64_t se_datetime_timestamp(){return se_time_unix(se_time_now());}
+inline std::string se_datetime_from_timestamp(std::int64_t timestamp){
+  return se_time_iso(se_time_from_unix(timestamp));
+}
+inline std::string se_datetime_format(std::int64_t timestamp,const std::string& format){
+  const auto value=static_cast<std::time_t>(timestamp);
+  std::tm result{};
+#ifdef _WIN32
+  gmtime_s(&result,&value);
+#else
+  gmtime_r(&value,&result);
+#endif
+  std::ostringstream output;
+  output<<std::put_time(&result,format.c_str());
+  return output.str();
+}
+inline std::int64_t se_datetime_add_seconds(std::int64_t timestamp,std::int64_t seconds){
+  constexpr auto max=std::numeric_limits<std::int64_t>::max();
+  constexpr auto min=std::numeric_limits<std::int64_t>::min();
+  if((seconds>0 && timestamp>max-seconds)||
+     (seconds<0 && timestamp<min-seconds))
+    throw std::runtime_error("datetime.add_seconds overflows Int.");
+  return timestamp+seconds;
+}
+inline SEList<std::int64_t> se_iter_range(std::int64_t start,std::int64_t stop,std::int64_t step);
+inline SEList<std::int64_t> se_iter_range(std::int64_t stop){
+  return se_iter_range(std::int64_t{0},stop,std::int64_t{1});
+}
+inline SEList<std::int64_t> se_iter_range(std::int64_t start,std::int64_t stop){
+  return se_iter_range(start,stop,std::int64_t{1});
+}
+inline SEList<std::int64_t> se_iter_range(std::int64_t start,std::int64_t stop,std::int64_t step){
+  if(step==0)throw std::runtime_error("iter.range step cannot be zero.");
+  SEList<std::int64_t> output;
+  if(step>0){
+    while(start<stop){
+      output.push_back(start);
+      if(start>std::numeric_limits<std::int64_t>::max()-step)break;
+      start+=step;
+    }
+  }else{
+    while(start>stop){
+      output.push_back(start);
+      if(start<std::numeric_limits<std::int64_t>::min()-step)break;
+      start+=step;
+    }
+  }
+  return output;
+}
