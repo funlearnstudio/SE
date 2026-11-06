@@ -292,6 +292,10 @@ make _emit_call encoded:Text -> Text
                 if method in ["escape", "render"]
                     give try _apply_or_direct ("se_template_" + method) generated node[2]
                 fail "Unknown template function: " + method
+            if module == "enum"
+                if method in ["make", "name", "value", "has"]
+                    give try _apply_or_direct ("se_enum_" + method) generated node[2]
+                fail "Unknown enum function: " + method
             if module == "datetime"
                 if method in ["now", "timestamp"]
                     give "se_datetime_" + method + "()"
