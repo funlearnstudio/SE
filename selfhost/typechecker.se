@@ -459,15 +459,36 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                         i += 1
                     give returned
                 if owner[0] == "Atom" and owner[2] == "iter"
-                    if callee[2] != "range"
-                        fail "Unsupported iter function: " + callee[2]
-                    if args.len < 1 or args.len > 3
-                        fail "iter.range expects 1 to 3 Int arguments."
-                    for item in args
-                        got = try _infer item symbols
-                        if not _compatible "Int" got
-                            fail "iter.range requires Int arguments."
-                    give "List[Int]"
+                    method = callee[2]
+                    if method == "range"
+                        if args.len < 1 or args.len > 3
+                            fail "iter.range expects 1 to 3 Int arguments."
+                        for item in args
+                            got = try _infer item symbols
+                            if not _compatible "Int" got
+                                fail "iter.range requires Int arguments."
+                        give "List[Int]"
+                    if method in ["zip", "product", "permutations", "combinations"]
+                        required = 2
+                        if method == "permutations"
+                            if args.len < 1 or args.len > 2
+                                fail "iter.permutations expects 1 or 2 arguments."
+                        else if args.len != required
+                            fail "iter." + method + " expects 2 arguments."
+                        first = try _infer args[0] symbols
+                        parts = decompose_type first
+                        if parts[0] != "List" or parts.len != 2
+                            fail "iter." + method + " expects a List."
+                        if method in ["zip", "product"]
+                            second = try _infer args[1] symbols
+                            if not (type_matches first second) or not (type_matches second first)
+                                fail "iter." + method + " needs Lists of compatible element types."
+                        else if args.len == 2
+                            count_type = try _infer args[1] symbols
+                            if not _compatible "Int" count_type
+                                fail "iter." + method + " expects an Int count."
+                        give "List[" + first + "]"
+                    fail "Unsupported iter function: " + method
                 if owner[0] == "Atom" and owner[2] == "functools"
                     method = callee[2]
                     if not (method in ["partial", "reduce", "map", "filter"])
