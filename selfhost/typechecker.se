@@ -468,6 +468,16 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                             if not _compatible "Int" got
                                 fail "iter.range requires Int arguments."
                         give "List[Int]"
+                    if method == "enumerate"
+                        if args.len != 1
+                            fail "iter.enumerate expects one List."
+                        source_type = try _infer args[0] symbols
+                        parts = decompose_type source_type
+                        if parts[0] != "List" or parts.len != 2
+                            fail "iter.enumerate expects a List."
+                        if not (parts[1] in ["Int", "Num", "Bool", "Text", "Bytes"])
+                            fail "iter.enumerate supports scalar List items in the bootstrap."
+                        give "List[List[Any]]"
                     if method in ["zip", "product", "permutations", "combinations"]
                         required = 2
                         if method == "permutations"
