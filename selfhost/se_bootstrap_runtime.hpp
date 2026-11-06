@@ -725,6 +725,22 @@ template<class T> struct SESet {
   }
 };
 inline std::string se_module_help(const std::string& module){
+  if(module=="shutil")return "members: help, copy, move, copytree, remove, mkdir";
+  if(module=="typing")return "members: help, type_of, is, cast";
+  if(module=="cookie")return "members: help, parse, set";
+  if(module=="cors")return "members: help, allow_origin, preflight";
+  if(module=="template")return "members: help, escape, render";
+  if(module=="static")return "members: help, mime, read";
+  if(module=="upload")return "members: help, save";
+  if(module=="dotenv")return "members: help, parse, get";
+  if(module=="config")return "members: help, parse, get, get_int, get_bool, section, merge";
+  if(module=="itertools")return "members: help, chain, flatten, chunked, take, drop, windows, cycle, pairs, unique";
+  if(module=="glob")return "members: help, match, find";
+  if(module=="hashlib")return "members: help, compare, to_hex";
+  if(module=="datetime")return "members: help, now, timestamp, from_timestamp, format, add_seconds";
+  if(module=="iter")return "members: help, range";
+  if(module=="functools")return "members: help, partial, reduce, map, filter";
+  if(module=="enum")return "members: help, make, name, value, has";
   if(module=="math")return "members: help, pi, e, sqrt, pow, abs, floor, ceil, round, sin, cos, tan, log, log10, exp, hypot, min, max";
   if(module=="time")return "members: help, now, unix, from_unix, iso";
   if(module=="text")return "members: help, split, trim, contains, repeat, join";
