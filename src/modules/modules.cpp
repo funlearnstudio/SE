@@ -54,7 +54,7 @@ std::filesystem::path ModuleLoader::resolve(const std::string& name,const std::f
     builtin=true;
     return {};
   }
-  std::vector<std::filesystem::path> bases{from,root_};
+  std::vector<std::filesystem::path> bases{from,root_,from/".se/packages",root_/".se/packages"};
   if(const char* home=std::getenv("SE_HOME")) bases.emplace_back(std::filesystem::path(home)/"packages");
   else if(const char* home=std::getenv("S_HOME")) bases.emplace_back(std::filesystem::path(home)/"packages");
 #ifdef S_SOURCE_ROOT
