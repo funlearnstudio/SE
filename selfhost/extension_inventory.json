@@ -1953,28 +1953,28 @@
           "name": "zip",
           "kind": "function",
           "usage": "zip list list",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "product",
           "kind": "function",
           "usage": "product list list",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "permutations",
           "kind": "function",
           "usage": "permutations list r?",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "combinations",
           "kind": "function",
           "usage": "combinations list r",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
