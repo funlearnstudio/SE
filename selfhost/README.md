@@ -58,6 +58,21 @@ Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defa
 - **Typed forward functions**: C++20 prototypes are emitted before definitions for functions whose parameter and return types are explicit, enabling forward calls and mutual recursion. Calls requiring return-type deduction are not yet supported forward.
 - **Library subset**: `math`, text and filesystem helpers; shared `collections` operations including contains/first/last/unique/keys/values/sort-by; `series` and `array`; `matrix` and `linear`; probability, fraction, complex, calculus, units, table and dataset helpers; JSON String/List[String] wire encoding; OS/time/random helpers; managed files; and test assertions. `extension_inventory.json` records 117 production extension modules and 586 advertised members. The bootstrap implements only the subset exercised by its runtime and differential tests; inventory entries do not imply parity.
 
+## Codec extension compatibility (new, not yet certified)
+
+The SE-written native backend now lowers all seven advertised members of `url`
+(`encode`, `decode`, `query`, `parse_query`) and `encoding`
+(`hex`, `unhex`, `utf8_valid`) to the independent C++20 runtime.
+The implementations preserve byte-level percent/hex transformations, insertion
+order in query Maps, and strict UTF-8 validity checks. Invalid percent/hex
+sequences raise errors rather than producing corrupted data.
+
+Run `ctest --test-dir build -R selfhost_extension_codec --output-on-failure`
+for direct runtime checks and `python3 tests/selfhost_differential.py build/se`
+for the end-to-end SE-to-native codec case. These checks still require actual
+execution before their behavior can be called verified. The inventory's
+`lowering_present` is NOT a complete compatibility or conformance guarantee.
+
 ## Native ABI
 
 The SE-written loader now resolves `.snative` files and lowers metadata into
