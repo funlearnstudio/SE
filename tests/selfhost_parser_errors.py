@@ -48,6 +48,10 @@ def main() -> None:
          "A generic type needs at least one type name."),
         ("make pair[T,T] x:T -> T\n    give x\n",
          "Duplicate generic type parameter: T"),
+        ("make add x:Int x:Int -> Int\n    give x\n",
+         "Duplicate function parameter: x"),
+        ("for key key in items\n    say key\n",
+         "A for-pairs loop needs two distinct variable names."),
     )
     for source, expected in invalid:
         result = parse_with_bootstrap(se, source)
