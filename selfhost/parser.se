@@ -514,6 +514,8 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
         if _kind tokens state == "Identifier"
             token = _advance tokens state
             second_name = token[1]
+            if second_name == name[1]
+                fail "A for-pairs loop needs two distinct variable names."
         try _expect tokens state "in"
         iterable = try _expression tokens state 1
         body = try _body tokens state
@@ -544,8 +546,12 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
                     more_generics = false
             try _expect tokens state "]"
         params = []
+        parameter_names = []
         while _kind tokens state == "Identifier"
             param = _advance tokens state
+            if param[1] in parameter_names
+                fail "Duplicate function parameter: " + param[1]
+            parameter_names.add param[1]
             annotation = "Unknown"
             if _kind tokens state == ":"
                 _advance tokens state
