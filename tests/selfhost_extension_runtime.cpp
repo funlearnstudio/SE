@@ -113,5 +113,9 @@ int main() {
   assert(se_iter_combinations(letters,2)[2][0]==2);
   should_fail([&]{(void)se_iter_permutations(letters,4);});
   should_fail([&]{(void)se_iter_combinations(letters,-1);});
+  auto indexed=se_iter_enumerate(SEList<std::int64_t>{1,2,3});
+  assert(indexed.size()==3);
+  assert(std::get<std::int64_t>(indexed[0][0])==0);
+  assert(std::get<std::int64_t>(indexed[2][1])==3);
   std::filesystem::remove_all(root);
 }
