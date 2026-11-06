@@ -7,6 +7,7 @@
 #include "s/lexer.hpp"
 #include "s/modules.hpp"
 #include "s/parser.hpp"
+#include "s/package_manager.hpp"
 #include "s/web_compiler.hpp"
 #include <algorithm>
 #include <cstdlib>
@@ -105,6 +106,7 @@ void print_help(){
     "  se check file.se               Parse and type-check one file\n"
     "  se fmt file.se                 Normalize valid SE indentation and trailing spaces\n"
     "  se fmt --check file.se         Check SE formatting without modifying files\n"
+    "  se pkg init|add|list|remove|verify  Manage project-local SE packages\n"
     "  se check-all [path]            Check every .se file in a project\n"
     "  se test [path]                 Run *_test.se files recursively\n"
     "  se build file.se               Build a native executable\n"
@@ -343,6 +345,7 @@ int main(int argc,char**argv){
     if((argc==2||argc==3)&&std::string(argv[1])=="test")return test_command(argc==3?std::filesystem::path(argv[2]):std::filesystem::path("."));
     if(argc==3&&std::string(argv[1])=="fmt")return fmt_command(argv[2],false);
     if(argc==4&&std::string(argv[1])=="fmt"&&std::string(argv[2])=="--check")return fmt_command(argv[3],true);
+    if(argc>=3&&std::string(argv[1])=="pkg")return se_package_command(argc,argv);
     if(argc==4&&std::string(argv[1])=="new")return new_project(argv[2],argv[3]);
     if((argc==4||argc==5)&&std::string(argv[1])=="web"&&std::string(argv[2])=="build")return web_build_command(argv[3],argc==5?std::filesystem::path(argv[4]):std::filesystem::path("dist"));
     if(argc>=3&&std::string(argv[1])=="bind"){
