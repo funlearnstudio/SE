@@ -2,7 +2,7 @@
   "name": "se-language",
   "displayName": "SE Language",
   "description": "Official SE language support with multi-value ask input, standard-library IntelliSense, live diagnostics, syntax guide, navigation, snippets, and run/check/build commands",
-  "version": "0.7.8",
+  "version": "0.8.0",
   "publisher": "funlearnstudio",
   "license": "MIT",
   "icon": "icons/se.png",
@@ -33,7 +33,8 @@
     "onCommand:se.check",
     "onCommand:se.checkProblems",
     "onCommand:se.build",
-    "onCommand:se.openGuide"
+    "onCommand:se.openGuide",
+    "onCommand:se.format"
   ],
   "main": "./extension.js",
   "contributes": {
@@ -83,6 +84,11 @@
         "icon": "$(tools)"
       },
       {
+        "command": "se.format",
+        "title": "SE: Format Document",
+        "icon": "$(symbol-color)"
+      },
+      {
         "command": "se.openGuide",
         "title": "SE: Open Syntax Guide",
         "icon": "$(book)"
@@ -126,6 +132,11 @@
           "command": "se.build",
           "when": "resourceLangId == se",
           "group": "navigation@4"
+        },
+        {
+          "command": "se.format",
+          "when": "resourceLangId == se",
+          "group": "navigation@5"
         }
       ]
     },

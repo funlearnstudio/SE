@@ -37,6 +37,15 @@ jobs:
           cd vscode
           npm install --no-audit --no-fund
           npx vsce package --no-dependencies
+      - name: Export source snapshot for independent native verification
+        run: |
+          git archive --format=zip --output=/tmp/se-source-wip.zip HEAD
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: se-source-wip
+          path: /tmp/se-source-wip.zip
+          if-no-files-found: error
       - name: Upload installable VSIX
         uses: actions/upload-artifact@v4
         with:

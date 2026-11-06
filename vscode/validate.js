@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 const assert = require('assert');
 const { BUILTIN_MODULES, MODULE_MEMBERS } = require('./language-data');
 const { parseSeCheckOutput } = require('./diagnostics');
@@ -107,8 +108,8 @@ const grammarNames = modulePattern.match(/\(\?:([^)]*)\)/)[1].split('|').sort();
 assert.deepStrictEqual(grammarNames, runtime, 'TextMate grammar module names differ from runtime.');
 
 const pkg = JSON.parse(read('vscode/package.json'));
-assert.match(pkg.version, /^0\.7\.\d+$/, 'SE extension version must be 0.7.x');
-for (const command of ['se.run', 'se.check', 'se.checkProblems', 'se.build', 'se.openGuide']) {
+assert.match(pkg.version, /^0\.8\.\d+$/, 'SE extension version must be 0.7.x');
+for (const command of ['se.run', 'se.check', 'se.checkProblems', 'se.build', 'se.format', 'se.openGuide']) {
   assert(pkg.contributes.commands.some((entry) => entry.command === command), `Missing VS Code command ${command}.`);
 }
 assert(pkg.contributes.configuration.properties['se.diagnostics.enabled']);
@@ -116,6 +117,8 @@ assert(pkg.contributes.configuration.properties['se.diagnostics.delay']);
 
 const snippets = JSON.parse(read('vscode/snippets/se.json'));
 assert(snippets['Sized integer List']?.body?.[0]?.includes(' = []'), 'Missing a[n] = [] VS Code snippet.');
+assert(snippets['Typed multidimensional List'], 'Missing typed matrix snippet.');
+assert(snippets['Contest input array'], 'Missing contest stdin snippet.');
 assert(fs.existsSync(path.join(root, 'vscode/TUTORIAL-zh-TW.md')), 'Bundled syntax tutorial is missing.');
 
 const parsed = parseSeCheckOutput([
@@ -134,5 +137,7 @@ assert.strictEqual(parsed.line, 6);
 assert.strictEqual(parsed.column, 4);
 assert.strictEqual(parsed.message, "Unknown name 'scroe'.");
 assert.strictEqual(parsed.hint, 'Check the variable name.');
+
+execFileSync(process.execPath,[path.join(root,'vscode/lsp-test.js')],{timeout:15000,stdio:'pipe'});
 
 console.log(`VS Code extension validation passed: ${BUILTIN_MODULES.length} built-in module names synchronized with runtime.`);

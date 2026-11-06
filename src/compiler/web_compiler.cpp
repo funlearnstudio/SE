@@ -98,7 +98,13 @@ const ui={
     }
     if(auto x=std::dynamic_pointer_cast<ast::Duration>(e))return std::to_string(x->milliseconds);
     if(auto x=std::dynamic_pointer_cast<ast::Variable>(e))return x->name;
-    if(auto x=std::dynamic_pointer_cast<ast::SizedList>(e))return "(()=>{const n=("+expression(x->count)+");if(!Number.isInteger(n)||n<0||n>1000000)throw new Error('A sized List length must be an Int between 0 and 1000000.');return Array(n).fill(0);})()";
+  if(auto x=std::dynamic_pointer_cast<ast::SizedList>(e)){
+    std::string dims="["+expression(x->count);
+    for(std::size_t i=0;i<x->other_counts.size();++i)dims+=","+expression(x->other_counts[i]);
+    dims+="]";
+    const std::string leaf=x->element_type=="Text"?"\"\"":x->element_type=="Bool"?"false":x->element_type=="Num"?"0.0":"0";
+    return "(()=>{const d="+dims+";let total=0,layer=1;for(const n of d){if(!Number.isSafeInteger(n)||n<0||n>1000000||(layer&&n>Math.floor(1000000/layer)))throw new Error('Invalid sized List dimensions.');layer*=n;total+=layer;if(total>1000000)throw new Error('A sized List exceeds 1000000 slots.');}const build=i=>i===d.length?"+leaf+":Array.from({length:d[i]},()=>build(i+1));return build(0);})()";
+  }
     if(auto x=std::dynamic_pointer_cast<ast::List>(e)){std::string r="[";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+=expression(x->items[i]);}return r+"]";}
     if(auto x=std::dynamic_pointer_cast<ast::Set>(e)){std::string r="new Set([";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+=expression(x->items[i]);}return r+"])";}
     if(auto x=std::dynamic_pointer_cast<ast::Map>(e)){std::string r="({";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+="["+expression(x->items[i].first)+"]:"+expression(x->items[i].second);}return r+"})";}

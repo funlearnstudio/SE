@@ -27,12 +27,39 @@ endfunction()
 file(COPY "${S_ROOT}/examples/type.se" DESTINATION "${S_WORK}")
 file(COPY "${S_ROOT}/examples/sized-list.se" DESTINATION "${S_WORK}")
 file(COPY "${S_ROOT}/examples/collections.se" DESTINATION "${S_WORK}")
+file(COPY "${S_ROOT}/examples/native-fast.se" DESTINATION "${S_WORK}")
 file(COPY "${S_ROOT}/examples/modules" DESTINATION "${S_WORK}")
 check_parity(type "${S_WORK}/type.se")
 check_parity(sized-list "${S_WORK}/sized-list.se")
 check_parity(collections "${S_WORK}/collections.se")
+check_parity(native-fast "${S_WORK}/native-fast.se")
 check_parity(modules "${S_WORK}/modules/main.se")
 
 set(ENV{S_NATIVE_PATH} "${S_NATIVE_DIR}")
 file(COPY "${S_ROOT}/examples/native/main.se" DESTINATION "${S_WORK}")
 check_parity(native "${S_WORK}/main.se")
+
+
+# Verify contest-style, whitespace-separated stdin works in both execution modes.
+file(COPY "${S_ROOT}/examples/contest-input.se" DESTINATION "${S_WORK}")
+file(COPY "${S_ROOT}/tests/contest-input.txt" DESTINATION "${S_WORK}")
+set(contest_source "${S_WORK}/contest-input.se")
+set(contest_data "${S_WORK}/contest-input.txt")
+execute_process(COMMAND "${S_EXE}" run "${contest_source}"
+  INPUT_FILE "${contest_data}" RESULT_VARIABLE contest_run_code
+  OUTPUT_VARIABLE contest_run_out ERROR_VARIABLE contest_run_err)
+if(NOT contest_run_code EQUAL 0)
+  message(FATAL_ERROR "SE contest read failed: ${contest_run_err}")
+endif()
+execute_process(COMMAND "${S_EXE}" build "${contest_source}"
+  RESULT_VARIABLE contest_build_code OUTPUT_VARIABLE contest_build_out
+  ERROR_VARIABLE contest_build_err)
+if(NOT contest_build_code EQUAL 0)
+  message(FATAL_ERROR "Native contest read build failed: ${contest_build_out}\n${contest_build_err}")
+endif()
+execute_process(COMMAND "${S_WORK}/contest-input"
+  INPUT_FILE "${contest_data}" RESULT_VARIABLE contest_native_code
+  OUTPUT_VARIABLE contest_native_out ERROR_VARIABLE contest_native_err)
+if(NOT contest_native_code EQUAL 0 OR NOT contest_run_out STREQUAL contest_native_out)
+  message(FATAL_ERROR "Contest input interpreter/native mismatch.\nrun: ${contest_run_out}\nnative: ${contest_native_out}\nerror: ${contest_native_err}")
+endif()
