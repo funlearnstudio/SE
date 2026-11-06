@@ -184,3 +184,26 @@ inline SEList<std::int64_t> se_iter_range(std::int64_t start,std::int64_t stop,s
   }
   return output;
 }
+
+
+inline SEMap<std::int64_t> se_enum_make(const SEList<std::string>& names){
+  SEMap<std::int64_t> result;
+  if(names.size()>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()))
+    throw std::runtime_error("enum.make has too many values.");
+  for(std::size_t i=0;i<names.size();++i){
+    result.put(names[i],static_cast<std::int64_t>(i));
+  }
+  return result;
+}
+inline std::string se_enum_name(const SEMap<std::int64_t>& values,std::int64_t index){
+  for(const auto& entry:values.items)if(entry.second==index)return entry.first;
+  throw std::runtime_error("enum.name value was not found.");
+}
+inline std::int64_t se_enum_value(const SEMap<std::int64_t>& values,const std::string& name){
+  for(const auto& entry:values.items)if(entry.first==name)return entry.second;
+  throw std::runtime_error("enum.value name was not found.");
+}
+inline bool se_enum_has(const SEMap<std::int64_t>& values,const std::string& name){
+  for(const auto& entry:values.items)if(entry.first==name)return true;
+  return false;
+}
