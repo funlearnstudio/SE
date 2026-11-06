@@ -292,6 +292,21 @@ make _emit_call encoded:Text -> Text
                 if method in ["escape", "render"]
                     give try _apply_or_direct ("se_template_" + method) generated node[2]
                 fail "Unknown template function: " + method
+            if module == "datetime"
+                if method in ["now", "timestamp"]
+                    give "se_datetime_" + method + "()"
+                if method in ["from_timestamp", "format", "add_seconds"]
+                    give try _apply_or_direct ("se_datetime_" + method) generated node[2]
+                fail "Unknown datetime function: " + method
+            if module == "iter"
+                if method == "range"
+                    give try _apply_or_direct "se_iter_range" generated node[2]
+                fail "Unsupported iter function: " + method
+            if module == "functools"
+                if method in ["partial", "reduce", "map", "filter"]
+                    callback_args = try _callback_arguments node[2]
+                    give try _apply_or_direct ("se_function_" + method) callback_args node[2]
+                fail "Unknown functools function: " + method
             if module == "itertools"
                 if method in ["chain", "flatten", "chunked", "take", "drop", "windows", "cycle", "pairs", "unique"]
                     give try _apply_or_direct ("se_itertools_" + method) generated node[2]
@@ -679,6 +694,11 @@ make _emit_expr encoded:Text -> Text
                     give "se_cwd()"
             if module == "time" and member == "now"
                 give "se_time_now()"
+            if module == "datetime"
+                if member == "now"
+                    give "se_datetime_now()"
+                if member == "timestamp"
+                    give "se_datetime_timestamp()"
             if module == "uuid" and member == "v4"
                 give "se_uuid_v4()"
         base = try _emit_expr node[1]
