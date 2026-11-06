@@ -1,5 +1,8 @@
 // Independently compiled extension API regression tests: no production SE VM.
 #include "se_bootstrap_runtime.hpp"
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <cassert>
 #include <filesystem>
 #include <stdexcept>
