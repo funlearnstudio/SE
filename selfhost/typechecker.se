@@ -431,6 +431,26 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                             if method == "keys"
                                 give "List[Text]"
                             give "List[" + map_type[2] + "]"
+                if owner[0] == "Atom" and owner[2] in ["url", "encoding"]
+                    module = owner[2]
+                    method = callee[2]
+                    expected = "Text"
+                    if module == "url" and method == "query"
+                        expected = "Map[Text,Text]"
+                    if module == "url" and not (method in ["encode", "decode", "query", "parse_query"])
+                        fail "Unknown url function: " + method
+                    if module == "encoding" and not (method in ["hex", "unhex", "utf8_valid"])
+                        fail "Unknown encoding function: " + method
+                    if args.len != 1
+                        fail module + "." + method + " expects one argument."
+                    actual = try _infer args[0] symbols
+                    if not (_compatible expected actual)
+                        fail module + "." + method + " expects " + expected + ", got " + actual
+                    if module == "url" and method == "parse_query"
+                        give "Map[Text,Text]"
+                    if module == "encoding" and method == "utf8_valid"
+                        give "Bool"
+                    give "Text"
                 if owner[0] == "Atom" and owner[2] == "time"
                     if callee[2] == "now"
                         if args.len != 0
