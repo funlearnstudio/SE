@@ -276,6 +276,14 @@ make _emit_call encoded:Text -> Text
                 if method == "has_env"
                     give try _apply_or_direct "se_has_env" generated node[2]
                 fail "OS module function not yet supported: " + method
+            if module == "url"
+                if method in ["encode", "decode", "query", "parse_query"]
+                    give try _apply_or_direct ("se_url_" + method) generated node[2]
+                fail "Unknown url function: " + method
+            if module == "encoding"
+                if method in ["hex", "unhex", "utf8_valid"]
+                    give try _apply_or_direct ("se_encoding_" + method) generated node[2]
+                fail "Unknown encoding function: " + method
             if module == "json"
                 if method == "stringify"
                     give try _apply_or_direct "se_json_stringify" generated node[2]
@@ -845,7 +853,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     if kind == "NativeLoad"
         give pad + "se_native_library(" + (json.stringify node[1]) + ", " + (json.stringify node[2]) + ");\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "url", "encoding"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"
