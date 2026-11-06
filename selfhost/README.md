@@ -86,6 +86,23 @@ HTML-escaped. Their behavior is exercised by both
 Source-level implementation and test fixtures alone do not mean those
 tests have passed; check CI or run them locally before claiming parity.
 
+## Tilemap extension (new, not yet certified)
+
+The independent backend supports `tilemap.parse Text -> List[Text]`,
+`tilemap.at List[Text] Int Int -> Text` and
+`tilemap.size List[Text] -> List[Int]`, with width validation and
+out-of-bounds errors. The C++ runtime regression and
+`language_tilemap_extensions.se` differential case exercise the three members.
+
+## Continuous self-hosting validation
+
+`.github/workflows/selfhost.yml` is configured to run on the experimental
+branch. It builds the real production bootstrap, executes standalone C++ codec
+and frontend tests, checks differential behavior, and then runs the strict
+Stage2/3/4 independent self-compilation verifier. A commit is not accepted as
+validated merely because the workflow has been configured; check its completed
+status before marking this experimental branch ready for release.
+
 ## Native ABI
 
 The SE-written loader now resolves `.snative` files and lowers metadata into
