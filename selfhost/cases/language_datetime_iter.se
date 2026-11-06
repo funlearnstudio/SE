@@ -1,0 +1,30 @@
+use datetime
+use iter
+use functools
+
+say datetime.from_timestamp 0
+say datetime.format 0 "%Y-%m-%d"
+say datetime.add_seconds 10 5
+
+values = iter.range 1 8 2
+say values.len
+say values[0]
+reverse = iter.range 5 0 -2
+say reverse.len
+say reverse[1]
+
+make increment n:Int -> Int
+    give n + 1
+
+make positive n:Int -> Bool
+    give n > 1
+
+make plus a:Int b:Int -> Int
+    give a + b
+
+mapped = functools.map increment [1, 2, 3]
+say mapped.len
+say mapped[0]
+filtered = functools.filter positive [1, 2, 3]
+say filtered.len
+say functools.reduce plus [1, 2, 3] 0
