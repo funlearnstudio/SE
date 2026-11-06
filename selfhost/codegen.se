@@ -945,7 +945,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     if kind == "NativeLoad"
         give pad + "se_native_library(" + (json.stringify node[1]) + ", " + (json.stringify node[2]) + ");\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "url", "encoding", "cookie", "cors", "template", "tilemap"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "url", "encoding", "cookie", "cors", "template", "tilemap", "static", "upload", "shutil", "typing", "dotenv", "config", "itertools", "glob", "hashlib", "datetime", "iter", "functools", "enum"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"
