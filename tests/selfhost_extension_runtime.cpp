@@ -64,5 +64,27 @@ int main() {
   assert(std::filesystem::is_regular_file(path));
   should_fail([&]{(void)se_upload_save(root.string(),"../outside.txt","BAD");});
   should_fail([&]{(void)se_static_read(root.string(),"../../etc/passwd");});
+  SEList<std::int64_t> numbers{1,2,3};
+  SEList<std::int64_t> other{4,5};
+  assert((se_itertools_chain(numbers,other)==SEList<std::int64_t>{1,2,3,4,5}));
+  assert((se_itertools_flatten(SEList<SEList<std::int64_t>>{{1,2},{3}})==numbers));
+  assert(se_itertools_chunked(numbers,2).size()==2);
+  assert(se_itertools_chunked(numbers,2)[0][1]==2);
+  assert((se_itertools_take(numbers,2)==SEList<std::int64_t>{1,2}));
+  assert((se_itertools_drop(numbers,2)==SEList<std::int64_t>{3}));
+  assert(se_itertools_windows(numbers,2).size()==2);
+  assert(se_itertools_pairs(numbers).size()==2);
+  assert(se_itertools_cycle(other,3).size()==6);
+  assert(se_itertools_unique(SEList<std::int64_t>{1,1,2}).size()==2);
+  should_fail([&]{(void)se_itertools_chunked(numbers,0);});
+  should_fail([&]{(void)se_itertools_take(numbers,-1);});
+  assert(se_glob_match("*.se","abc.se"));
+  assert(!se_glob_match("*.se","abc.cpp"));
+  assert(se_hashlib_compare("abc","abc"));
+  assert(!se_hashlib_compare("abc","abcd"));
+  assert(se_hashlib_to_hex("Hi")=="4869");
+  assert(se_typing_is(std::int64_t{7},"int"));
+  assert(se_typing_cast(std::int64_t{7},"INT")==7);
+  should_fail([]{(void)se_typing_cast(std::int64_t{7},"Text");});
   std::filesystem::remove_all(root);
 }
