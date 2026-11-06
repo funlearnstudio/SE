@@ -101,5 +101,17 @@ int main() {
   assert(!se_enum_has(colors,"none"));
   should_fail([&]{(void)se_enum_name(colors,99);});
   should_fail([&]{(void)se_enum_value(colors,"none");});
+  const SEList<std::int64_t> letters{1,2,3};
+  const SEList<std::int64_t> digits{7,8};
+  assert(se_iter_zip(letters,digits).size()==2);
+  assert(se_iter_zip(letters,digits)[0][1]==7);
+  assert(se_iter_product(letters,digits).size()==6);
+  assert(se_iter_product(letters,digits)[5][1]==8);
+  assert(se_iter_permutations(letters,2).size()==6);
+  assert(se_iter_permutations(letters,2)[0][0]==1);
+  assert(se_iter_combinations(letters,2).size()==3);
+  assert(se_iter_combinations(letters,2)[2][0]==2);
+  should_fail([&]{(void)se_iter_permutations(letters,4);});
+  should_fail([&]{(void)se_iter_combinations(letters,-1);});
   std::filesystem::remove_all(root);
 }
