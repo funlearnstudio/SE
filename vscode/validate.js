@@ -108,7 +108,7 @@ assert.deepStrictEqual(grammarNames, runtime, 'TextMate grammar module names dif
 
 const pkg = JSON.parse(read('vscode/package.json'));
 assert.match(pkg.version, /^0\.7\.\d+$/, 'SE extension version must be 0.7.x');
-for (const command of ['se.run', 'se.check', 'se.checkProblems', 'se.build', 'se.openGuide']) {
+for (const command of ['se.run', 'se.check', 'se.checkProblems', 'se.build', 'se.format', 'se.openGuide']) {
   assert(pkg.contributes.commands.some((entry) => entry.command === command), `Missing VS Code command ${command}.`);
 }
 assert(pkg.contributes.configuration.properties['se.diagnostics.enabled']);
@@ -116,6 +116,8 @@ assert(pkg.contributes.configuration.properties['se.diagnostics.delay']);
 
 const snippets = JSON.parse(read('vscode/snippets/se.json'));
 assert(snippets['Sized integer List']?.body?.[0]?.includes(' = []'), 'Missing a[n] = [] VS Code snippet.');
+assert(snippets['Typed multidimensional List'], 'Missing typed matrix snippet.');
+assert(snippets['Contest input array'], 'Missing contest stdin snippet.');
 assert(fs.existsSync(path.join(root, 'vscode/TUTORIAL-zh-TW.md')), 'Bundled syntax tutorial is missing.');
 
 const parsed = parseSeCheckOutput([
