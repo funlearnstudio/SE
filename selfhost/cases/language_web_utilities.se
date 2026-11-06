@@ -1,0 +1,15 @@
+use cookie
+use cors
+use template
+
+values = cookie.parse "a=1; b=two"
+say values["a"]
+say values["b"]
+say cookie.set "session" "ok"
+headers = cors.allow_origin "https://example.test"
+say headers["Vary"]
+preflight = cors.preflight "https://example.test" "GET, POST"
+say preflight["Access-Control-Allow-Methods"]
+say template.escape "<&>"
+page = template.render "Hello {{ name }}!" ["name": "<SE>"]
+say page
