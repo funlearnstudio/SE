@@ -431,6 +431,41 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                             if method == "keys"
                                 give "List[Text]"
                             give "List[" + map_type[2] + "]"
+                if owner[0] == "Atom" and owner[2] in ["cookie", "cors", "template"]
+                    module = owner[2]
+                    method = callee[2]
+                    arity = 1
+                    result_type = "Text"
+                    if module == "cookie"
+                        if method == "parse"
+                            result_type = "Map[Text,Text]"
+                        else if method == "set"
+                            arity = 2
+                        else
+                            fail "Unknown cookie function: " + method
+                    if module == "cors"
+                        result_type = "Map[Text,Text]"
+                        if method == "preflight"
+                            arity = 2
+                        else if method != "allow_origin"
+                            fail "Unknown cors function: " + method
+                    if module == "template"
+                        if method == "render"
+                            arity = 2
+                        else if method != "escape"
+                            fail "Unknown template function: " + method
+                    if args.len != arity
+                        fail module + "." + method + " expects " + string(arity) + " argument(s)."
+                    i = 0
+                    while i < args.len
+                        expected = "Text"
+                        if module == "template" and method == "render" and i == 1
+                            expected = "Map[Text,Text]"
+                        actual = try _infer args[i] symbols
+                        if not (_compatible expected actual)
+                            fail module + "." + method + " expects " + expected + ", got " + actual
+                        i += 1
+                    give result_type
                 if owner[0] == "Atom" and owner[2] in ["url", "encoding"]
                     module = owner[2]
                     method = callee[2]
