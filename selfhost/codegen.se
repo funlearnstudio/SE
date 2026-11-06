@@ -312,7 +312,7 @@ make _emit_call encoded:Text -> Text
                 if method == "type_of"
                     give try _apply_or_direct "se_dynamic_type" generated node[2]
                 if method == "is"
-                    give try _apply_or_direct "se_dynamic_is" generated node[2]
+                    give try _apply_or_direct "se_typing_is" generated node[2]
                 if method == "cast"
                     give try _apply_or_direct "se_typing_cast" generated node[2]
                 fail "Unsupported typing function: " + method
