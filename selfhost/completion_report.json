@@ -549,8 +549,25 @@
   "limitations": [
     "Lowering detection is a source scan, not conformance certification.",
     "CSV parser rejects malformed quoted input more strictly than the production parser.",
-    "Latest CSV changes have execution tests; the previous strict Stage2/3/4 proof predates CSV read/write.",
     "Any supports scalar values only; arbitrary dynamic objects and full generic inference remain incomplete.",
-    "Native callbacks, by-value structs and full cross-platform ABI verification remain incomplete."
-  ]
+    "Native callbacks, by-value structs and full cross-platform ABI verification remain incomplete.",
+    "Unannotated mutually recursive, loop-dependent and heterogeneous return signatures are not inferred.",
+    "Expression AST child handles are process-local, not a portable serialized graph."
+  ],
+  "verification": {
+    "date": "2026-11-06",
+    "feature_commit": "209ac2a",
+    "strict_stage2_stage3_stage4": true,
+    "direct_multifile_selfhosting": true,
+    "positive_execution_cases": 64,
+    "negative_rejection_cases": 25,
+    "eager_native_load_failure": true,
+    "se_unit_groups": 6,
+    "web_corpus": true,
+    "standalone_runtime_ubsan": true,
+    "strict_cpp_sha256": "17193a972971e5ee5c8b8b7b799e1699eae2e632636f8fa70f86057312046f15",
+    "direct_multifile_cpp_sha256": "4ddd8ae8de2679c32cc22a60460216c7bad65f17dd04c5ec868b376f4f8ee776",
+    "statement_record_bytes_before": 542009153,
+    "statement_record_bytes_after": 522018
+  }
 }

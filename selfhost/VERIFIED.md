@@ -10,7 +10,7 @@ and C++ standard library after Stage0.
 - Direct compilation of `selfhost/compiler.se` and its actual source modules,
   followed by another compilation of that same graph: identical generated C++.
   This direct compilation does not use the Python source bundler.
-- Final native multi-file compiler: 45 positive execution cases and 25 rejected
+- Final native multi-file compiler: 64 positive execution cases and 25 rejected
   invalid programs, plus 6 SE compiler unit suites.
 - Web: complete asset comparisons for `component-web.se` and `browser-api.se`,
   JavaScript syntax checks, and 3 invalid component/route cases.
@@ -22,8 +22,8 @@ Generated C++ SHA-256:
 
 | Proof | SHA-256 |
 | --- | --- |
-| Stage2/3/4 bundle | `a2cb8a75e767d3537ae095a2afc42f5a0cd08344a626deb088d46a39c3b92843` |
-| Direct multi-file generations | `072fc8138bc3d66323d7b171fc038a07f21c87a1539abb94e32db4fdd16dc257` |
+| Stage2/3/4 bundle | `17193a972971e5ee5c8b8b7b799e1699eae2e632636f8fa70f86057312046f15` |
+| Direct multi-file generations | `4ddd8ae8de2679c32cc22a60460216c7bad65f17dd04c5ec868b376f4f8ee776` |
 
 Reproduce on Linux with Python 3, C++20 and Node.js:
 
@@ -45,3 +45,23 @@ First-class module values, all generic callable combinations, full dynamic
 collection/object aliasing, comprehensive diagnostics and cross-platform
 self-hosting still need work. Source modules have tested private-name isolation,
 public exports, duplicate-export rejection and `.se` / `.s` package resolution.
+
+## Latest checkpoint: 209ac2a
+
+The strict proof above was rerun after CSV read/write, expression arena storage,
+inferred acyclic forward signatures, implicit `None` returns, numeric remainder,
+and single-evaluation repeat counts. All 64 execution cases, the eager native
+load failure case, 25 rejected programs, 6 SE compiler unit groups, and the Web
+corpus passed with the final direct-module standalone compiler. The standalone
+runtime also passed UndefinedBehaviorSanitizer checks, including signed minimum
+remainder -1 and zero divisors.
+
+Expression statement-record bytes in the bundled compiler dropped from
+542,009,153 to 522,018. This measures the serialized outer statement records,
+not total process memory; the arena stores additional expression records.
+An 80-term expression is included in the execution corpus.
+
+This checkpoint remains incomplete. Unannotated mutual recursion, unresolved
+loop-dependent or heterogeneous return inference, first-class modules, full
+object/container `Any`, all generic callable combinations, complete extension
+coverage, and cross-platform ABI verification are not certified by this proof.
