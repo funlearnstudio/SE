@@ -107,6 +107,9 @@ void print_help(){
     "  se fmt file.se                 Normalize valid SE indentation and trailing spaces\n"
     "  se fmt --check file.se         Check SE formatting without modifying files\n"
     "  se pkg init|add|list|remove|verify  Manage project-local SE packages\n"
+    "  se trace file.se               Print executed source lines and local variables\n"
+    "  se debug file.se               Step, continue, inspect locals and call stack\n"
+    "  se debug --break N file.se     Pause when source line N executes\n"
     "  se check-all [path]            Check every .se file in a project\n"
     "  se test [path]                 Run *_test.se files recursively\n"
     "  se build file.se               Build a native executable\n"
@@ -306,6 +309,59 @@ int fmt_command(const std::filesystem::path&path,bool check_only){
   }
 }
 
+int debug_command(const std::filesystem::path&path,bool trace,int breakpoint=0){
+  const auto source=read_file(path);
+  try{
+    const auto program=frontend_file(path);
+    s::Interpreter vm(std::cin,std::cout);
+    bool stepping=!trace&&breakpoint==0;
+    vm.set_debug_hook([&](s::SourcePos pos,const std::string&module,const s::Environment&env,
+                          const std::vector<std::string>&stack){
+      if(!trace&&!stepping&&pos.line!=breakpoint)return;
+      std::cerr<<(trace?"[SE trace] ":"[SE debug] ")
+               <<(module.empty()?path.string():module)<<":"<<pos.line<<"\n";
+      std::vector<std::string> names;
+      for(const auto&[name,value]:env.values()){
+        if(std::holds_alternative<std::shared_ptr<s::CallableData>>(value.data()))continue;
+        names.push_back(name);
+      }
+      std::sort(names.begin(),names.end());
+      auto locals=[&](){
+        for(const auto& name:names){
+          auto value=env.get(name,pos).text();
+          if(value.size()>120)value.resize(120);
+          std::cerr<<"  "<<name<<" = "<<value<<"\n";
+        }
+      };
+      if(trace){locals();return;}
+      for(;;){
+        std::cerr<<"(se-debug) ";
+        std::string command;
+        if(!std::getline(std::cin,command)){stepping=false;return;}
+        if(command=="c"||command=="continue"){stepping=false;return;}
+        if(command=="s"||command=="n"||command=="step"||command=="next"){stepping=true;return;}
+        if(command=="locals"||command=="l"){locals();continue;}
+        if(command=="bt"||command=="stack"){
+          if(stack.empty())std::cerr<<"  <main>\n";
+          for(auto it=stack.rbegin();it!=stack.rend();++it)std::cerr<<"  "<<*it<<"\n";
+          continue;
+        }
+        if(command.size()>2&&command.substr(0,2)=="p "){
+          const auto name=command.substr(2);
+          if(env.has(name))std::cerr<<"  "<<name<<" = "<<env.get(name,pos).text()<<"\n";
+          else std::cerr<<"  Unknown variable: "<<name<<"\n";
+          continue;
+        }
+        if(command=="q"||command=="quit")throw std::runtime_error("Debugger stopped.");
+        std::cerr<<"Commands: s(step), c(continue), locals, p NAME, bt(stack), q(quit)\n";
+      }
+    });
+    vm.run(program);
+    return 0;
+  }catch(const s::Error&e){std::cerr<<s::format_error(e,source);return 1;}
+  catch(const s::RuntimeFailure&e){std::cerr<<e.what()<<"\n";return 1;}
+}
+
 int file_command(const std::string&cmd,const std::filesystem::path&path){
   auto source=read_file(path);
   try{auto p=frontend_file(path);if(cmd=="check"){std::cout<<path.string()<<" is valid SE.\n";return 0;}if(cmd=="run"){s::Interpreter vm(std::cin,std::cout);vm.run(p);return 0;}
@@ -346,6 +402,9 @@ int main(int argc,char**argv){
     if(argc==3&&std::string(argv[1])=="fmt")return fmt_command(argv[2],false);
     if(argc==4&&std::string(argv[1])=="fmt"&&std::string(argv[2])=="--check")return fmt_command(argv[3],true);
     if(argc>=3&&std::string(argv[1])=="pkg")return se_package_command(argc,argv);
+    if(argc==3&&std::string(argv[1])=="trace")return debug_command(argv[2],true);
+    if(argc==3&&std::string(argv[1])=="debug")return debug_command(argv[2],false);
+    if(argc==5&&std::string(argv[1])=="debug"&&std::string(argv[2])=="--break")return debug_command(argv[4],false,std::stoi(argv[3]));
     if(argc==4&&std::string(argv[1])=="new")return new_project(argv[2],argv[3]);
     if((argc==4||argc==5)&&std::string(argv[1])=="web"&&std::string(argv[2])=="build")return web_build_command(argv[3],argc==5?std::filesystem::path(argv[4]):std::filesystem::path("dist"));
     if(argc>=3&&std::string(argv[1])=="bind"){
