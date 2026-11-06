@@ -1,27 +1,43 @@
-# SE 0.7.8
+# SE 0.8.0 — Language and Developer Tooling
 
-This release adds sized integer List declarations and synchronizes the compiler, the VS Code extension and the installation packages.
+SE 0.8.0 adds substantial functionality to the production C++ SE compiler and its VS Code extension while retaining indentation-based syntax.
 
-## Highlights
+## Language improvements
 
-- New syntax: `a[5] = []` creates five zero-initialized integers.
-- The length may be any Int expression, e.g. `n = 5` then `a[n] = []`.
-- `a = []` still means an empty dynamic List; `a.add value` still grows it.
-- Non-Int, negative, and oversized lengths are rejected; maximum 1,000,000 entries.
-- Interpreter, native C++20 build, and SE Web code generation support sized list initialization.
-- The VS Code extension ships a `sizedlist` snippet and updated Traditional Chinese syntax guide.
+- **Silent contest input**: `read n:Int`, `read number:Num`, `read word:Text`, `read flag:Bool`, and `read values[n]:Int`. Tokens are read across spaces and line breaks with no prompt text.
+- **Typed arrays**: `a[5]:Text = []`, `b[5]:Num = []`, `flags[5]:Bool = []`, zero-initialized to their types.
+- **Multidimensional arrays**: `grid[10][10]:Int = []` with independent rows, static type checks, bounds checks and bounded allocation.
+- Existing `a[5] = []` remains supported; the dynamic `a = []` / `a.add value` behavior is unchanged.
 
-## Example
+## Development tools
+
+- `se fmt file.se` / `se fmt --check file.se`: conservative, idempotent whitespace formatting.
+- `se debug file.se`, `se debug --break 5 file.se`, `se trace file.se`: interactive step/continue, locals, simple call stack and execution tracing.
+- `se lsp`: Node.js-based standalone language-server foundation offering document symbols, workspace navigation, completion, references, rename, formatting and compiler-backed diagnostics.
+- `se pkg init|add|remove|list|verify`: project-local SE module packages, with lockfile change detection. Supports local files only; no public registry or remote package fetching.
+- VS Code editor-formatting support, new syntax snippets and updated guides.
+
+## Native compiler
+
+- Adds a **limited direct C++ lowering path** for straightforward, side-effect-free sequential assignments, arithmetic and output.
+- Complex control flow, modules, functions and dynamic operations continue to use the established interpreter-backed native runtime. This is **not a completed optimizing Native Backend**.
+
+## Scope and limitations
+
+- The standalone LSP and CLI debugger are foundations, not yet a full scope-aware language server or DAP debugger.
+- Package-lock checksums are not cryptographic signatures.
+- The separate SE self-hosting compiler and full native/generic feature-parity effort remain ongoing, not completed in this release.
+- Cross-platform CI and interpreter/native parity tests must pass before publishing.
+
+## Quick example
 
 ```se
-a[5] = []
-for i in 0..4
-    a[i] = i + 1
-say a
+read n:Int
+read values[n]:Int
+total = 0
+for value in values
+    total += value
+say total
 ```
 
-Expected output: `[1, 2, 3, 4, 5]`.
-
-## Install
-
-Install the new compiler and `se-language-0.7.8.vsix` from this GitHub Release. The editor extension does not replace the CLI; update both for the new syntax.
+For the editor, install `se-language-0.8.0.vsix` from this release. Updating the extension does not replace the installed SE CLI.
