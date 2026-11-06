@@ -83,20 +83,20 @@ static std::optional<std::string> direct_native(const ast::Program& program){
     return "s::binary(s::TokenKind::"+std::string(token_name(binary->op))+","+
       emit(binary->left)+","+emit(binary->right)+","+pos(binary->pos)+")";
   };
-  std::string code="#include \"s/value.hpp\"\\n#include \"s/error.hpp\"\\n"
-    "#include <iostream>\\n#include <unordered_map>\\nusing namespace s;\\n"
-    "int main(){try{std::unordered_map<std::string,s::Value> variables;\\n"
-    "// SE direct native straight-line backend\\n";
+  std::string code="#include \"s/value.hpp\"\n#include \"s/error.hpp\"\n"
+    "#include <iostream>\n#include <unordered_map>\nusing namespace s;\n"
+    "int main(){try{std::unordered_map<std::string,s::Value> variables;\n"
+    "// SE direct native straight-line backend\n";
   for(const auto& statement:*statements){
     if(auto assign=std::dynamic_pointer_cast<ast::Assign>(statement)){
       auto name=std::dynamic_pointer_cast<ast::Variable>(assign->target)->name;
-      code+="variables["+q(name)+"]="+emit(assign->value)+";\\n";
+      code+="variables["+q(name)+"]="+emit(assign->value)+";\n";
     }else if(auto print=std::dynamic_pointer_cast<ast::Say>(statement)){
-      code+="std::cout<<("+emit(print->value)+").text()<<'\\\\n';\\n";
+      code+="std::cout<<("+emit(print->value)+").text()<<'\\n';\n";
     }
   }
-  code+="return 0;}catch(const s::Error&e){std::cerr<<e.what()<<'\\\\n';return 1;}"
-        "catch(const std::exception&e){std::cerr<<e.what()<<'\\\\n';return 1;}}\\n";
+  code+="return 0;}catch(const s::Error&e){std::cerr<<e.what()<<'\\n';return 1;}"
+        "catch(const std::exception&e){std::cerr<<e.what()<<'\\n';return 1;}}\n";
   return code;
 }
 
