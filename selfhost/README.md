@@ -73,6 +73,19 @@ for the end-to-end SE-to-native codec case. These checks still require actual
 execution before their behavior can be called verified. The inventory's
 `lowering_present` is NOT a complete compatibility or conformance guarantee.
 
+## Web utility extensions (new, not yet certified)
+
+The independent backend now lowers `cookie.parse`, `cookie.set`,
+`cors.allow_origin`, `cors.preflight`, `template.escape` and
+`template.render`. These functions have precise argument and return types in
+the SE-written checker. Cookies reject dangerous separators in names and CR/LF
+in values, CORS rejects CR/LF injection, and template substitutions are
+HTML-escaped. Their behavior is exercised by both
+`tests/selfhost_extension_codec.cpp` and
+`selfhost/cases/language_web_utilities.se` in the differential suite.
+Source-level implementation and test fixtures alone do not mean those
+tests have passed; check CI or run them locally before claiming parity.
+
 ## Native ABI
 
 The SE-written loader now resolves `.snative` files and lowers metadata into
