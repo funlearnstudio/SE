@@ -1,0 +1,36 @@
+name: SE self-hosting regression
+
+on:
+  push:
+    branches:
+      - experiment/se-self-hosting-bootstrap
+  pull_request:
+    paths:
+      - 'selfhost/**'
+      - 'tests/selfhost*'
+      - 'CMakeLists.txt'
+      - '.github/workflows/selfhost.yml'
+  workflow_dispatch:
+
+jobs:
+  independent-selfhost:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare toolchain
+        run: |
+          c++ --version
+          cmake --version
+          python3 --version
+          node --version
+      - name: Configure
+        run: cmake -S . -B build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+      - name: Build compiler and codec regression
+        run: cmake --build build --target se selfhost_codec_tests native_test --parallel 2
+      - name: Run independent-runtime and frontend regressions
+        run: ctest --test-dir build -R 'selfhost_extension_codec|cli_selfhost_parser|cli_selfhost_lexer_delimiters|cli_selfhost_parser_errors' --output-on-failure
+      - name: Run full differential tests
+        run: python3 tests/selfhost_differential.py build/se
+      - name: Verify independent Stage2 Stage3 Stage4 bootstrap
+        run: python3 tests/selfhost_stage2.py build/se
