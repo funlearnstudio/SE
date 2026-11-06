@@ -164,6 +164,9 @@ def main() -> None:
         for case, message in (
             ("negative_unknown_annotation.se", "Unknown type annotation"),
             ("negative_private_import.se", "Undefined function"),
+            ("negative_codec_type.se", "encoding.hex expects Text"),
+            ("negative_codec_arity.se", "url.decode expects one argument"),
+            ("negative_codec_member.se", "Unknown url function"),
             ("negative_duplicate_export.se", "provided by more than one module"),
             ("negative_generic_rebind.se", "was already inferred as"),
             ("negative_required_field.se", "Missing required field"),
