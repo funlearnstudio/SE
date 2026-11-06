@@ -8,7 +8,7 @@ use typechecker
 use symbol_table
 
 make _node encoded:Text -> List[Text]
-    give json.parse encoded
+    give unpack_node encoded
 
 make _indent depth:Int -> Text
     give text.repeat "    " depth
@@ -523,7 +523,7 @@ make _emit_expr encoded:Text -> Text
                 give "se_add(" + left + ", " + right + ")"
             if op == "**"
                 give "std::pow(" + left + ", " + right + ")"
-            if op != "/"
+            if op != "/" and op != "%"
                 give "(" + left + " " + op + " " + right + ")"
         if op == "and"
             give "([&](){ const auto __se_left = " + left + "; if (!__se_left) return false; return static_cast<bool>(" + right + "); }())"
@@ -537,6 +537,8 @@ make _emit_expr encoded:Text -> Text
             give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return se_add(__se_left, __se_right); }())"
         if op == "**"
             give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return std::pow(__se_left, __se_right); }())"
+        if op == "%"
+            give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return se_remainder(__se_left, __se_right); }())"
         if op == "/"
             give "([&](){ const auto __se_left = se_num(" + left + "); const auto __se_right = se_num(" + right + "); if (__se_right == 0) throw std::runtime_error(\"Division by zero.\"); return __se_left / __se_right; }())"
         give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return (__se_left " + op + " __se_right); }())"
@@ -910,7 +912,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         loop_names = _clone_names names
         body = try _emit_block node[2] (level + 1) loop_names
         count = try _emit_expr node[1]
-        give pad + "for (std::int64_t __se_repeat_index = 0; __se_repeat_index < " + count + "; ++__se_repeat_index) {\n" + body + pad + "}\n"
+        give pad + "{ const auto __se_repeat_count = " + count + "; if (__se_repeat_count < 0) throw std::runtime_error(\"repeat count cannot be negative.\");\n" + pad + "for (std::int64_t __se_repeat_index = 0; __se_repeat_index < __se_repeat_count; ++__se_repeat_index) {\n" + body + pad + "}\n" + pad + "}\n"
     if kind == "ForPairs"
         scope = _clone_names names
         scope.add node[1]
@@ -1026,6 +1028,16 @@ make _emit_prototype encoded:Text -> Text
     give header + return_type + " " + cpp_function + "(" + arguments + ");\n"
 
 make emit_checked_program ast:List[Text] symbols:List[List[Text]] -> Text
+    # Use inferred signatures consistently in declarations and definitions.
+    index = 0
+    while index < ast.len
+        node = _node ast[index]
+        if node[0] == "Make" and node[4] == "Unknown"
+            entry = lookup_symbol symbols node[1]
+            if entry[3] != "Unknown"
+                node[4] = entry[3]
+                ast[index] = json.stringify node
+        index += 1
     type_parts = []
     prototype_parts = []
     function_parts = []

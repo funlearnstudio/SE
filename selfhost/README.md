@@ -55,7 +55,7 @@ Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defa
 - **Block layout**: blank lines and comment-only lines between a block header and its first indented statement are accepted.
 - **Local source modules**: `use helpers` recursively resolves `.se` / `.s` files relative to the importer and package locations. Module declarations receive stable prefixes; private names beginning with `_` remain private, distinct private helpers do not collide, and conflicting public exports are rejected. Imports preserve token adjacency and string contents. Source-module objects are not first-class runtime values.
 - **C++ keyword safety**: SE identifiers such as `class`, `template` and `namespace` are escaped consistently during C++ generation.
-- **Typed forward functions**: C++20 prototypes are emitted before definitions for functions whose parameter and return types are explicit, enabling forward calls and mutual recursion. Calls requiring return-type deduction are not yet supported forward.
+- **Forward functions**: C++20 prototypes support explicit signatures and inferred return types in acyclic call chains with known operands. Return inference repeats until dependencies settle and leaves unresolved, heterogeneous, closure and loop-dependent returns to C++ deduction. Unannotated mutually recursive signatures still need work. `None` functions and methods may finish without `give`.
 - **Library subset**: `math`, text and filesystem helpers; shared `collections` operations including contains/first/last/unique/keys/values/sort-by; `series` and `array`; `matrix` and `linear`; probability, fraction, complex, calculus, units, table and dataset helpers; JSON String/List[String] wire encoding; OS/time/random helpers; managed files; and test assertions. `extension_inventory.json` records 117 production extension modules and 586 advertised members. The bootstrap implements only the subset exercised by its runtime and differential tests; inventory entries do not imply parity.
 
 ## Native ABI
@@ -201,3 +201,21 @@ Unsupported syntax must error instead of silently generating incorrect code. Com
 ## Math, statistics and regular expressions
 
 The bootstrap backend now maps the production math module's operational API to the independent runtime: constants pi/e/tau/inf, unary/binary functions, variadic hypot/min/max/gcd/lcm, interpolation, factorial/combinations/permutations, and population statistics. `statistics` provides mean/median and sample/population variance and deviation. `regex` and `re` provide match/search/replace/split using the same C++ ECMAScript regex implementation as production. Math combination overflow is explicitly rejected. Static module API checking and complete help output remain unfinished.
+
+## Expression storage and numeric/control-flow semantics
+
+Expression children are stored using internal `@ast:` handles into a shared
+arena in `ast_codec.se`. Use `unpack_node` to inspect expressions; handles remain
+valid within the compiler process and are not a portable serialized AST format.
+Statement records and block encoding retain their JSON/Base64 structure.
+This prevents repeated JSON escaping from growing exponentially with expression
+depth. On the compiler bundle, the measured statement strings shrank from
+542,009,153 bytes to 522,018 bytes (the source also includes the new inference pass).
+The execution corpus includes an 80-term expression.
+
+`%` supports Int and Num operands, evaluates operands from left to right, and
+throws for zero divisors. Integer minimum remainder -1 produces zero without C++
+undefined behavior. `repeat` evaluates its count once before entering the loop
+and rejects negative counts. Numeric failure recovery has an explicit native
+output oracle because the production interpreter currently throws a different
+exception category for arithmetic errors.

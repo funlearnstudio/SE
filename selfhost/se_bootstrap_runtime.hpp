@@ -265,7 +265,20 @@ template<class A,class B> auto se_operator_add(const A& a,const B& b){return se_
 template<class A,class B> auto se_operator_sub(const A& a,const B& b){return a-b;}
 template<class A,class B> auto se_operator_mul(const A& a,const B& b){return a*b;}
 template<class A,class B> auto se_operator_div(const A& a,const B& b){if(b==B{})throw std::runtime_error("Division by zero.");return static_cast<double>(a)/static_cast<double>(b);}
-template<class A,class B> auto se_operator_mod(const A& a,const B& b){if(b==B{})throw std::runtime_error("Modulo by zero.");if constexpr(std::is_floating_point_v<A>||std::is_floating_point_v<B>)return std::fmod(static_cast<double>(a),static_cast<double>(b));else return a%b;}
+// Integer min % -1 is mathematically zero but undefined as a C++ remainder.
+// Preserve integer results and use fmod for mixed/floating operands.
+template<class A,class B> auto se_remainder(const A& a,const B& b){
+  if(b==B{})throw std::runtime_error("Division by zero.");
+  if constexpr(std::is_floating_point_v<A>||std::is_floating_point_v<B>)
+    return std::fmod(static_cast<double>(a),static_cast<double>(b));
+  else {
+    using R=decltype(a%b);
+    if constexpr(std::is_signed_v<A> && std::is_signed_v<B>)
+      if(a==std::numeric_limits<A>::min() && b==B{-1}) return R{0};
+    return static_cast<R>(a%b);
+  }
+}
+template<class A,class B> auto se_operator_mod(const A& a,const B& b){return se_remainder(a,b);}
 template<class A,class B> bool se_operator_eq(const A& a,const B& b){return a==b;}
 template<class A,class B> bool se_operator_ne(const A& a,const B& b){return a!=b;}
 template<class A,class B> bool se_operator_lt(const A& a,const B& b){return a<b;}

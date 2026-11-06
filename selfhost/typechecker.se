@@ -9,7 +9,7 @@ use ast_codec
 use type_model
 
 make _node encoded:Text -> List[Text]
-    give json.parse encoded
+    give unpack_node encoded
 
 make _compatible expected:Text actual:Text -> Bool
     give type_matches expected actual
@@ -752,7 +752,7 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
                 try define_symbol inner parameter[0] parameter[1] "0" ""
             body = try unpack_block method[3]
             try _check_block body inner method[4]
-            if method[4] != "Unknown" and not (try _guarantees_return body)
+            if method[4] != "Unknown" and method[4] != "None" and not (try _guarantees_return body)
                 fail "Method " + method[1] + " requires a return on all paths."
         give "OK"
     if kind == "Make"
@@ -777,10 +777,109 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             try define_symbol local pair[0] pair[1] "0" ""
         body = try unpack_block node[3]
         try _check_block body local node[4]
-        if node[4] != "Unknown" and not (try _guarantees_return body)
+        if node[4] != "Unknown" and node[4] != "None" and not (try _guarantees_return body)
             fail "Function " + node[1] + " is missing a return on some code paths."
         give "OK"
     fail "Unsupported AST statement in self-hosted checker: " + kind
+
+# Inference must not turn an unresolved operand into a guessed numeric result.
+make _return_expression_ready encoded:Text symbols:List[List[Text]] -> Bool
+    inferred = try _infer encoded symbols
+    if text.contains inferred "Unknown"
+        give false
+    node = _node encoded
+    kind = node[0]
+    if kind == "Binary"
+        give (try _return_expression_ready node[2] symbols) and (try _return_expression_ready node[3] symbols)
+    if kind == "Unary"
+        give try _return_expression_ready node[2] symbols
+    if kind in ["Try", "Member"]
+        give try _return_expression_ready node[1] symbols
+    if kind == "Index"
+        give (try _return_expression_ready node[1] symbols) and (try _return_expression_ready node[2] symbols)
+    if kind in ["List", "Set", "Call"]
+        contents = node[1]
+        if kind == "Call"
+            contents = node[2]
+        for item in (_node contents)
+            if not (try _return_expression_ready item symbols)
+                give false
+    if kind == "Map"
+        for item in (_node node[1])
+            pair = _node item
+            if not (try _return_expression_ready pair[1] symbols)
+                give false
+    give true
+
+# Collect value returns in their lexical environments; nested function returns
+# belong to that function, not to its enclosing declaration.
+make _collect_return_types statements:List[Text] symbols:List[List[Text]] found:List[Text] -> Text
+    for item in statements
+        node = _node item
+        kind = node[0]
+        if kind == "give"
+            if try _return_expression_ready node[2] symbols
+                found.add (try _infer node[2] symbols)
+            else
+                found.add "Unknown"
+        else if kind == "If"
+            try _collect_return_types (try unpack_block node[2]) (clone_symbols symbols) found
+            try _collect_return_types (try unpack_block node[3]) (clone_symbols symbols) found
+        else if kind == "TryStmt"
+            try _collect_return_types (try unpack_block node[1]) (clone_symbols symbols) found
+            recovery = clone_symbols symbols
+            try define_symbol recovery node[2] "Error" "0" ""
+            try _collect_return_types (try unpack_block node[3]) recovery found
+        else if kind == "Match"
+            for encoded_case in (_node node[2])
+                choice = _node encoded_case
+                try _collect_return_types (try unpack_block choice[1]) (clone_symbols symbols) found
+            try _collect_return_types (try unpack_block node[3]) (clone_symbols symbols) found
+        else if kind in ["repeat", "while", "For", "ForPairs"]
+            # Loop-bound names and conditional fallthrough need a separate
+            # control-flow analysis. Keep C++ deduction for these signatures.
+            found.add "Unknown"
+        else
+            if kind in ["Assign", "AssignInit"]
+                if not (try _return_expression_ready node[2] symbols)
+                    found.add "Unknown"
+            try _check_statement item symbols "Unknown"
+    give "OK"
+
+make _infer_forward_returns statements:List[Text] symbols:List[List[Text]] -> Text
+    changed = true
+    while changed
+        changed = false
+        for item in statements
+            node = _node item
+            if node[0] == "Make"
+                entry = lookup_symbol symbols node[1]
+                if entry[3] == "Unknown"
+                    # A global binding may only become available during the
+                    # normal source-order pass. Failed inference is deferred.
+                    try
+                        local = clone_symbols symbols
+                        if node.len > 5
+                            try _add_generics node[5] local
+                        for encoded_param in (_node node[2])
+                            param = _node encoded_param
+                            try define_symbol local param[0] param[1] "0" ""
+                        returns = []
+                        body = try unpack_block node[3]
+                        try _collect_return_types body local returns
+                        if returns.len > 0 and try _guarantees_return body
+                            result = returns[0]
+                            for candidate in returns
+                                if candidate != result
+                                    result = "Unknown"
+                            if not (text.contains result "Unknown") and result != "Function" and result != "Module"
+                                entry[3] = result
+                                try replace_symbol symbols entry
+                                changed = true
+                    else inference_error
+                        # The ordinary checker still reports real source errors.
+                        changed = changed
+    give "OK"
 
 make check_program statements:List[Text] -> List[List[Text]]
     symbols = [["", "", "", ""]]
@@ -807,5 +906,6 @@ make check_program statements:List[Text] -> List[List[Text]]
             if node.len > 5
                 entry.add node[5]
             try replace_symbol symbols entry
+    try _infer_forward_returns statements symbols
     try _check_block statements symbols "TopLevel"
     give symbols

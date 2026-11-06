@@ -6,6 +6,22 @@
 #include <vector>
 
 int main() {
+    assert(se_remainder(std::int64_t{17}, std::int64_t{5}) == 2);
+    assert(se_remainder(std::int64_t{-17}, std::int64_t{5}) == -2);
+    assert(se_remainder(7.5, std::int64_t{2}) == 1.5);
+    assert(se_remainder(std::int64_t{7}, 2.5) == 2.0);
+    assert(se_remainder(std::numeric_limits<std::int64_t>::min(), std::int64_t{-1}) == 0);
+    for (double divisor : {0.0, -0.0}) {
+        bool zero_caught = false;
+        try { (void)se_remainder(1.5, divisor); }
+        catch (const std::runtime_error&) { zero_caught = true; }
+        assert(zero_caught);
+    }
+    bool integer_zero_caught = false;
+    try { (void)se_remainder(std::int64_t{1}, std::int64_t{0}); }
+    catch (const std::runtime_error&) { integer_zero_caught = true; }
+    assert(integer_zero_caught);
+
     // SE automatically invokes zero-parameter callables in value positions.
     auto zero = []() -> std::int64_t { return 42; };
     auto unary = [](std::int64_t n) -> std::int64_t { return n + 1; };

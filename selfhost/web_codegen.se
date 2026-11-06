@@ -7,7 +7,7 @@ use ast_codec
 use web_browser_runtime
 
 make _web_node encoded:Text -> List[Text]
-    give json.parse encoded
+    give unpack_node encoded
 
 make _web_escape value:Text -> Text
     value = text.replace value "&" "&amp;"

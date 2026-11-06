@@ -3,6 +3,22 @@
 # escape every quote in the complete descendant AST.
 use json
 use base64
+use text
+
+# Expression children use stable process-local handles. Re-embedding JSON Text
+# at every binary node otherwise doubles escaping with expression depth.
+_ast_nodes = ["initial"]
+
+make pack_node fields:List[Text] -> Text
+    index = _ast_nodes.len
+    _ast_nodes.add (json.stringify fields)
+    give "@ast:" + string(index)
+
+make unpack_node encoded:Text -> List[Text]
+    if text.starts encoded "@ast:"
+        index = int (text.replace encoded "@ast:" "")
+        give json.parse _ast_nodes[index]
+    give json.parse encoded
 
 make pack_block statements:List[Text] -> Text
     encoded = json.stringify statements

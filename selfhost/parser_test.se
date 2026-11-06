@@ -7,7 +7,7 @@ use text
 use test
 
 make node encoded:Text -> List[Text]
-    give json.parse encoded
+    give unpack_node encoded
 
 source = "name = \"SE\"\nif name == \"SE\"\n    say \"Hello SE\"\nelse\n    say \"other\"\n"
 tokens = try lex source
@@ -31,8 +31,11 @@ test.ok (text.contains if_yes[0] "say")
 arithmetic = try parse "value = 1 + 2 * 3\nsay value\n"
 test.equal 2 arithmetic.len
 math_ast = arithmetic[0]
-test.ok (text.contains math_ast "Binary")
-test.ok (text.contains math_ast "*")
+math_assignment = node math_ast
+math_expression = node math_assignment[2]
+test.equal "Binary" math_expression[0]
+multiplication = node math_expression[3]
+test.equal "*" multiplication[1]
 
 blocks = try parse "make greet name\n    say name\nrepeat 3\n    say \"Hi\"\nwhile true\n    give 1\n"
 test.equal 3 blocks.len

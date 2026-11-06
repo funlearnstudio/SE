@@ -1,0 +1,9 @@
+say 17 % 5
+say -17 % 5
+say 17 % -5
+say 7.5 % 2
+say 7 % 2.5
+make operand value:Num -> Num
+    say value
+    give value
+say (operand 7.5) % (operand 2)

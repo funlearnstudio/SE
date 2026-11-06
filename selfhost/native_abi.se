@@ -5,7 +5,7 @@ use json
 use ast_codec
 
 make native_node encoded:Text -> List[Text]
-    give json.parse encoded
+    give unpack_node encoded
 
 make native_type kind:Text -> Bool
     if kind in ["Int", "Num", "Bool", "Text", "Bytes", "None"]

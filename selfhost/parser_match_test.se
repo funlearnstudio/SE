@@ -4,7 +4,7 @@ use ast_codec
 use test
 
 make node encoded:Text -> List[Text]
-    give json.parse encoded
+    give unpack_node encoded
 
 source = "match 2\n    case 1\n        say \"one\"\n    case 2\n        say \"two\"\n    else\n        say \"other\"\n"
 ast = try parse source

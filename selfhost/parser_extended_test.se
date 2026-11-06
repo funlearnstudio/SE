@@ -1,10 +1,11 @@
+use ast_codec
 use parser
 use json
 use text
 use test
 
 make node encoded:Text -> List[Text]
-    give json.parse encoded
+    give unpack_node encoded
 
 s = "make add a:Int b:Int -> Int\n    give a + b\nvalues = [1, 2, 3]\nx = add 10 20\nsay values[0]\nfor i in 1..3\n    say i\nuse math\n"
 ast = try parse s

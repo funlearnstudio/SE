@@ -1,0 +1,11 @@
+make display value:Text -> None
+    say value
+
+type Printer
+    prefix = "method: "
+    make display value:Text -> None
+        say prefix + value
+
+display "function"
+p = Printer
+p.display "hello"

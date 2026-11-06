@@ -1,0 +1,13 @@
+try
+    say 1 % 0
+else problem
+    say problem.message
+try
+    say 1.5 % 0
+else problem
+    say problem.message
+try
+    repeat -1
+        say "unreachable"
+else problem
+    say problem.message

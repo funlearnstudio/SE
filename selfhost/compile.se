@@ -1,3 +1,4 @@
+use ast_codec
 # SE-written compiler orchestrator (lexer/parser/semantic analysis/codegen).
 use parser
 use native_abi
@@ -13,7 +14,7 @@ use collections
 use os
 
 make _node encoded:Text -> List[Text]
-    give json.parse encoded
+    give unpack_node encoded
 
 make _builtin_module name:Text -> Bool
     give name in ["math","text","collections","file","json","os","random","path","time","base64","test","statistics","regex","re","uuid","copy","function","async","threading","array","series","matrix","linear","probability","fraction","complex","calculus","units","table","dataset","operator","dynamic","csv"]

@@ -8,7 +8,7 @@ use text
 use ast_codec
 
 make _node encoded:Text -> List[Text]
-    give json.parse encoded
+    give unpack_node encoded
 
 make _kind tokens:List[List[Text]] state:List[Int] -> Text
     give tokens[state[0]][0]
@@ -70,14 +70,14 @@ make _prefix tokens:List[List[Text]] state:List[Int] -> Text
     if kind == "-" or kind == "not"
         tok = _advance tokens state
         rhs = try _expression tokens state 8
-        give json.stringify (["Unary", tok[0], rhs, ""])
+        give pack_node (["Unary", tok[0], rhs, ""])
     if kind == "ask" or kind == "try"
         tok = _advance tokens state
         rhs = try _expression tokens state 9
         name = "Ask"
         if kind == "try"
             name = "Try"
-        give json.stringify ([name, rhs, "", ""])
+        give pack_node ([name, rhs, "", ""])
     if kind == "("
         _advance tokens state
         value = try _expression tokens state 1
@@ -105,13 +105,13 @@ make _prefix tokens:List[List[Text]] state:List[Int] -> Text
                 forced = "Map"
                 _advance tokens state
                 value = try _expression tokens state 1
-                pairs.add (json.stringify ([first, value]))
+                pairs.add (pack_node ([first, value]))
                 while _kind tokens state == ","
                     _advance tokens state
                     key = try _expression tokens state 1
                     try _expect tokens state ":"
                     value = try _expression tokens state 1
-                    pairs.add (json.stringify ([key, value]))
+                    pairs.add (pack_node ([key, value]))
             else
                 if forced == "Map"
                     fail "Map entries require key: value."
@@ -122,11 +122,11 @@ make _prefix tokens:List[List[Text]] state:List[Int] -> Text
                     items.add item
         try _expect tokens state "]"
         if forced == "Map"
-            give json.stringify (["Map", json.stringify pairs, "", ""])
-        give json.stringify ([forced, json.stringify items, "", ""])
+            give pack_node (["Map", json.stringify pairs, "", ""])
+        give pack_node ([forced, json.stringify items, "", ""])
     if kind in ["Integer", "Number", "Duration", "String", "true", "false", "Identifier"]
         tok = _advance tokens state
-        give json.stringify (["Atom", tok[0], tok[1], ""])
+        give pack_node (["Atom", tok[0], tok[1], ""])
     tok = tokens[state[0]]
     fail "Expected SE expression, got " + kind + " at line " + tok[2]
 
@@ -140,7 +140,7 @@ make _postfix tokens:List[List[Text]] state:List[Int] start:Text -> Text
             member = _advance tokens state
             if member[0] != "Identifier" and member[0] != "map" and member[0] != "match"
                 fail "Expected member name after '.'"
-            left = json.stringify (["Member", left, member[1], ""])
+            left = pack_node (["Member", left, member[1], ""])
         else if kind == "["
             # Uppercase SE type names (Box[Int]) are specialization, not indexing.
             base_node = _node left
@@ -159,7 +159,7 @@ make _postfix tokens:List[List[Text]] state:List[Int] start:Text -> Text
                     _advance tokens state
                     arguments.add (try _type_ref tokens state)
                 try _expect tokens state "]"
-                left = json.stringify (["TypeInstance", base_node[2], json.stringify arguments, ""])
+                left = pack_node (["TypeInstance", base_node[2], json.stringify arguments, ""])
             else
                 # Adjacent brackets index a value; separated brackets start List arguments.
                 bracket = tokens[state[0]]
@@ -175,7 +175,7 @@ make _postfix tokens:List[List[Text]] state:List[Int] start:Text -> Text
                     _advance tokens state
                     index = try _expression tokens state 1
                     try _expect tokens state "]"
-                    left = json.stringify (["Index", left, index, ""])
+                    left = pack_node (["Index", left, index, ""])
                 else
                     looping = false
         else
@@ -216,9 +216,9 @@ make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
                         if op == "**"
                             min_right = precedence
                         right = try _expression tokens state min_right
-                        arg = json.stringify (["Binary", op, arg, right])
+                        arg = pack_node (["Binary", op, arg, right])
             arguments.add arg
-        left = json.stringify (["Call", left, json.stringify arguments, ""])
+        left = pack_node (["Call", left, json.stringify arguments, ""])
     while true
         op = _kind tokens state
         precedence = _precedence op
@@ -229,7 +229,7 @@ make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
         if op == "**"
             next_minimum = precedence
         right = try _expression tokens state next_minimum
-        left = json.stringify (["Binary", op, left, right])
+        left = pack_node (["Binary", op, left, right])
     give left
 
 make _block tokens:List[List[Text]] state:List[Int] nested:Bool -> List[Text]
