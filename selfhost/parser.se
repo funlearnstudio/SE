@@ -300,9 +300,11 @@ make _web_css_item tokens:List[List[Text]] state:List[Int] -> Text
     end = state[0]
     while not (tokens[end][0] in ["Newline", "Dedent", "End"])
         end += 1
-    following = tokens[end + 1]
+    following_kind = "End"
+    if end + 1 < tokens.len
+        following_kind = tokens[end + 1][0]
     children = []
-    if tokens[end][0] == "Newline" and following[0] == "Indent"
+    if tokens[end][0] == "Newline" and following_kind == "Indent"
         selector = ""
         while state[0] < end
             token = _advance tokens state
@@ -366,8 +368,10 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
             end = state[0]
             while not (tokens[end][0] in ["Newline", "End"])
                 end += 1
-            after_line = tokens[end + 1]
-            if tokens[end][0] == "Newline" and after_line[0] == "Indent"
+            after_kind = "End"
+            if end + 1 < tokens.len
+                after_kind = tokens[end + 1][0]
+            if tokens[end][0] == "Newline" and after_kind == "Indent"
                 _advance tokens state
                 route = try _expression tokens state 1
                 body = try _body tokens state
@@ -524,6 +528,8 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
         generics = []
         if _kind tokens state == "["
             _advance tokens state
+            if _kind tokens state == "]"
+                fail "A generic function needs at least one type name."
             more_generics = true
             while more_generics
                 variable = _advance tokens state
