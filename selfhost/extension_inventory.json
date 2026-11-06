@@ -1946,7 +1946,7 @@
           "name": "enumerate",
           "kind": "function",
           "usage": "enumerate list",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
