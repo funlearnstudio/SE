@@ -93,5 +93,13 @@ int main() {
   assert((se_iter_range(5,0,-2)==SEList<std::int64_t>{5,3,1}));
   should_fail([]{(void)se_iter_range(0,12,0);});
   should_fail([]{(void)se_datetime_add_seconds(std::numeric_limits<std::int64_t>::max(),1);});
+  const auto colors=se_enum_make(SEList<std::string>{"red","green","blue"});
+  assert(colors.size()==3);
+  assert(se_enum_name(colors,1)=="green");
+  assert(se_enum_value(colors,"blue")==2);
+  assert(se_enum_has(colors,"red"));
+  assert(!se_enum_has(colors,"none"));
+  should_fail([&]{(void)se_enum_name(colors,99);});
+  should_fail([&]{(void)se_enum_value(colors,"none");});
   std::filesystem::remove_all(root);
 }
