@@ -1,0 +1,2 @@
+use encoding
+say encoding.hex 123
