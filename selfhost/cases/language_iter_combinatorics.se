@@ -1,0 +1,14 @@
+use iter
+
+pairs = iter.zip [1, 2, 3] [7, 8]
+say pairs.len
+say pairs[0][1]
+grid = iter.product [1, 2, 3] [7, 8]
+say grid.len
+say grid[5][1]
+orderings = iter.permutations [1, 2, 3] 2
+say orderings.len
+say orderings[0][0]
+subsets = iter.combinations [1, 2, 3] 2
+say subsets.len
+say subsets[2][0]
