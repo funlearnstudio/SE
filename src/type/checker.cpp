@@ -131,7 +131,12 @@ TypeInfo Checker::expr(const ast::ExprPtr& e){
   if(auto x=std::dynamic_pointer_cast<ast::Variable>(e)){auto base=find(x->name,x->pos);if(x->type_args.empty()){if(base.kind==TypeKind::Object&&base.object&&!base.object->generic_params.empty()&&base.type_args.empty())throw Error(x->pos,"Generic type '"+x->name+"' needs type arguments, like "+x->name+"[Int].");return base;}if(base.kind!=TypeKind::Object||!base.object)throw Error(x->pos,"Only a generic user type can use type arguments here.");std::vector<std::string> generics=current_function_?current_function_->generic_params:std::vector<std::string>{};std::vector<TypeInfo> args;for(auto& a:x->type_args)args.push_back(type_from_ref(a,generics,x->pos));return specialize_user_type(base.object,args,x->pos);}
   if(auto x=std::dynamic_pointer_cast<ast::SizedList>(e)){
     if(expr(x->count).kind!=TypeKind::Int)throw Error(x->pos,"A sized List needs an Int length.");
-    return list_of(TypeInfo(TypeKind::Int));
+    for(const auto& length:x->other_counts)if(expr(length).kind!=TypeKind::Int)
+      throw Error(x->pos,"Every sized List dimension needs Int.");
+    TypeInfo result(x->element_type=="Text"?TypeKind::Text:x->element_type=="Bool"?TypeKind::Bool:
+                    x->element_type=="Num"?TypeKind::Num:TypeKind::Int);
+    for(std::size_t dimension=0;dimension<1+x->other_counts.size();++dimension)result=list_of(result);
+    return result;
   }
   if(auto x=std::dynamic_pointer_cast<ast::List>(e)){TypeInfo elem;for(auto& i:x->items){auto t=expr(i);if(elem.kind==TypeKind::Unknown)elem=t;else if(!compatible(elem,t))throw Error(i->pos,"A List keeps one value type. It already has "+type_text(elem)+", but this is "+type_text(t)+".");}return list_of(elem);}
   if(auto x=std::dynamic_pointer_cast<ast::Set>(e)){TypeInfo elem;for(auto& i:x->items){auto t=expr(i);if(elem.kind==TypeKind::Unknown)elem=t;else if(!compatible(elem,t))throw Error(i->pos,"A Set keeps one value type. It already has "+type_text(elem)+", but this is "+type_text(t)+".");}return set_of(elem);}
@@ -147,6 +152,16 @@ TypeInfo Checker::expr(const ast::ExprPtr& e){
 void Checker::block(const ast::Block& b){scopes_.push_back({});for(auto& s:b)stmt(s);scopes_.pop_back();}
 void Checker::stmt(const ast::StmtPtr& s){
   if(std::dynamic_pointer_cast<ast::Use>(s))return;if(auto x=std::dynamic_pointer_cast<ast::Say>(s)){expr(x->value);return;}if(auto x=std::dynamic_pointer_cast<ast::ExprStmt>(s)){expr(x->value);return;}
+  if(auto x=std::dynamic_pointer_cast<ast::Read>(s)){
+    TypeInfo result(x->type=="Int"?TypeKind::Int:x->type=="Num"?TypeKind::Num:
+                    x->type=="Bool"?TypeKind::Bool:TypeKind::Text);
+    if(x->count){
+      if(expr(x->count).kind!=TypeKind::Int)throw Error(x->pos,"read array length needs Int.");
+      result=list_of(result);
+    }
+    put(x->name,result,x->pos);
+    return;
+  }
   if(auto x=std::dynamic_pointer_cast<ast::MultiAsk>(s)){
     for(std::size_t i=0;i<x->names.size();++i){
       const auto& type=x->types[i];
