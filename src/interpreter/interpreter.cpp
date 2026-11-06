@@ -242,7 +242,7 @@ Value Interpreter::evaluate(const ast::ExprPtr& e){
     dimensions.push_back(length(x->count));
     for(const auto& extra:x->other_counts)dimensions.push_back(length(extra));
     // Limit the sum of allocated List nodes and scalar slots, not only the last dimension.
-    std::size_t nodes=1,layer=1;
+    std::size_t nodes=0,layer=1;
     for(auto n:dimensions){
       if(layer!=0&&n>1000000/layer)throw Error(x->pos,"A sized List exceeds 1000000 allocated slots.");
       layer*=n;
