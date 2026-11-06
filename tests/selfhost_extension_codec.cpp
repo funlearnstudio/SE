@@ -34,4 +34,22 @@ int main() {
   assert(rejects([] { (void)se_url_parse_query("a=%ZZ"); }));
   assert(rejects([] { (void)se_encoding_unhex("0"); }));
   assert(rejects([] { (void)se_encoding_unhex("GG"); }));
+  const auto cookies=se_cookie_parse("a=1; b=two ; empty=");
+  assert(cookies.at("a")=="1");
+  assert(cookies.at("b")=="two");
+  assert(cookies.at("empty")=="");
+  assert(se_cookie_set("session","ok")=="session=ok; Path=/; HttpOnly; SameSite=Lax");
+  assert(rejects([] { (void)se_cookie_set("bad;name","ok"); }));
+  assert(rejects([] { (void)se_cookie_set("safe","bad\r\nHeader: value"); }));
+  assert(se_cors_allow_origin("https://example.test").at("Vary")=="Origin");
+  assert(se_cors_preflight("https://example.test","GET, POST").at(
+      "Access-Control-Allow-Methods")=="GET, POST");
+  assert(rejects([] { (void)se_cors_allow_origin("x\r\nInjected: yes"); }));
+  assert(rejects([] { (void)se_cors_preflight("x","GET\nInjected"); }));
+  assert(se_template_escape("<&>'\\\"")=="&lt;&amp;&gt;&#39;&quot;");
+  SEMap<std::string> context;
+  context.put("name","<SE>");
+  assert(se_template_render("Hello {{ name }}!",context)=="Hello &lt;SE&gt;!");
+  assert(rejects([&] { (void)se_template_render("{{ missing }}",context); }));
+  assert(rejects([&] { (void)se_template_render("{{ name",context); }));
 }
