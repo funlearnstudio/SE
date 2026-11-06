@@ -1,4 +1,5 @@
 #include "s/checker.hpp"
+#include "s/compiler.hpp"
 #include "s/error.hpp"
 #include "s/ffi.hpp"
 #include "s/interpreter.hpp"
@@ -81,6 +82,10 @@ int main(){
   EXPECT(throws_error([]{run_input("read x:Int\n","oops\n");}));
   EXPECT(throws_error([]{run_input("read x:Int\n","");}));
   EXPECT(throws_error([]{run_input("read a[3]:Int\n","1 2\n");}));
+
+  // AOT direct lowering is enabled for pure, straight-line programs only.
+  EXPECT(s::CppCompiler{}.generate(parse("a = 2\nsay a * 3\n")).find("SE direct native straight-line backend")!=std::string::npos);
+  EXPECT(s::CppCompiler{}.generate(parse("repeat 2\n    say 1\n")).find("SE direct native straight-line backend")==std::string::npos);
 
   // Core conversions and familiar aliases.
   EXPECT(run("say int \"42\"\nsay integer \"-7\"\nsay double \"3.5\"\nsay float 2\nsay string 99\nsay text true\nsay bool \"TRUE\"\nsay boolean \"false\"\nsay char \"é\"\nsay char 65\n")=="42\n-7\n3.5\n2\n99\ntrue\ntrue\nfalse\né\nA\n");
