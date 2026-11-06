@@ -1,0 +1,8 @@
+# A typed rectangular 2D List with independent rows.
+names[3]:Text = []
+names[1] = "SE"
+say names
+
+grid[3][4]:Int = []
+grid[1][2] = 42
+say grid[1][2]
