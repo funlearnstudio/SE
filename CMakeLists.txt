@@ -146,6 +146,7 @@ if(BUILD_TESTING)
 endif()
 
 install(TARGETS se s_core RUNTIME DESTINATION bin ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
+install(FILES vscode/lsp-server.js vscode/diagnostics.js DESTINATION share/se/lsp)
 install(DIRECTORY include/ DESTINATION include)
 install(DIRECTORY std/ DESTINATION share/se/std OPTIONAL)
 # Native builds compile against a relocatable source bundle, not the CI checkout.
