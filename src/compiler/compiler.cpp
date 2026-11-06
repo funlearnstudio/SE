@@ -32,7 +32,12 @@ std::string CppCompiler::expr(const ast::ExprPtr&e) const{
   if(auto x=std::dynamic_pointer_cast<ast::Variable>(e))return "std::make_shared<ast::Variable>("+pos(x->pos)+","+q(x->name)+","+type_refs(x->type_args)+")";
   if(auto x=std::dynamic_pointer_cast<ast::Binary>(e))return "std::make_shared<ast::Binary>("+pos(x->pos)+","+expr(x->left)+",TokenKind::"+std::string(token_name(x->op))+","+expr(x->right)+")";
   if(auto x=std::dynamic_pointer_cast<ast::Unary>(e))return "std::make_shared<ast::Unary>("+pos(x->pos)+",TokenKind::"+std::string(token_name(x->op))+","+expr(x->value)+")";
-  if(auto x=std::dynamic_pointer_cast<ast::SizedList>(e))return "std::make_shared<ast::SizedList>("+pos(x->pos)+","+expr(x->count)+")";
+  if(auto x=std::dynamic_pointer_cast<ast::SizedList>(e)){
+    std::string rest="std::vector<ast::ExprPtr>{";
+    for(std::size_t i=0;i<x->other_counts.size();++i){if(i)rest+=",";rest+=expr(x->other_counts[i]);}
+    rest+="}";
+    return "std::make_shared<ast::SizedList>("+pos(x->pos)+","+expr(x->count)+","+rest+","+q(x->element_type)+")";
+  }
   if(auto x=std::dynamic_pointer_cast<ast::List>(e)){std::string r="std::make_shared<ast::List>("+pos(x->pos)+",std::vector<ast::ExprPtr>{";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+=expr(x->items[i]);}return r+"})";}
   if(auto x=std::dynamic_pointer_cast<ast::Set>(e)){std::string r="std::make_shared<ast::Set>("+pos(x->pos)+",std::vector<ast::ExprPtr>{";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+=expr(x->items[i]);}return r+"})";}
   if(auto x=std::dynamic_pointer_cast<ast::Map>(e)){std::string r="std::make_shared<ast::Map>("+pos(x->pos)+",std::vector<std::pair<ast::ExprPtr,ast::ExprPtr>>{";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+="{"+expr(x->items[i].first)+","+expr(x->items[i].second)+"}";}return r+"})";}
@@ -50,6 +55,7 @@ std::string CppCompiler::function(const std::shared_ptr<ast::Function>&x) const{
 
 std::string CppCompiler::stmt(const ast::StmtPtr&s) const{
   if(auto x=std::dynamic_pointer_cast<ast::ExprStmt>(s))return "std::make_shared<ast::ExprStmt>("+pos(x->pos)+","+expr(x->value)+")";
+  if(auto x=std::dynamic_pointer_cast<ast::Read>(s))return "std::make_shared<ast::Read>("+pos(x->pos)+","+q(x->name)+","+q(x->type)+","+(x->count?expr(x->count):"nullptr")+")";
   if(auto x=std::dynamic_pointer_cast<ast::MultiAsk>(s))return "std::make_shared<ast::MultiAsk>("+pos(x->pos)+","+strings(x->names)+","+strings(x->types)+")";
   if(auto x=std::dynamic_pointer_cast<ast::Assign>(s))return "std::make_shared<ast::Assign>("+pos(x->pos)+","+expr(x->target)+","+expr(x->value)+","+block(x->init)+")";
   if(auto x=std::dynamic_pointer_cast<ast::Say>(s))return "std::make_shared<ast::Say>("+pos(x->pos)+","+expr(x->value)+")";
