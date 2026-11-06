@@ -273,8 +273,105 @@ make _elif_chain tokens:List[List[Text]] state:List[Int] -> Text
             no = try _body tokens state
     give json.stringify (["If", condition, try pack_block yes, try pack_block no])
 
+# Contextual Web grammar uses ordinary identifiers outside Web sections.
+make _web_element tokens:List[List[Text]] state:List[Int] -> Text
+    tag = _advance tokens state
+    if tag[0] != "Identifier"
+        fail "Expected an HTML element name."
+    value = ""
+    if not (_kind tokens state in ["Newline", "Dedent", "End"])
+        value = try _expression tokens state 1
+    children = []
+    next_token = tokens[state[0] + 1]
+    if _kind tokens state == "Newline" and next_token[0] == "Indent"
+        try _expect tokens state "Newline"
+        try _expect tokens state "Indent"
+        while not (_kind tokens state in ["Dedent", "End"])
+            if _kind tokens state == "Newline"
+                _advance tokens state
+            else
+                children.add (try _web_element tokens state)
+        try _expect tokens state "Dedent"
+    else
+        try _expect tokens state "Newline"
+    give json.stringify (["WebElement", tag[1], value, try pack_block children])
+
+make _web_css_item tokens:List[List[Text]] state:List[Int] -> Text
+    end = state[0]
+    while not (tokens[end][0] in ["Newline", "Dedent", "End"])
+        end += 1
+    following = tokens[end + 1]
+    children = []
+    if tokens[end][0] == "Newline" and following[0] == "Indent"
+        selector = ""
+        while state[0] < end
+            token = _advance tokens state
+            part = token[1]
+            if token[0] == "String"
+                part = json.stringify part
+            selector = selector + part
+        try _expect tokens state "Newline"
+        try _expect tokens state "Indent"
+        while not (_kind tokens state in ["Dedent", "End"])
+            if _kind tokens state == "Newline"
+                _advance tokens state
+            else
+                children.add (try _web_css_item tokens state)
+        try _expect tokens state "Dedent"
+        give json.stringify (["WebCss", selector, "", try pack_block children])
+    name = _advance tokens state
+    if name[0] != "Identifier"
+        fail "Expected a CSS property name."
+    value = try _expression tokens state 1
+    try _expect tokens state "Newline"
+    give json.stringify (["WebCss", name[1], value, try pack_block children])
+
+make _web_section tokens:List[List[Text]] state:List[Int] section:Text -> Text
+    try _expect tokens state "Newline"
+    try _expect tokens state "Indent"
+    items = []
+    while not (_kind tokens state in ["Dedent", "End"])
+        if _kind tokens state == "Newline"
+            _advance tokens state
+        else if section == "html"
+            items.add (try _web_element tokens state)
+        else if section in ["css", "style"]
+            items.add (try _web_css_item tokens state)
+        else
+            word = _advance tokens state
+            if word[1] == "when"
+                event = _advance tokens state
+                if not (event[0] in ["Identifier", "String"])
+                    fail "Expected an event name after when."
+                body = try _body tokens state
+                items.add (json.stringify (["WebEvent", event[1], try pack_block body, ""]))
+            else if word[1] == "native"
+                expression = try _expression tokens state 1
+                try _expect tokens state "Newline"
+                items.add (json.stringify (["WebNative", expression, "", ""]))
+            else
+                fail "Inside js, use when event or native Text."
+    try _expect tokens state "Dedent"
+    give json.stringify (["WebSection", section, try pack_block items, ""])
+
 make _statement tokens:List[List[Text]] state:List[Int] -> Text
     kind = _kind tokens state
+    if kind == "Identifier"
+        token = tokens[state[0]]
+        following = tokens[state[0] + 1]
+        if token[1] in ["html", "css", "style", "js"] and following[0] == "Newline"
+            _advance tokens state
+            give try _web_section tokens state token[1]
+        if token[1] == "page"
+            end = state[0]
+            while not (tokens[end][0] in ["Newline", "End"])
+                end += 1
+            after_line = tokens[end + 1]
+            if tokens[end][0] == "Newline" and after_line[0] == "Indent"
+                _advance tokens state
+                route = try _expression tokens state 1
+                body = try _body tokens state
+                give json.stringify (["Page", route, try pack_block body, ""])
     if kind == "say" or kind == "give" or kind == "fail"
         _advance tokens state
         expr = try _expression tokens state 1

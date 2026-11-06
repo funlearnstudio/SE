@@ -4,6 +4,8 @@ use json
 use text
 use ast_codec
 use type_model
+use typechecker
+use symbol_table
 
 make _node encoded:Text -> List[Text]
     give json.parse encoded
@@ -35,6 +37,10 @@ make _ctype source:Text -> Text
         give "bool"
     if source == "Time"
         give "SETime"
+    if source == "Duration"
+        give "SEDuration"
+    if source == "Error"
+        give "SEError"
     if source == "File"
         give "SEFile"
     if source == "List[Int]"
@@ -100,7 +106,7 @@ make _emit_template encoded:Text -> Text
     for v in vars
         if result != ""
             result = result + ", "
-        result = result + "typename " + v
+        result = result + "typename " + (try _ctype v)
     if result == ""
         give ""
     give "template <" + result + ">\n"
@@ -116,6 +122,20 @@ make _emit_arguments encoded:Text -> Text
     parts = []
     for item in args
         parts.add (try _emit_expr item)
+    give text.join parts ", "
+
+# Callable module arguments are passed as values even for nullary functions.
+make _callback_arguments encoded:Text -> Text
+    args = _node encoded
+    parts = []
+    first = true
+    for item in args
+        node = _node item
+        if first and node[0] == "Atom" and node[1] == "Identifier"
+            parts.add (_cpp_identifier node[2])
+        else
+            parts.add (try _emit_expr item)
+        first = false
     give text.join parts ", "
 
 make _emit_call encoded:Text -> Text
@@ -152,6 +172,20 @@ make _emit_call encoded:Text -> Text
         method = target[2]
         if owner[0] == "Atom" and owner[1] == "Identifier"
             module = owner[2]
+            if module == "async" or module == "threading"
+                if method == "run"
+                    callback_args = try _callback_arguments node[2]
+                    give "se_async_run(" + callback_args + ")"
+                if method in ["await", "join"]
+                    give "se_async_await(" + generated + ")"
+                if method == "ready"
+                    give "se_async_ready(" + generated + ")"
+                fail "Unknown task operation: " + method
+            if module == "function"
+                if method in ["bind", "partial", "call", "map", "filter", "reduce"]
+                    callback_args = try _callback_arguments node[2]
+                    give "se_function_" + method + "(" + callback_args + ")"
+                fail "Unknown function operation: " + method
             if module == "os"
                 if method == "getenv"
                     give "se_getenv(" + generated + ")"
@@ -388,7 +422,7 @@ make _emit_type encoded:Text -> Text
     if generics.len > 0
         declarations = []
         for variable in generics
-            declarations.add ("typename " + variable)
+            declarations.add ("typename " + (try _ctype variable))
         header = "template <" + (text.join declarations ", ") + ">\n"
     output = header + "struct SEType_" + node[1] + " {\n"
     field_names = []
@@ -429,6 +463,9 @@ make _emit_type encoded:Text -> Text
         return_type = try _ctype method[4]
         body = try _emit_block method[3] 2 local_names
         cpp_method = _cpp_identifier method[1]
+        method_template = try _emit_template encoded_method
+        if method_template != ""
+            output = output + "    " + method_template
         output = output + "    " + return_type + " " + cpp_method + "(" + arguments + ") {\n"
         output = output + prelude + body + "    }\n"
     cpp_type = _cpp_identifier node[1]
@@ -436,6 +473,53 @@ make _emit_type encoded:Text -> Text
     if generics.len == 0
         output = output + "inline const SEType_" + node[1] + " " + cpp_type + "{};\n"
     give output
+
+# Shared heap cells preserve lexical mutation after an enclosing call returns.
+# Only functions containing closures pay this cost; compiler-internal reference
+# parameters retain their existing representation in ordinary functions.
+make _contains_closure encoded:Text -> Bool
+    statements = try unpack_block encoded
+    for item in statements
+        node = _node item
+        kind = node[0]
+        if kind == "Make"
+            give true
+        if kind == "If"
+            if try _contains_closure node[2]
+                give true
+            if try _contains_closure node[3]
+                give true
+        if kind in ["while", "repeat"]
+            if try _contains_closure node[2]
+                give true
+        if kind == "For"
+            if try _contains_closure node[3]
+                give true
+        if kind == "ForPairs"
+            if try _contains_closure node[4]
+                give true
+        if kind == "TryStmt"
+            if try _contains_closure node[1]
+                give true
+            if try _contains_closure node[3]
+                give true
+        if kind == "Match"
+            cases = _node node[2]
+            for case_item in cases
+                choice = _node case_item
+                if try _contains_closure choice[1]
+                    give true
+            if try _contains_closure node[3]
+                give true
+    give false
+
+make _declare_local name:Text value:Text pad:Text names:List[Text] -> Text
+    cpp_name = _cpp_identifier name
+    if "@shared" in names
+        names.add ("@cell:" + name)
+        cell = "__se_cell_" + cpp_name
+        give pad + "auto " + cell + " = se_cell(" + value + ");\n" + pad + "auto& " + cpp_name + " = *" + cell + ";\n"
+    give pad + "auto " + cpp_name + " = " + value + ";\n"
 
 make _emit_block encoded:Text level:Int names:List[Text] -> Text
     statements = try unpack_block encoded
@@ -453,26 +537,30 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         name = node[1]
         expr = try _emit_expr node[2]
         cpp_name = _cpp_identifier name
-        if name in names
+        if name in names or ("@global:" + name) in names
+            if not (name in names)
+                names.add name
             give pad + cpp_name + " = " + expr + ";\n"
         names.add name
-        give pad + "auto " + cpp_name + " = " + expr + ";\n"
+        give _declare_local name expr pad names
     if kind == "AssignInit"
         name = node[1]
         expr = try _emit_expr node[2]
         output = ""
         cpp_name = _cpp_identifier name
-        if name in names
+        if name in names or ("@global:" + name) in names
+            if not (name in names)
+                names.add name
             output = pad + cpp_name + " = " + expr + ";\n"
         else
             names.add name
-            output = pad + "auto " + cpp_name + " = " + expr + ";\n"
+            output = _declare_local name expr pad names
         fields = _node node[3]
         for encoded_field in fields
             field = _node encoded_field
             value = try _emit_expr field[1]
             cpp_field = _cpp_identifier field[0]
-            output = output + pad + cpp_name + "." + cpp_field + " = " + value + ";\n"
+            output = output + pad + "se_implicit_call(" + cpp_name + ")." + cpp_field + " = " + value + ";\n"
         give output
     if kind == "TypeDecl"
         give try _emit_type encoded
@@ -489,7 +577,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         base = try _emit_expr node[1]
         index = try _emit_expr node[2]
         value = try _emit_expr node[3]
-        give pad + "se_index(" + base + ", " + index + ") = " + value + ";\n"
+        give pad + "se_assign_index(" + base + ", " + index + ", " + value + ");\n"
     if kind == "AssignMember"
         base = try _emit_expr node[1]
         value = try _emit_expr node[3]
@@ -535,7 +623,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         result = try _emit_expr node[2]
         give pad + result + ";\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "function", "async", "threading"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"
@@ -605,59 +693,87 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         scope = _clone_names names
         scope.add node[1]
         scope.add node[2]
+        first_decl = _declare_local node[1] "__se_pair.first" (_indent (level + 1)) scope
+        second_decl = _declare_local node[2] "__se_pair.second" (_indent (level + 1)) scope
         body = try _emit_block node[4] (level + 1) scope
         iterable = try _emit_expr node[3]
         output = pad + "for (const auto& __se_pair : " + iterable + ".items) {\n"
-        cpp_first = _cpp_identifier node[1]
-        cpp_second = _cpp_identifier node[2]
-        output = output + pad + "    auto " + cpp_first + " = __se_pair.first;\n"
-        output = output + pad + "    auto " + cpp_second + " = __se_pair.second;\n"
-        give output + body + pad + "}\n"
+        give output + first_decl + second_decl + body + pad + "}\n"
     if kind == "For"
         scope = _clone_names names
         scope.add node[1]
+        cpp_loop = _cpp_identifier node[1]
+        declaration = _declare_local node[1] ("__se_loop_" + cpp_loop) (_indent (level + 1)) scope
         body = try _emit_block node[3] (level + 1) scope
         iterable = try _emit_expr node[2]
-        cpp_loop = _cpp_identifier node[1]
-        give pad + "for (auto " + cpp_loop + " : " + iterable + ") {\n" + body + pad + "}\n"
+        give pad + "for (auto __se_loop_" + cpp_loop + " : " + iterable + ") {\n" + declaration + body + pad + "}\n"
     if kind == "Make"
         params = _node node[2]
         local_names = []
-        if level > 0
-            local_names = _clone_names names
+        for visible in names
+            if not (text.starts visible "@global:")
+                local_names.add visible
+        shared = try _contains_closure node[3]
+        if "@shared" in local_names
+            shared = true
+        if shared and not ("@shared" in local_names)
+            local_names.add "@shared"
         args = ""
+        prelude = ""
         concrete = node[4] != "Unknown"
         arg_types = []
         for item in params
             param = _node item
             typename = try _parameter_type param[1] param[0]
+            arg_types.add typename
             if param[1] == "Unknown"
                 concrete = false
             if args != ""
                 args = args + ", "
             cpp_param = _cpp_identifier param[0]
-            args = args + typename + " " + cpp_param
-            arg_types.add typename
+            argument_name = cpp_param
+            if shared
+                argument_name = "__se_arg_" + cpp_param
+                prelude = prelude + (_declare_local param[0] argument_name (_indent (level + 1)) local_names)
+            args = args + typename + " " + argument_name
             local_names.add param[0]
         result_type = try _ctype node[4]
         cpp_function = _cpp_identifier node[1]
         if level > 0
-            if node.len > 5
-                variables = _node node[5]
-                if variables.len > 0
-                    fail "Nested generic functions are not supported yet."
-            # Capture surrounding lexical variables. Typed lambdas use
-            # std::function so self-recursion is valid in C++20.
-            names.add node[1]
+            # Capture shared cells by value, then rebuild references inside the
+            # body. Returning the callable keeps its captured environment alive.
+            captures = []
+            aliases = ""
+            for name in names
+                if text.starts name "@cell:"
+                    source_name = text.replace name "@cell:" ""
+                    cpp_capture = _cpp_identifier source_name
+                    cell = "__se_cell_" + cpp_capture
+                    captures.add cell
+                    aliases = aliases + (_indent (level + 1)) + "auto& " + cpp_capture + " = *" + cell + ";\n"
             local_names.add node[1]
             body = try _emit_block node[3] (level + 1) local_names
+            generic_header = ""
+            if node.len > 5
+                variables = _node node[5]
+                generic_parts = []
+                for variable in variables
+                    generic_parts.add ("typename " + (try _ctype variable))
+                if generic_parts.len > 0
+                    concrete = false
+                    generic_header = "<" + (text.join generic_parts ", ") + ">"
+            lambda_args = "auto& " + cpp_function
+            if args != ""
+                lambda_args = lambda_args + ", " + args
+            expression = "se_closure([" + (text.join captures ", ") + "]" + generic_header + "(" + lambda_args + ") mutable -> " + result_type + " {\n" + aliases + prelude + body + pad + "})"
             if concrete
                 signature = result_type + "(" + (text.join arg_types ", ") + ")"
-                give pad + "std::function<" + signature + "> " + cpp_function + " = [&](" + args + ") -> " + result_type + " {\n" + body + pad + "};\n"
-            give pad + "auto " + cpp_function + " = [&](" + args + ") -> " + result_type + " {\n" + body + pad + "};\n"
+                expression = "std::function<" + signature + ">(" + expression + ")"
+            names.add node[1]
+            give _declare_local node[1] expression pad names
         body = try _emit_block node[3] 1 local_names
         header = try _emit_template encoded
-        give header + result_type + " " + cpp_function + "(" + args + ") {\n" + body + "}\n"
+        give header + result_type + " " + cpp_function + "(" + args + ") {\n" + prelude + body + "}\n"
     fail "Unsupported AST statement for C++ codegen: " + kind
 
 # Emit forward declarations for functions with explicit signatures. This lets
@@ -682,12 +798,25 @@ make _emit_prototype encoded:Text -> Text
     cpp_function = _cpp_identifier node[1]
     give header + return_type + " " + cpp_function + "(" + arguments + ");\n"
 
-make emit_program ast:List[Text] -> Text
+make emit_checked_program ast:List[Text] symbols:List[List[Text]] -> Text
     type_parts = []
     prototype_parts = []
     function_parts = []
     body_parts = []
     names = []
+    global_parts = []
+    # Preserve source-order initialization in main while making existing
+    # top-level bindings visible to functions. SEGlobal has no eager side effects.
+    for statement in ast
+        global_node = _node statement
+        if global_node[0] == "Assign" or global_node[0] == "AssignInit"
+            global_name = global_node[1]
+            if not (("@global:" + global_name) in names)
+                entry = lookup_symbol symbols global_name
+                if not (text.contains entry[1] "Unknown") and entry[1] != "Function"
+                    names.add ("@global:" + global_name)
+                    cpp_global = _cpp_identifier global_name
+                    global_parts.add ("SEGlobal<" + (try _ctype entry[1]) + "> " + cpp_global + ";\n")
     # C++ needs declarations before definitions for mutual recursion and forward calls.
     for stmt in ast
         node = _node stmt
@@ -706,7 +835,12 @@ make emit_program ast:List[Text] -> Text
             generated = try _emit_stmt stmt 2 names
             body_parts.add generated
     type_decls = text.join type_parts ""
+    globals = text.join global_parts ""
     prototypes = text.join prototype_parts ""
     functions = text.join function_parts ""
     body = text.join body_parts ""
-    give "#include \"se_bootstrap_runtime.hpp\"\n\n" + type_decls + prototypes + "\n" + functions + "int main() {\n    try {\n" + body + "        return 0;\n    } catch (const std::exception& e) {\n        std::cerr << e.what() << '\\n';\n        return 1;\n    }\n}\n"
+    give "#include \"se_bootstrap_runtime.hpp\"\n\n" + type_decls + globals + prototypes + "\n" + functions + "int main() {\n    try {\n" + body + "        return 0;\n    } catch (const std::exception& e) {\n        std::cerr << e.what() << '\\n';\n        return 1;\n    }\n}\n"
+
+make emit_program ast:List[Text] -> Text
+    symbols = try check_program ast
+    give try emit_checked_program ast symbols

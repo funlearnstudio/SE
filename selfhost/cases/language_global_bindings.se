@@ -1,0 +1,13 @@
+count = 10
+label = "SE"
+values = [1, 2]
+
+make increase amount:Int -> Int
+    count += amount
+    values.add count
+    say label
+    give count
+
+say increase 5
+say count
+say values.len

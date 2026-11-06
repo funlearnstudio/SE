@@ -15,8 +15,9 @@ import re
 ROOT = Path(__file__).resolve().parent.parent
 ROOT_SE = ROOT / "selfhost"
 ORDER = ["type_model", "ast_codec", "lexer", "parser", "symbol_table", "typechecker",
-         "codegen", "compile", "compiler"]
+         "codegen", "web_browser_runtime", "web_codegen", "compile", "compiler"]
 FUNCTION = re.compile(r"^make\s+([A-Za-z_][A-Za-z0-9_]*)\b", re.MULTILINE)
+GLOBAL = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=", re.MULTILINE)
 IMPORT = re.compile(r"^use\s+([A-Za-z_][A-Za-z0-9_]*)\s*$", re.MULTILINE)
 IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 MODULES = set(ORDER)
@@ -65,7 +66,7 @@ def build() -> str:
     if any(len(values) != len(set(values)) for values in definitions.values()):
         raise ValueError("Duplicate function definition within an SE module")
     exports: dict[str, dict[str, str]] = {
-        module: {name: module + "__" + name for name in names}
+        module: {name: module + "__" + name for name in names + GLOBAL.findall(sources[module])}
         for module, names in definitions.items()
     }
 

@@ -48,15 +48,49 @@ Set `SE_SELFHOST_SOURCE` and `SE_SELFHOST_OUTPUT` to another source/target. Defa
 - **Zero-argument user functions**: bare identifiers call zero-parameter functions automatically, while ordinary values and callbacks requiring arguments stay unchanged, matching the production evaluator.
 - **C++ backend**: Int, Num, Bool, Text, homogeneous Lists, insertion-ordered Maps and Sets, common arithmetic/logic/conditions, inclusive range loops, recursion, indexed collection updates, functions, simple module helpers, input/output and exceptions.
 - **Recursive collection types**: indexed mutation, `for` loops over nested List/Set/Map types and `for key value in map` now use recursive type decomposition rather than a hard-coded collection-type whitelist.
-- **Nested functions**: lexical nested `make` declarations compile to capturing local C++ lambdas; fully annotated local functions use `std::function` for recursion. Escaping closure lifetimes and nested generic functions are not supported.
+- **Nested functions**: lexical nested `make` declarations compile to recursive callables. Captured local bindings use shared heap cells, including parameters and loop values; returning closures preserves their environment. Typed callables use type erasure so distinct branches can return compatible closures.
 - **Generic user types**: `type Box[T]`, multi-parameter user types such as `Pair[A,B]`, specialized constructors (`Box[Int]`) and nested annotated fields are lowered to C++20 class templates with checked argument counts and field types.
-- **Generic functions**: simple generic functions such as `make identity[T] item:T -> T` compile to C++ templates. Multiple generic parameters and nested generic type inference still require additional testing.
+- **Generic functions**: simple generic functions such as `make identity[T] item:T -> T` compile to C++ templates. Declared generic variables may use arbitrary names; repeated bindings, nested collection inference and nested generic functions have execution and rejection tests.
 - **Canonical bare-call arithmetic**: arguments absorb arithmetic (`twice a + b` means `twice(a+b)`), while `func a - 1 + func a - 2` splits into two calls when the next operand starts another call. Both have native/interpreter differential tests.
 - **Block layout**: blank lines and comment-only lines between a block header and its first indented statement are accepted.
 - **Local source modules**: `use helpers` recursively resolves `helpers.se` or `helpers.s` relative to the importer; duplicate imports are deduplicated and circular imports rejected. Imported declarations are flattened, so full module namespaces/encapsulation are not implemented.
 - **C++ keyword safety**: SE identifiers such as `class`, `template` and `namespace` are escaped consistently during C++ generation.
 - **Typed forward functions**: C++20 prototypes are emitted before definitions for functions whose parameter and return types are explicit, enabling forward calls and mutual recursion. Calls requiring return-type deduction are not yet supported forward.
 - **Library subset**: math operations and constants, `text` split/trim/contains/repeat/join, `collections` sort/reverse/take/drop/slice/filter/map/reduce/sort_with, `json` String/List[String] wire encoding, `os` getenv/platform/cwd, `random` numeric generators, filesystem `path` operations, `time` clock conversion/formatting, `file` managed handles plus read/write/copy/move/directory operations, basic `test` assertions, and core conversions, help text, and Unicode `char`. The native bootstrap runtime is separate from the production VM; this is **not** full standard-library compatibility.
+
+## Added language coverage
+
+- **Escaping closures**: shared lexical scalar bindings, mutation across repeated calls, independent factory instances, three nested scopes, loop captures and returned recursive functions. Untyped dynamic callback signatures still have less static checking than concrete signatures.
+- **Generics**: nested generic functions, arbitrary type parameter names (`Item`, `Element`), generic methods and rejection of conflicting repeated bindings. Unknown type annotations and malformed collection annotations are rejected before C++ output.
+- **Global bindings**: concretely inferred top-level variables are declared using deferred storage. Initialization remains in source order inside `main`; functions can read and mutate initialized bindings. Globals whose type remains `Unknown` are not promoted to this storage.
+- **Managed tasks**: `async.run/await/ready` and `threading.run/join/ready` use independent C++ shared futures, including repeated awaits and exception propagation.
+- **Function operations**: `function.bind`, `partial`, `call`, `map`, `filter`, and `reduce` work with native callable values. This is not full module coverage.
+- **Component Web**: contextual `page`, `html`, `css/style`, `js`, `when`, native sections, HTML attributes/children, nested selectors, per-instance events and browser routing/API runtime. The SE backend emits real HTML/CSS/JS/TS assets. Tests compare the complete assets for `component-web.se` and `browser-api.se` against production (normalizing unordered route-registration order), syntax-check JavaScript, and reject invalid component arity/routes.
+
+Build Web from the SE-written driver:
+
+```sh
+SE_SELFHOST_TARGET=web \
+SE_SELFHOST_SOURCE=examples/browser-api.se \
+SE_SELFHOST_OUTPUT=/tmp/se-web \
+build/se run selfhost/compiler.se
+```
+
+After `python3 tests/selfhost_stage2.py build/se` passes, the verifier keeps
+`build/se-selfhost` (or `.exe`) and its standalone C++ source. This executable
+is the verified Stage3 compiler, with no production SE VM linked in:
+
+```sh
+SE_SELFHOST_SOURCE=selfhost/cases/language_escaping_closures.se \
+SE_SELFHOST_OUTPUT=/tmp/program.cpp \
+build/se-selfhost
+c++ -std=c++20 -O0 -Iselfhost /tmp/program.cpp -o /tmp/program
+/tmp/program
+```
+
+The verification requires Python 3, a C++20 compiler and Node.js for JavaScript syntax checks.
+
+The same environment variables work with the independently generated compiler executable. Native target requests containing Web constructs fail explicitly with instructions to select the Web target.
 
 ## Tests / 測試
 
@@ -67,6 +101,7 @@ se run selfhost/typechecker_test.se
 se run selfhost/typechecker_extended_test.se
 se run selfhost/codegen_test.se
 python3 tests/selfhost_differential.py $(command -v se)
+python3 tests/selfhost_web.py $(command -v se)
 # Strict test of the *actual compiler* self-compiling, not a sample program:
 python3 tests/selfhost_stage2.py $(command -v se)
 ```
@@ -92,6 +127,7 @@ self-compiled SE compiler.
 2. Compile the compiler's own source from the generated native executable.
 3. Compile subsequent generations without invoking the production interpreter.
 4. Compare Stage 2, Stage 3 and Stage 4 generated C++ SHA-256 hashes.
+5. Run the native differential and Web suites with the final generated compiler, so new features are exercised after self-compilation as well as during bootstrap.
 
 A failure is a **failure**, never counted as a passing self-host result.
 Local source imports now work in the tested subset, but full module namespace
@@ -113,11 +149,13 @@ executable builds and runs, the independent Stage2/3/4 proof still has to pass.
 
 ## What is NOT finished / 尚待完成
 
-- All generic inference combinations, escaping closures, nested generic functions, managed async/await, native ABI modules, SE Web, complete recovery diagnostics, and all language forms. Generic `type`, generic functions, lexical nested functions and value-based `match` are implemented as documented above.
+- All generic inference combinations, generic callable type erasure, native ABI modules, complete recovery diagnostics, and all language forms. Generic `type`, generic methods/functions, lexical and escaping nested functions, managed tasks, component Web and value-based `match` are implemented in their documented tested forms.
 - Complete standard library and platform/ABI compatibility; the production VM supports more modules than this bootstrap, and imported module availability is not equivalent to full API coverage.
 - Comprehensive error recovery, Unicode/UTF-8 identifiers, source maps and source-accurate diagnostics.
 - Broader self-host coverage: the strict Stage2/Stage3/Stage4 test passes for the currently bundled subset. Source bundling plus a production Stage0 is not proof by itself; changes must preserve native Stage1/2/3 self-compilation without linking or invoking the production VM after bootstrap.
 - Cross-platform SE-only bootstrap on Linux/macOS/Windows is **not** verified. The fast differential suite currently runs on Linux only.
+
+The production syntax/extension surface remains larger than this test corpus. These additions and passing tests must not be described as universal SE compatibility.
 
 ### Principle
 

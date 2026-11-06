@@ -16,6 +16,7 @@ import hashlib
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 import time
@@ -55,7 +56,7 @@ def invoke(command: list[str], *, env: dict[str, str] | None = None,
 def compile_native(generated_cpp: Path, output_binary: Path) -> None:
     # Compile ONLY the generated source and the standalone bootstrap header.
     # No production-SE object files, headers, or static/shared library.
-    invoke([CXX, "-std=c++20", "-O0", "-g0",
+    invoke([CXX, "-std=c++20", "-O1", "-g0",
             "-I", str(HEADER_DIR), str(generated_cpp), "-o", str(output_binary)])
 
 
@@ -97,12 +98,16 @@ def verify(se: Path) -> None:
         # interpreter overhead of translating the full bundled compiler.
         bootstrap_build_env = dict(os.environ, SE_NATIVE_OPT="0",
                                    SE_NATIVE_CORE_LIB=str(ROOT / "build" / "libs_core.a"))
-        invoke([str(se), "build", "selfhost/compiler.se"], env=bootstrap_build_env,
+        stage0_source = root / "stage0-source"
+        stage0_source.mkdir()
+        for module in HEADER_DIR.glob("*.se"):
+            shutil.copy2(module, stage0_source / module.name)
+        invoke([str(se), "build", str(stage0_source / "compiler.se")], env=bootstrap_build_env,
                timeout_seconds=420)
-        native_stage0 = ROOT / "selfhost" / ("compiler.exe" if os.name == "nt" else "compiler")
+        native_stage0 = stage0_source / ("compiler.exe" if os.name == "nt" else "compiler")
         if not native_stage0.is_file():
             raise RuntimeError("Production SE build did not create a Stage0 driver")
-        invoke([str(native_stage0)], env=stage0_env)
+        invoke([str(native_stage0)], env=stage0_env, timeout_seconds=420)
         if not stage1_cpp.exists():
             raise RuntimeError("Stage0 SE compiler did not generate stage1 C++.")
         compile_native(stage1_cpp, stage1)
@@ -123,6 +128,18 @@ def verify(se: Path) -> None:
                 "Stage2/3/4 source mismatch (determinism not proven): "
                 + ", ".join(hashes)
             )
+        # Exercise the final generated compiler on native and Web programs,
+        # beyond merely hashing its own generated source.
+        invoke([sys.executable, str(ROOT / "tests" / "selfhost_differential.py"),
+                str(se), str(stage3)], timeout_seconds=420)
+        invoke([sys.executable, str(ROOT / "tests" / "selfhost_web.py"),
+                str(se), str(stage3)], timeout_seconds=180)
+        # Keep the validated independent compiler available for actual use.
+        exported_binary = ROOT / "build" / ("se-selfhost.exe" if os.name == "nt" else "se-selfhost")
+        exported_binary.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(stage3, exported_binary)
+        shutil.copy2(stage3_cpp, exported_binary.with_suffix(".cpp"))
+        print("EXPORTED VERIFIED COMPILER:", exported_binary)
         print("STRICT SELF-HOSTING VERIFIED: Stage2 = Stage3 = Stage4")
         print("No production s_core linked into generated native compilers.")
         print("C++20 source SHA256:", hashes[0])

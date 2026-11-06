@@ -41,6 +41,46 @@ make _user_bindings type_name:Text shape:List[Text] -> List[List[Text]]
         fail "Non-generic type " + shape[0] + " cannot take type arguments."
     give bindings
 
+make _validate_type source:Text symbols:List[List[Text]] -> Text
+    if source == "Unknown"
+        give "OK"
+    parts = decompose_type source
+    base = parts[0]
+    if base in ["Int", "Num", "Bool", "Text", "Time", "File", "Duration", "Error"]
+        if parts.len != 1
+            fail "Type " + base + " does not accept type arguments."
+        give "OK"
+    if base in ["List", "Set", "Map"]
+        count = 2
+        if base == "Map"
+            count = 3
+        if parts.len != count
+            fail "Wrong type argument count for " + base
+        index = 1
+        while index < parts.len
+            try _validate_type parts[index] symbols
+            index += 1
+        if base == "Map" and parts[1] != "Text"
+            fail "Map keys must be Text."
+        give "OK"
+    shape = lookup_symbol symbols base
+    if shape[1] == "TypeParameter" and parts.len == 1
+        give "OK"
+    if shape[1] == "UserType"
+        try _user_bindings source shape
+        index = 1
+        while index < parts.len
+            try _validate_type parts[index] symbols
+            index += 1
+        give "OK"
+    fail "Unknown type annotation: " + source
+
+make _add_generics encoded:Text symbols:List[List[Text]] -> Text
+    variables = _node encoded
+    for variable in variables
+        symbols.add ([variable, "TypeParameter", "0", ""])
+    give "OK"
+
 make _numeric kind:Text -> Bool
     give kind == "Int" or kind == "Num" or kind == "Unknown"
 
@@ -277,12 +317,20 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             entry = lookup_symbol symbols name
             if entry[0] == ""
                 fail "Undefined function: " + name
+            if entry[1] == "Unknown"
+                for argument in args
+                    try _infer argument symbols
+                give "Unknown"
             if entry[1] != "Function"
                 fail "Cannot call non-function: " + name
             if int entry[2] != args.len
                 fail "Wrong arity for " + name + ": expected " + entry[2]
             bindings = [["", ""]]
             bindings = collections.take bindings 0
+            if entry.len > 5
+                variables = _node entry[5]
+                for variable in variables
+                    bindings.add ([variable, "Unknown"])
             if entry.len > 4
                 signature = _node entry[4]
                 i = 0
@@ -290,7 +338,7 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                     pair = _node signature[i]
                     got = try _infer args[i] symbols
                     try bind_type pair[1] got bindings
-                    if not _compatible pair[1] got
+                    if not _compatible (resolve_type pair[1] bindings) got
                         fail "Function " + name + " argument " + string(i + 1) + " expects " + pair[1] + ", got " + got
                     i += 1
             give resolve_type entry[3] bindings
@@ -345,6 +393,10 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 for encoded_method in methods
                     method = _node encoded_method
                     if method[1] == callee[2]
+                        if method.len > 5
+                            variables = _node method[5]
+                            for variable in variables
+                                bindings.add ([variable, "Unknown"])
                         parameters = _node method[2]
                         if parameters.len != args.len
                             fail "Wrong arity for method " + callee[2]
@@ -352,6 +404,7 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                         while j < parameters.len
                             parameter = _node parameters[j]
                             found_type = try _infer args[j] symbols
+                            try bind_type parameter[1] found_type bindings
                             expected_type = resolve_type parameter[1] bindings
                             if not _compatible expected_type found_type
                                 fail "Method argument type mismatch."
@@ -581,9 +634,12 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
     if kind == "TypeDecl"
         fields = _node node[2]
         local = clone_symbols symbols
+        if node.len > 4
+            try _add_generics node[4] local
         for encoded_field in fields
             field = _node encoded_field
             field_type = try _field_type field local
+            try _validate_type field_type local
             if field.len > 3 and field[3] == "default"
                 actual_default = try _infer field[1] local
                 if not _compatible field_type actual_default
@@ -594,8 +650,12 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             method = _node encoded_method
             parameters = _node method[2]
             inner = clone_symbols local
+            if method.len > 5
+                try _add_generics method[5] inner
+            try _validate_type method[4] inner
             for encoded_param in parameters
                 parameter = _node encoded_param
+                try _validate_type parameter[1] inner
                 try define_symbol inner parameter[0] parameter[1] "0" ""
             body = try unpack_block method[3]
             try _check_block body inner method[4]
@@ -611,9 +671,16 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             try define_symbol symbols node[1] "Function" (string params.len) node[4]
             entry = lookup_symbol symbols node[1]
             entry.add node[2]
+            if node.len > 5
+                entry.add node[5]
+            try replace_symbol symbols entry
         local = clone_symbols symbols
+        if node.len > 5
+            try _add_generics node[5] local
+        try _validate_type node[4] local
         for item in params
             pair = _node item
+            try _validate_type pair[1] local
             try define_symbol local pair[0] pair[1] "0" ""
         body = try unpack_block node[3]
         try _check_block body local node[4]
@@ -635,6 +702,7 @@ make check_program statements:List[Text] -> List[List[Text]]
             entry.add node[3]
             if node.len > 4
                 entry.add node[4]
+            try replace_symbol symbols entry
     # Register functions first, enabling forward calls.
     for item in statements
         node = _node item
@@ -643,5 +711,8 @@ make check_program statements:List[Text] -> List[List[Text]]
             try define_symbol symbols node[1] "Function" (string params.len) node[4]
             entry = lookup_symbol symbols node[1]
             entry.add node[2]
+            if node.len > 5
+                entry.add node[5]
+            try replace_symbol symbols entry
     try _check_block statements symbols "TopLevel"
     give symbols

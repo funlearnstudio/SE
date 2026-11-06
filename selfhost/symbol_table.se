@@ -39,6 +39,7 @@ make assign_symbol entries:List[List[Text]] name:Text kind:Text -> Text
             previous = item[1]
             if previous == "List[Unknown]" and kind in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[List[Text]]", "List[List[Int]]"]
                 item[1] = kind
+                entries[i] = item
                 give "OK"
             if kind == "List[Unknown]" and previous in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[List[Text]]", "List[List[Int]]"]
                 give "OK"
@@ -47,6 +48,18 @@ make assign_symbol entries:List[List[Text]] name:Text kind:Text -> Text
                     fail "Cannot assign " + kind + " to " + previous + " variable " + name
             if previous == "Unknown" and kind != "Unknown"
                 item[1] = kind
+                entries[i] = item
             give "OK"
         i -= 1
     give try define_symbol entries name kind "0" ""
+
+# Explicit writeback preserves records in both SE's shared Lists and the
+# standalone backend's value-based collection representation.
+make replace_symbol entries:List[List[Text]] record:List[Text] -> Text
+    i = entries.len - 1
+    while i >= 0
+        if entries[i][0] == record[0]
+            entries[i] = record
+            give "OK"
+        i -= 1
+    fail "Cannot replace unknown symbol: " + record[0]

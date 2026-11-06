@@ -20,6 +20,10 @@
 #include <iomanip>
 #include <fstream>
 #include <functional>
+#include <memory>
+#include <future>
+#include <tuple>
+#include <optional>
 #include <iterator>
 #include <limits>
 #include <stdexcept>
@@ -29,6 +33,22 @@
 #include <utility>
 #include <vector>
 
+// Global binding storage defers initialization until its original statement.
+// Functions can read and mutate existing top-level bindings without changing
+// startup ordering (input and I/O still execute inside main's error handler).
+template<class T> struct SEGlobal {
+  std::optional<T> storage;
+  template<class U> SEGlobal& operator=(U&& value) {
+    storage = std::forward<U>(value);
+    return *this;
+  }
+  T& get() {
+    if (!storage) throw std::runtime_error("Global variable used before initialization.");
+    return *storage;
+  }
+};
+template<class T> T& se_implicit_call(SEGlobal<T>& value) { return value.get(); }
+
 // Production SE automatically evaluates zero-parameter function values.
 // Keep non-callable values (including mutable collections) as references, and
 // preserve function values that require one or more explicit arguments.
@@ -37,6 +57,20 @@ template<class T> decltype(auto) se_implicit_call(T&& value) {
     return std::forward<T>(value)();
   else
     return std::forward<T>(value);
+}
+
+// Recursive callable with value ownership; the body receives the current
+// callable rather than retaining a reference to a local function variable.
+template<class F> struct SEClosure {
+  F body;
+  template<class... A> requires std::is_invocable_v<F&, SEClosure&, A...>
+  decltype(auto) operator()(A&&... args) {
+    return body(*this, std::forward<A>(args)...);
+  }
+};
+template<class F> auto se_closure(F body) { return SEClosure<F>{std::move(body)}; }
+template<class T> auto se_cell(T&& value) {
+  return std::make_shared<std::decay_t<T>>(std::forward<T>(value));
 }
 
 struct SEError {
@@ -661,6 +695,14 @@ template<class T> decltype(auto) se_index(const std::vector<T>& items,std::int64
 }
 template<class T> decltype(auto) se_index(SEMap<T>& items,const std::string& key){return items.at(key);}
 template<class T> decltype(auto) se_index(const SEMap<T>& items,const std::string& key){return items.at(key);}
+// Reads reject missing keys; assignment inserts a new map entry or updates
+// an existing one while retaining insertion order, as the SE evaluator does.
+template<class T,class V> void se_assign_index(std::vector<T>& values,std::int64_t index,V&& value) {
+  se_index(values,index)=std::forward<V>(value);
+}
+template<class T,class V> void se_assign_index(SEMap<T>& values,const std::string& key,V&& value) {
+  values.put(key,std::forward<V>(value));
+}
 template<class T> inline void se_add_item(std::vector<T>& values,const T& value){values.push_back(value);}
 template<class T> inline void se_add_item(SESet<T>& values,const T& value){values.add(value);}
 template<class T> inline bool se_remove_item(std::vector<T>& values,const T& value){
@@ -749,3 +791,43 @@ inline bool se_regex_match(const std::string& pattern,const std::string& value){
 inline bool se_regex_search(const std::string& pattern,const std::string& value){return std::regex_search(value,std::regex(pattern));}
 inline std::string se_regex_replace(const std::string& pattern,const std::string& value,const std::string& replacement){return std::regex_replace(value,std::regex(pattern),replacement);}
 inline std::vector<std::string> se_regex_split(const std::string& pattern,const std::string& value){std::regex re(pattern);std::sregex_token_iterator it(value.begin(),value.end(),re,-1),end;return std::vector<std::string>(it,end);}
+
+// Standalone managed tasks and first-class callable operations. shared_future
+// keeps both results and exceptions available for repeated await/join calls.
+template<class F, class... A> auto se_async_run(F function, A... args) {
+  return std::async(std::launch::async, std::move(function), std::move(args)...).share();
+}
+template<class T> decltype(auto) se_async_await(const std::shared_future<T>& task) {
+  return task.get();
+}
+template<class T> bool se_async_ready(const std::shared_future<T>& task) {
+  return task.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+}
+template<class F, class... A> auto se_function_partial(F function, A... args) {
+  return [function=std::move(function), bound=std::make_tuple(std::move(args)...)](auto&&... rest) mutable -> decltype(auto) {
+    return std::apply([&](auto&... prefix) -> decltype(auto) {
+      return std::invoke(function, prefix..., std::forward<decltype(rest)>(rest)...);
+    }, bound);
+  };
+}
+template<class F, class... A> auto se_function_bind(F function, A... args) {
+  return se_function_partial(std::move(function), std::move(args)...);
+}
+template<class F, class... A> decltype(auto) se_function_call(F&& function, A&&... args) {
+  return std::invoke(std::forward<F>(function), std::forward<A>(args)...);
+}
+template<class F, class T> auto se_function_map(F function, const std::vector<T>& values) {
+  return se_transform(values, std::move(function));
+}
+template<class F, class T> auto se_function_filter(F function, const std::vector<T>& values) {
+  return se_filter(values, std::move(function));
+}
+template<class F, class T, class A> auto se_function_reduce(F function, const std::vector<T>& values, A initial) {
+  return se_reduce(values, std::move(initial), std::move(function));
+}
+template<class F, class T> auto se_function_reduce(F function, const std::vector<T>& values) {
+  if(values.empty()) throw std::runtime_error("function.reduce needs a non-empty List or an initial value.");
+  T state=values.front();
+  for(std::size_t i=1;i<values.size();++i) state=function(state,values[i]);
+  return state;
+}

@@ -1,0 +1,52 @@
+make make_adder base
+    make add value
+        give base + value
+    give add
+
+make make_counter initial:Int
+    count = initial
+    make next step:Int -> Int
+        count += step
+        give count
+    give next
+
+make nested base:Int
+    make middle extra:Int
+        make inner value:Int -> Int
+            give base + extra + value
+        give inner
+    give middle
+
+adder = make_adder 10
+say adder 5
+counter = make_counter 0
+say counter 1
+say counter 2
+other = make_counter 10
+say other 1
+say counter 1
+middle = nested 10
+inner = middle 20
+say inner 3
+
+make from_loop initial:Int
+    for index in 1..3
+        make increment value:Int -> Int
+            give initial + index + value
+        give increment
+    make fallback value:Int -> Int
+        give value
+    give fallback
+
+loop = from_loop 10
+say loop 2
+
+make recursive ignored:Int
+    make fact n:Int -> Int
+        if n <= 1
+            give 1
+        give n * (fact (n - 1))
+    give fact
+
+fact = recursive 0
+say fact 6

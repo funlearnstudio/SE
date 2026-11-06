@@ -1,0 +1,362 @@
+# SE-written component Web backend. The browser runtime is plain JavaScript;
+# parsing, component binding and HTML/CSS/JS generation happen in SE.
+use json
+use text
+use collections
+use ast_codec
+use web_browser_runtime
+
+make _web_node encoded:Text -> List[Text]
+    give json.parse encoded
+
+make _web_escape value:Text -> Text
+    value = text.replace value "&" "&amp;"
+    value = text.replace value "<" "&lt;"
+    value = text.replace value ">" "&gt;"
+    give text.replace value "\"" "&quot;"
+
+make _web_resolve encoded:Text bindings:Map[Text,Text] -> Text
+    node = _web_node encoded
+    if node[0] == "Atom" and node[1] == "Identifier"
+        if node[2] in bindings
+            give bindings[node[2]]
+    give encoded
+
+make _web_text encoded:Text bindings:Map[Text,Text] -> Text
+    node = _web_node (_web_resolve encoded bindings)
+    if node[0] == "Atom" and node[1] in ["String", "Integer", "Number", "true", "false"]
+        give node[2]
+    fail "Web content must be known while building the page."
+
+make _web_expr encoded:Text bindings:Map[Text,Text] -> Text
+    node = _web_node (_web_resolve encoded bindings)
+    kind = node[0]
+    if kind == "Atom"
+        if node[1] == "String"
+            give json.stringify node[2]
+        give node[2]
+    if kind == "Unary"
+        op = node[1]
+        if op == "not"
+            op = "!"
+        give op + "(" + (try _web_expr node[2] bindings) + ")"
+    if kind == "Binary"
+        left = try _web_expr node[2] bindings
+        right = try _web_expr node[3] bindings
+        op = node[1]
+        if op == ".."
+            give "Array.from({length:(" + right + ")-(" + left + ")+1},(_,i)=>(" + left + ")+i)"
+        if op == "and"
+            op = "&&"
+        if op == "or"
+            op = "||"
+        if op == "=="
+            op = "==="
+        if op == "!="
+            op = "!=="
+        give "(" + left + " " + op + " " + right + ")"
+    if kind == "List" or kind == "Set"
+        items = _web_node node[1]
+        values = []
+        for item in items
+            values.add (try _web_expr item bindings)
+        result = "[" + (text.join values ",") + "]"
+        if kind == "Set"
+            result = "new Set(" + result + ")"
+        give result
+    if kind == "Map"
+        pairs = _web_node node[1]
+        values = []
+        for encoded_pair in pairs
+            pair = _web_node encoded_pair
+            values.add ("[" + (try _web_expr pair[0] bindings) + "]:" + (try _web_expr pair[1] bindings))
+        give "({" + (text.join values ",") + "})"
+    if kind == "Member"
+        give (try _web_expr node[1] bindings) + "." + node[2]
+    if kind == "Index"
+        give (try _web_expr node[1] bindings) + "[" + (try _web_expr node[2] bindings) + "]"
+    if kind == "Try"
+        give try _web_expr node[1] bindings
+    if kind == "Call"
+        callee = _web_node node[1]
+        arguments = _web_node node[2]
+        values = []
+        for argument in arguments
+            values.add (try _web_expr argument bindings)
+        if callee[0] == "Member"
+            owner = _web_node callee[1]
+            if owner[0] == "Atom" and owner[2] == "async" and callee[2] == "await"
+                if values.len != 1
+                    fail "async.await needs one value in browser code."
+                give "await (" + values[0] + ")"
+        give (try _web_expr node[1] bindings) + "(" + (text.join values ",") + ")"
+    fail "Unsupported Web expression: " + kind
+
+make _web_events encoded:Text bindings:Map[Text,Text] names:List[Text] depth:Int -> Text
+    body = try unpack_block encoded
+    output = ""
+    pad = text.repeat "  " depth
+    for item in body
+        node = _web_node item
+        kind = node[0]
+        if kind == "say"
+            output = output + pad + "console.log(" + (try _web_expr node[2] bindings) + ");\n"
+        else if kind == "give"
+            output = output + pad + "return " + (try _web_expr node[2] bindings) + ";\n"
+        else if kind == "fail"
+            output = output + pad + "throw new Error(String(" + (try _web_expr node[2] bindings) + "));\n"
+        else if kind == "ExprStmt"
+            expression = _web_node node[2]
+            suffix = ";\n"
+            if expression[0] == "Atom" and expression[1] == "Identifier"
+                suffix = "();\n"
+            output = output + pad + (try _web_expr node[2] bindings) + suffix
+        else if kind == "Assign"
+            prefix = ""
+            if not (node[1] in names) and not (node[1] in bindings)
+                names.add node[1]
+                prefix = "let "
+            output = output + pad + prefix + node[1] + " = " + (try _web_expr node[2] bindings) + ";\n"
+        else if kind == "AssignIndex"
+            output = output + pad + (try _web_expr node[1] bindings) + "[" + (try _web_expr node[2] bindings) + "] = " + (try _web_expr node[3] bindings) + ";\n"
+        else if kind == "AssignMember"
+            output = output + pad + (try _web_expr node[1] bindings) + "." + node[2] + " = " + (try _web_expr node[3] bindings) + ";\n"
+        else if kind == "If"
+            output = output + pad + "if(" + (try _web_expr node[1] bindings) + "){\n"
+            output = output + (try _web_events node[2] bindings names (depth + 1)) + pad + "}"
+            alternative = try unpack_block node[3]
+            if alternative.len > 0
+                output = output + "else{\n" + (try _web_events node[3] bindings names (depth + 1)) + pad + "}"
+            output = output + "\n"
+        else if kind == "while" or kind == "repeat"
+            header = "while(" + (try _web_expr node[1] bindings) + ")"
+            if kind == "repeat"
+                counter = "__seRepeat" + string depth
+                header = "for(let " + counter + "=0;" + counter + "<" + (try _web_expr node[1] bindings) + ";" + counter + "+=1)"
+            output = output + pad + header + "{\n" + (try _web_events node[2] bindings names (depth + 1)) + pad + "}\n"
+        else if kind == "For" or kind == "ForPairs"
+            header = ""
+            block = ""
+            if kind == "For"
+                header = "for(const " + node[1] + " of " + (try _web_expr node[2] bindings) + ")"
+                block = node[3]
+            else
+                header = "for(const [" + node[1] + "," + node[2] + "] of Object.entries(" + (try _web_expr node[3] bindings) + "))"
+                block = node[4]
+            output = output + pad + header + "{\n" + (try _web_events block bindings names (depth + 1)) + pad + "}\n"
+        else if kind == "TryStmt"
+            output = output + pad + "try{\n" + (try _web_events node[1] bindings names (depth + 1)) + pad + "}catch(" + node[2] + "){\n" + (try _web_events node[3] bindings names (depth + 1)) + pad + "}\n"
+        else if kind == "Match"
+            match_name = "__seMatch" + string depth
+            output = output + pad + "const " + match_name + " = " + (try _web_expr node[1] bindings) + ";\n"
+            cases = _web_node node[2]
+            first = true
+            for encoded_case in cases
+                choice = _web_node encoded_case
+                branch = "if("
+                if not first
+                    branch = "else if("
+                first = false
+                output = output + pad + branch + match_name + " === " + (try _web_expr choice[0] bindings) + "){\n" + (try _web_events choice[1] bindings names (depth + 1)) + pad + "}"
+            fallback = try unpack_block node[3]
+            if fallback.len > 0
+                output = output + "else{\n" + (try _web_events node[3] bindings names (depth + 1)) + pad + "}"
+            output = output + "\n"
+        else
+            fail "Unsupported Web event statement: " + kind
+    give output
+
+make _web_element_html encoded:Text bindings:Map[Text,Text] attributes:Text -> Text
+    node = _web_node encoded
+    tag = node[1]
+    if tag == "native"
+        give try _web_text node[2] bindings
+    if tag == "text"
+        if node[2] == ""
+            give ""
+        give _web_escape (try _web_text node[2] bindings)
+    content = ""
+    if node[2] != ""
+        value = _web_node (_web_resolve node[2] bindings)
+        if value[0] == "Map"
+            pairs = _web_node value[1]
+            for item in pairs
+                pair = _web_node item
+                name = try _web_text pair[0] bindings
+                attribute = try _web_text pair[1] bindings
+                attributes = attributes + " " + name + "=\"" + (_web_escape attribute) + "\""
+        else
+            content = _web_escape (try _web_text node[2] bindings)
+    children = try unpack_block node[3]
+    for child in children
+        content = content + (try _web_element_html child bindings "")
+    result = "<" + tag + attributes + ">" + content
+    if not (tag in ["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"])
+        result = result + "</" + tag + ">"
+    give result
+
+make _web_css encoded:Text selector:Text root:Text bindings:Map[Text,Text] -> Text
+    items = try unpack_block encoded
+    declarations = ""
+    nested = ""
+    for item in items
+        node = _web_node item
+        children = try unpack_block node[3]
+        if children.len == 0
+            property = text.replace node[1] "_" "-"
+            value = try _web_text node[2] bindings
+            if node[1] == "native"
+                declarations = declarations + "  " + value + "\n"
+            else
+                expression = _web_node (_web_resolve node[2] bindings)
+                if expression[0] == "Atom" and expression[1] in ["Integer", "Number"]
+                    if not (property in ["opacity", "z-index", "font-weight", "line-height", "order", "flex", "flex-grow", "flex-shrink", "scale", "zoom"])
+                        value = value + "px"
+                declarations = declarations + "  " + property + ": " + value + ";\n"
+        else
+            child_selector = selector + " " + node[1]
+            if text.starts node[1] (root + ":")
+                suffix = text.replace node[1] (root + ":") ":"
+                child_selector = selector + suffix
+            nested = nested + (try _web_css node[3] child_selector root bindings)
+    if declarations != ""
+        give selector + " {\n" + declarations + "}\n\n" + nested
+    give nested
+
+make has_web ast:List[Text] -> Bool
+    for encoded in ast
+        node = _web_node encoded
+        if node[0] == "Page" or node[0] == "WebSection"
+            give true
+        if node[0] == "Make"
+            body = try unpack_block node[3]
+            for item in body
+                statement = _web_node item
+                if statement[0] == "WebSection"
+                    give true
+    give false
+
+make emit_web ast:List[Text] -> List[Text]
+    components = map []
+    pages = []
+    empty = map []
+    css = ""
+    for encoded in ast
+        node = _web_node encoded
+        if node[0] == "Make"
+            components[node[1]] = encoded
+        if node[0] == "Page"
+            pages.add encoded
+        if node[0] == "WebSection" and node[1] in ["css", "style"]
+            css = css + (try _web_css node[2] "body" "body" empty)
+    if pages.len == 0
+        fail "A component Web build needs a page block."
+    css = css + "[data-se-page][hidden] { display: none !important; }\n\n"
+    emitted = []
+    routes = []
+    body = ""
+    js = ""
+    number = 0
+    for encoded_page in pages
+        page = _web_node encoded_page
+        route_node = _web_node page[1]
+        if route_node[0] != "Atom" or route_node[1] != "String"
+            fail "page route must be literal Text."
+        route = route_node[2]
+        if not (text.starts route "/")
+            fail "page route must begin with '/'."
+        if route.len > 1 and text.ends route "/"
+            route = text.join (collections.take (text.split route "") (route.len - 1)) ""
+        if route in routes
+            fail "Duplicate page route: " + route
+        routes.add route
+        body = body + "  <main data-se-page=\"" + (_web_escape route) + "\" aria-hidden=\"true\" hidden>\n"
+        calls = try unpack_block page[2]
+        for encoded_call in calls
+            statement = _web_node encoded_call
+            if statement[0] != "ExprStmt"
+                fail "A page contains component calls."
+            call = _web_node statement[2]
+            arguments = []
+            callee = call
+            if call[0] == "Call"
+                callee = _web_node call[1]
+                arguments = _web_node call[2]
+            if callee[0] != "Atom" or callee[1] != "Identifier"
+                fail "Expected a named Web component."
+            name = callee[2]
+            if not (name in components)
+                fail "Unknown Web component: " + name
+            component = _web_node components[name]
+            params = _web_node component[2]
+            if params.len != arguments.len
+                fail "Wrong arity for Web component: " + name
+            bindings = map []
+            index = 0
+            for encoded_param in params
+                param = _web_node encoded_param
+                bindings[param[0]] = arguments[index]
+                index += 1
+            number += 1
+            instance = "se-" + name + "-" + string number
+            attributes = " class=\"se-" + name + "\" data-se-instance=\"" + instance + "\""
+            sections = try unpack_block component[3]
+            elements = []
+            simple = ""
+            found_section = false
+            for encoded_section in sections
+                section = _web_node encoded_section
+                if section[0] == "WebSection"
+                    found_section = true
+                    if section[1] == "html"
+                        roots = try unpack_block section[2]
+                        for element in roots
+                            elements.add element
+                else if section[0] == "ExprStmt"
+                    expression = _web_node section[2]
+                    if expression[0] != "Call"
+                        fail "Unsupported simple Web component content."
+                    function = _web_node expression[1]
+                    values = _web_node expression[2]
+                    if function[0] != "Atom" or function[2] != "text" or values.len != 1
+                        fail "Simple Web content must use text value."
+                    no_children = []
+                    elements.add (json.stringify (["WebElement", "text", values[0], try pack_block no_children]))
+            if not found_section
+                fail "Not a Web component: " + name
+            root_tag = "div"
+            if elements.len == 1
+                element = _web_node elements[0]
+                if not (element[1] in ["native", "text"])
+                    root_tag = element[1]
+                body = body + "    " + (try _web_element_html elements[0] bindings attributes) + "\n"
+            else
+                body = body + "    <div" + attributes + ">" + simple
+                for element in elements
+                    body = body + (try _web_element_html element bindings "")
+                body = body + "</div>\n"
+            for encoded_section in sections
+                section = _web_node encoded_section
+                if section[0] == "WebSection"
+                    if section[1] in ["css", "style"] and not (name in emitted)
+                        css = css + (try _web_css section[2] (".se-" + name) root_tag empty)
+                    if section[1] == "js"
+                        events = try unpack_block section[2]
+                        for encoded_event in events
+                            event = _web_node encoded_event
+                            if event[0] == "WebNative"
+                                js = js + (try _web_text event[1] bindings) + "\n"
+                            else
+                                selector = "[data-se-instance=\"" + instance + "\"]"
+                                js = js + "{ const element = document.querySelector(" + (json.stringify selector) + "); if(element) element.addEventListener(" + (json.stringify event[1]) + ", async event => {\n"
+                                locals = []
+                                js = js + (try _web_events event[2] bindings locals 1) + "}); }\n"
+            if not (name in emitted)
+                emitted.add name
+        body = body + "  </main>\n"
+    html = "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n  <title>SE Web</title>\n  <link rel=\"stylesheet\" href=\"./style.css\">\n</head>\n<body>\n" + body + "  <script type=\"module\" src=\"./app.js\"></script>\n</body>\n</html>\n"
+    route_values = []
+    for route in routes
+        route_values.add (json.stringify route)
+    js = "// Generated by SE component web build. Edit the .se source, not this file.\nconst __seRoutes = new Set([" + (text.join route_values ",") + "]);\n" + browser_runtime + js
+    give [html, css, js, "// TypeScript-compatible output generated from SE.\n" + js]

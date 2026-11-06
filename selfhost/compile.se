@@ -2,6 +2,8 @@
 use parser
 use typechecker
 use codegen
+use web_codegen
+use file
 use path
 use json
 use collections
@@ -11,7 +13,7 @@ make _node encoded:Text -> List[Text]
     give json.parse encoded
 
 make _builtin_module name:Text -> Bool
-    give name in ["math","text","collections","file","json","os","random","path","time","base64","test","statistics","regex","re"]
+    give name in ["math","text","collections","file","json","os","random","path","time","base64","test","statistics","regex","re","function","async","threading"]
 
 # Port of the source candidates and environment precedence in ModuleLoader::resolve.
 make _resolve_source name:Text importer:Text root:Text -> Text
@@ -64,12 +66,31 @@ make compile_file source_path:Text output_path:Text -> Text
     active = [""]
     active = collections.take active 0
     nodes = try _load_source source_path (string (path.parent source_path)) seen active
-    try check_program nodes
-    cpp = try emit_program nodes
+    if try has_web nodes
+        fail "Web syntax requires SE_SELFHOST_TARGET=web and an output directory."
+    symbols = try check_program nodes
+    cpp = try emit_checked_program nodes symbols
     try write output_path cpp
     give output_path
 
 make compile_text source:Text -> Text
     nodes = try parse source
-    try check_program nodes
-    give try emit_program nodes
+    symbols = try check_program nodes
+    give try emit_checked_program nodes symbols
+
+# The Web target returns real browser assets, not a native placeholder.
+make compile_web_file source_path:Text output_path:Text -> Text
+    seen = [""]
+    seen = collections.take seen 0
+    active = [""]
+    active = collections.take active 0
+    nodes = try _load_source source_path (string (path.parent source_path)) seen active
+    bundle = try emit_web nodes
+    if not (path.exists output_path)
+        try file.mkdir output_path
+    filenames = ["index.html", "style.css", "app.js", "app.ts"]
+    index = 0
+    for name in filenames
+        try write (string (path.join output_path name)) bundle[index]
+        index += 1
+    give output_path

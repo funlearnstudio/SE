@@ -60,6 +60,10 @@ int main() {
                           std::pair{std::string("b"), std::int64_t{2}});
     mapping.put("a", 10);
     assert(mapping.size() == 2);
+    se_assign_index(mapping,std::string("new"),std::int64_t{12});
+    se_assign_index(mapping,std::string("new"),std::int64_t{13});
+    assert(mapping.size()==3 && mapping.items.back().first=="new");
+    assert(se_index(mapping,std::string("new"))==13);
     assert(se_index(mapping, std::string("a")) == 10);
     assert(se_contains(mapping, std::string("b")));
     assert(!se_contains(mapping, std::string("missing")));

@@ -34,3 +34,11 @@ say pair.second
 wrapper = Wrapper[Int]
     item = box
 say wrapper.item.value
+
+type Utility
+    make identity[Item] value:Item -> Item
+        give value
+
+utility = Utility
+say utility.identity 42
+say utility.identity "generic method"

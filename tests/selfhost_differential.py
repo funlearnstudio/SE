@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CASE_DIR = ROOT / "selfhost" / "cases"
 SE = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else ROOT / "se-0.7.6-linux-x64" / "bin" / "se"
 CXX = os.environ.get("CXX", "c++")
+NATIVE = Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else None
 
 
 def run(*argv: str, input_text: str = "", env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -37,7 +38,7 @@ def verify_positive(case: str, data: str, tmp: Path, *, expected_output: str | N
     cpp = tmp / (case + ".cpp")
     exe = tmp / (case + (".exe" if os.name == "nt" else ""))
     env = dict(os.environ, SE_SELFHOST_SOURCE=str(src), SE_SELFHOST_OUTPUT=str(cpp))
-    produced = run(str(SE), "run", "selfhost/compiler.se", env=env)
+    produced = run(*([str(NATIVE)] if NATIVE else [str(SE), "run", "selfhost/compiler.se"]), env=env)
     assert produced.returncode == 0, (case, "self-host compiler", produced.stderr)
     assert cpp.is_file(), f"Missing generated source for {case}"
     compiled = run(CXX, "-std=c++20", "-O0", "-g0", "-I", str(ROOT / "selfhost"), str(cpp), "-o", str(exe))
@@ -63,7 +64,7 @@ def verify_negative(case: str, part: str, tmp: Path) -> None:
     src = CASE_DIR / case
     cpp = tmp / (case + ".cpp")
     env = dict(os.environ, SE_SELFHOST_SOURCE=str(src), SE_SELFHOST_OUTPUT=str(cpp))
-    proc = run(str(SE), "run", "selfhost/compiler.se", env=env)
+    proc = run(*([str(NATIVE)] if NATIVE else [str(SE), "run", "selfhost/compiler.se"]), env=env)
     assert proc.returncode != 0, (case, "expected failure")
     assert part in proc.stderr, (case, repr(proc.stderr), part)
     assert not cpp.exists(), (case, "compiled invalid source")
@@ -109,6 +110,10 @@ def main() -> None:
         verify_positive("language_typed_fields.se", "", tmp)
         verify_positive("language_generic_user_types.se", "", tmp)
         verify_positive("language_nested_functions.se", "", tmp)
+        verify_positive("language_escaping_closures.se", "", tmp)
+        verify_positive("language_nested_generic_functions.se", "", tmp)
+        verify_positive("language_tasks_functions.se", "", tmp)
+        verify_positive("language_global_bindings.se", "", tmp)
         verify_positive("language_recursive_collection_mutation.se", "", tmp)
         verify_positive("language_collections_functional.se", "", tmp)
         verify_positive("language_remove_collections.se", "", tmp)
@@ -124,6 +129,8 @@ def main() -> None:
         # Exercise the actual generated C++ against a fixed output oracle.
         verify_positive("language_zero_arg_functions.se", "", tmp, expected_output="42\n43\nready\ntrue\n84\n")
         for case, message in (
+            ("negative_unknown_annotation.se", "Unknown type annotation"),
+            ("negative_generic_rebind.se", "was already inferred as"),
             ("negative_required_field.se", "Missing required field"),
             ("negative_generic_wrong_arity.se", "needs 1 type arguments"),
             ("negative_generic_wrong_field.se", "Initializer field type mismatch"),

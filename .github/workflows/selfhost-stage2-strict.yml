@@ -12,6 +12,7 @@ on:
       - "selfhost/**"
       - "tests/selfhost_differential.py"
       - "tests/selfhost_runtime.cpp"
+      - "tests/selfhost_web.py"
 
 jobs:
   strict-bootstrap:
@@ -21,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build production bootstrap compiler (Stage0)
         run: |
-          cmake -S . -B build -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Debug
+          cmake -S . -B build -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG"
           cmake --build build --target se --parallel 2
       - name: Require Stage2, Stage3 and Stage4 deterministic self-compilation
         run: python3 tests/selfhost_stage2.py "$(realpath build/se)"

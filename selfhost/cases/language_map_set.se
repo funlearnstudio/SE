@@ -1,6 +1,7 @@
 user = ["name": "Steve", "role": "student"]
 say user["name"]
 user["role"] = "developer"
+user["language"] = "SE"
 say user
 say "name" in user
 values = set [1, 2, 2, 3]
