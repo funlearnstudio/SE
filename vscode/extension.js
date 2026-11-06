@@ -254,7 +254,7 @@ function analyzeDocument(document) {
     }
 
     // Sized declarations define a List variable, not an indexed assignment.
-    const sizedList = code.match(/^\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*\\[\\s*[^\\]\\r\\n]+\\s*\\]\\s*=\\s*\\[\\s*\\]\\s*$/);
+    const sizedList = code.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*\[[^\r\n]*\]\s*=\s*\[\s*\]\s*$/);
     const assignment = sizedList ? [null, sizedList[1], '[]'] : code.match(/^\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*=\\s*(.+)$/);
     if (assignment) {
       const name = assignment[1];
