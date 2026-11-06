@@ -106,6 +106,7 @@ def main() -> None:
         verify_positive("language_regex_uuid.se", "", tmp)
         verify_positive("language_operator_module.se", "", tmp)
         verify_positive("language_codec_extensions.se", "", tmp, expected_output="a%20b%2F%2B\na b/+\na%20b=c%2Bd&percent=%25\nc+d\n%\n\n5345\nSE\ntrue\ntrue\n")
+        verify_positive("language_web_utilities.se", "", tmp, expected_output="1\ntwo\nsession=ok; Path=/; HttpOnly; SameSite=Lax\nOrigin\nGET, POST\n&lt;&amp;&gt;\nHello &lt;SE&gt;!\n")
         verify_positive("language_csv.se", "", tmp, expected_output="CSV roundtrip passed\n")
         verify_positive("language_dynamic_any.se", "", tmp, expected_output="Int\nText\nBool\ndynamic Any ok\n")
         verify_positive("language_evaluation_order.se", "one\ntwo\nthree\nfour\n", tmp, expected_output="first: second: [one, two]\nthird: fourth: threefour\n")
