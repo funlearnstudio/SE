@@ -100,70 +100,7 @@ inline SEMap<std::string> se_config_merge(const SEMap<std::string>& left,const S
   for(const auto& item:right.items)result.put(item.first,item.second);
   return result;
 }
-inline SEMap<std::string> se_cookie_parse(const std::string& header){
-  SEMap<std::string> cookies;
-  std::istringstream input(header);
-  std::string part;
-  while(std::getline(input,part,';')){
-    const auto sep=part.find('=');
-    if(sep!=std::string::npos)
-      cookies.put(se_ext_trim(part.substr(0,sep)),se_ext_trim(part.substr(sep+1)));
-  }
-  return cookies;
-}
-inline std::string se_cookie_set(const std::string& name,const std::string& value){
-  if(name.empty()||name.find_first_of(";=\r\n \t")!=std::string::npos||
-     value.find_first_of(";\r\n")!=std::string::npos)
-    throw std::runtime_error("Invalid cookie name or value.");
-  return name+"="+value+"; Path=/; HttpOnly; SameSite=Lax";
-}
-inline void se_ext_header_safe(const std::string& value){
-  if(value.find_first_of("\r\n")!=std::string::npos)
-    throw std::runtime_error("Invalid HTTP header value.");
-}
-inline SEMap<std::string> se_cors_allow_origin(const std::string& origin){
-  se_ext_header_safe(origin);
-  SEMap<std::string> result;
-  result.put("Access-Control-Allow-Origin",origin);
-  result.put("Vary","Origin");
-  return result;
-}
-inline SEMap<std::string> se_cors_preflight(const std::string& origin,const std::string& methods){
-  se_ext_header_safe(origin);se_ext_header_safe(methods);
-  auto result=se_cors_allow_origin(origin);
-  result.put("Access-Control-Allow-Methods",methods);
-  return result;
-}
-inline std::string se_template_escape(const std::string& value){
-  std::string out;
-  for(char c:value){
-    switch(c){
-      case '&':out+="&amp;";break;
-      case '<':out+="&lt;";break;
-      case '>':out+="&gt;";break;
-      case '"':out+="&quot;";break;
-      case '\'':out+="&#39;";break;
-      default:out+=c;
-    }
-  }
-  return out;
-}
-inline std::string se_template_render(const std::string& source,const SEMap<std::string>& values){
-  std::string out;
-  std::size_t position=0;
-  while(position<source.size()){
-    auto left=source.find("{{",position);
-    if(left==std::string::npos){out+=source.substr(position);break;}
-    out+=source.substr(position,left-position);
-    auto right=source.find("}}",left+2);
-    if(right==std::string::npos)throw std::runtime_error("Template placeholder is not closed.");
-    auto key=se_ext_trim(source.substr(left+2,right-left-2));
-    try{out+=se_template_escape(se_ext_lookup(values,key));}
-    catch(const std::runtime_error&){throw std::runtime_error("Missing template value: "+key);}
-    position=right+2;
-  }
-  return out;
-}
+// Cookie, CORS and template APIs are provided by se_extension_web.hpp.
 inline std::string se_static_mime(const std::string& name){
   const auto dot=name.find_last_of('.');
   const auto ext=dot==std::string::npos?std::string{}:name.substr(dot);
