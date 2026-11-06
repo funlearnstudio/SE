@@ -30,6 +30,9 @@ make lex source:Text -> List[List[Text]]
     column = 1
     line_start = true
     depth = 0
+    # Track delimiter kinds, not only depth: ([)] is invalid.
+    brackets = [""]
+    brackets = collections.take brackets 0
     carriage_return = char 13
     keywords = ["true","false","say","ask","if","else","elif","repeat","for","in","while","make","give","type","use","try","fail","set","map","match","case","and","or","not"]
     while i < n
@@ -156,11 +159,16 @@ make lex source:Text -> List[List[Text]]
             if not (op in ["**","==","!=",">=","<=","..","->","+=","-=","*=","/=","%=","+","-","*","/","%","=",">","<","(",")","[","]","{","}",",",":","."])
                 fail "Unexpected character in SE source."
             if op == "(" or op == "[" or op == "{"
+                brackets.add op
                 depth += 1
             if op == ")" or op == "]" or op == "}"
-                depth -= 1
-                if depth < 0
+                if depth == 0
                     fail "Closing bracket without opening bracket."
+                opening = brackets[brackets.len - 1]
+                if (op == ")" and opening != "(") or (op == "]" and opening != "[") or (op == "}" and opening != "{")
+                    fail "Mismatched closing bracket: " + op
+                brackets = collections.take brackets (brackets.len - 1)
+                depth -= 1
             add_token tokens op op line column
             i += op.len
             column += op.len
