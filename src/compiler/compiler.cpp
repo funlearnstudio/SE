@@ -32,6 +32,7 @@ std::string CppCompiler::expr(const ast::ExprPtr&e) const{
   if(auto x=std::dynamic_pointer_cast<ast::Variable>(e))return "std::make_shared<ast::Variable>("+pos(x->pos)+","+q(x->name)+","+type_refs(x->type_args)+")";
   if(auto x=std::dynamic_pointer_cast<ast::Binary>(e))return "std::make_shared<ast::Binary>("+pos(x->pos)+","+expr(x->left)+",TokenKind::"+std::string(token_name(x->op))+","+expr(x->right)+")";
   if(auto x=std::dynamic_pointer_cast<ast::Unary>(e))return "std::make_shared<ast::Unary>("+pos(x->pos)+",TokenKind::"+std::string(token_name(x->op))+","+expr(x->value)+")";
+  if(auto x=std::dynamic_pointer_cast<ast::SizedList>(e))return "std::make_shared<ast::SizedList>("+pos(x->pos)+","+expr(x->count)+")";
   if(auto x=std::dynamic_pointer_cast<ast::List>(e)){std::string r="std::make_shared<ast::List>("+pos(x->pos)+",std::vector<ast::ExprPtr>{";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+=expr(x->items[i]);}return r+"})";}
   if(auto x=std::dynamic_pointer_cast<ast::Set>(e)){std::string r="std::make_shared<ast::Set>("+pos(x->pos)+",std::vector<ast::ExprPtr>{";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+=expr(x->items[i]);}return r+"})";}
   if(auto x=std::dynamic_pointer_cast<ast::Map>(e)){std::string r="std::make_shared<ast::Map>("+pos(x->pos)+",std::vector<std::pair<ast::ExprPtr,ast::ExprPtr>>{";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+="{"+expr(x->items[i].first)+","+expr(x->items[i].second)+"}";}return r+"})";}
