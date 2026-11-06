@@ -107,6 +107,7 @@ void print_help(){
     "  se fmt file.se                 Normalize valid SE indentation and trailing spaces\n"
     "  se fmt --check file.se         Check SE formatting without modifying files\n"
     "  se pkg init|add|list|remove|verify  Manage project-local SE packages\n"
+    "  se lsp                         Start the Node.js SE Language Server (stdio)\n"
     "  se trace file.se               Print executed source lines and local variables\n"
     "  se debug file.se               Step, continue, inspect locals and call stack\n"
     "  se debug --break N file.se     Pause when source line N executes\n"
@@ -309,6 +310,22 @@ int fmt_command(const std::filesystem::path&path,bool check_only){
   }
 }
 
+int lsp_command(){
+  const auto executable=executable_path();
+  auto script=executable.parent_path().parent_path()/"share/se/lsp/lsp-server.js";
+#ifdef S_SOURCE_ROOT
+  if(!std::filesystem::is_regular_file(script))script=std::filesystem::path(S_SOURCE_ROOT)/"vscode/lsp-server.js";
+#endif
+  if(!std::filesystem::is_regular_file(script))throw std::runtime_error("SE LSP script is missing. Reinstall SE.");
+#ifdef _WIN32
+  const auto command="node \""+script.string()+"\"";
+#else
+  const auto command="node "+shell_quote(script.string());
+#endif
+  const int result=std::system(command.c_str());
+  return result==0?0:1;
+}
+
 int debug_command(const std::filesystem::path&path,bool trace,int breakpoint=0){
   const auto source=read_file(path);
   try{
@@ -397,6 +414,7 @@ int main(int argc,char**argv){
     if(argc==2&&std::string(argv[1])=="--version"){std::cout<<"SE 0.7.8\n";return 0;}
     if(argc==2&&(std::string(argv[1])=="help"||std::string(argv[1])=="--help"||std::string(argv[1])=="-h")){print_help();return 0;}
     if(argc==2&&std::string(argv[1])=="doctor")return doctor_command();
+    if(argc==2&&std::string(argv[1])=="lsp")return lsp_command();
     if((argc==2||argc==3)&&std::string(argv[1])=="check-all")return check_all_command(argc==3?std::filesystem::path(argv[2]):std::filesystem::path("."));
     if((argc==2||argc==3)&&std::string(argv[1])=="test")return test_command(argc==3?std::filesystem::path(argv[2]):std::filesystem::path("."));
     if(argc==3&&std::string(argv[1])=="fmt")return fmt_command(argv[2],false);
