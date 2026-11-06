@@ -1,0 +1,7 @@
+# Quiet, whitespace-based input for online judges.
+read n:Int
+read values[n]:Int
+sum = 0
+for value in values
+    sum += value
+say sum
