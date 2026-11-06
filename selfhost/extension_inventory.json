@@ -1,7 +1,7 @@
 {
   "module_count": 117,
   "member_count": 586,
-  "note": "A lowering branch is not evidence of complete arity, type, error or runtime compatibility.",
+  "note": "Lowering presence means the self-hosted Codegen recognizes a member and has a standalone runtime implementation; it is NOT certification of argument semantics, cross-platform behavior, or parity. Check differential and C++ CI before promotion.",
   "modules": [
     {
       "module": "file",
@@ -1986,63 +1986,63 @@
           "name": "chain",
           "kind": "function",
           "usage": "itertools.chain",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "flatten",
           "kind": "function",
           "usage": "itertools.flatten",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "chunked",
           "kind": "function",
           "usage": "itertools.chunked",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "take",
           "kind": "function",
           "usage": "itertools.take",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "drop",
           "kind": "function",
           "usage": "itertools.drop",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "windows",
           "kind": "function",
           "usage": "itertools.windows",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "cycle",
           "kind": "function",
           "usage": "itertools.cycle",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "pairs",
           "kind": "function",
           "usage": "itertools.pairs",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "unique",
           "kind": "function",
           "usage": "itertools.unique",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2343,14 +2343,14 @@
           "name": "compare",
           "kind": "function",
           "usage": "compare args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "to_hex",
           "kind": "function",
           "usage": "to_hex args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2562,35 +2562,35 @@
           "name": "copy",
           "kind": "function",
           "usage": "copy source target",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "move",
           "kind": "function",
           "usage": "move source target",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "copytree",
           "kind": "function",
           "usage": "copytree source target",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "remove",
           "kind": "function",
           "usage": "remove path",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "mkdir",
           "kind": "function",
           "usage": "mkdir path",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2602,14 +2602,14 @@
           "name": "match",
           "kind": "function",
           "usage": "match pattern text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "find",
           "kind": "function",
           "usage": "find pattern",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2925,21 +2925,21 @@
           "name": "type_of",
           "kind": "function",
           "usage": "type_of value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "is",
           "kind": "function",
           "usage": "is value type_name",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "cast",
           "kind": "function",
           "usage": "cast value type_name",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3010,14 +3010,14 @@
           "name": "parse",
           "kind": "function",
           "usage": "parse text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "get",
           "kind": "function",
           "usage": "get config key",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3029,42 +3029,42 @@
           "name": "parse",
           "kind": "function",
           "usage": "parse args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "get",
           "kind": "function",
           "usage": "get args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "get_int",
           "kind": "function",
           "usage": "get_int args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "get_bool",
           "kind": "function",
           "usage": "get_bool args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "section",
           "kind": "function",
           "usage": "section args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "merge",
           "kind": "function",
           "usage": "merge args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3552,14 +3552,14 @@
           "name": "mime",
           "kind": "function",
           "usage": "mime filename",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "read",
           "kind": "function",
           "usage": "read root filename",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3571,7 +3571,7 @@
           "name": "save",
           "kind": "function",
           "usage": "save root filename body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
