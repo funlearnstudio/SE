@@ -563,6 +563,31 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                             fail module + "." + method + " expects " + expected + ", got " + actual
                         i += 1
                     give result_type
+                if owner[0] == "Atom" and owner[2] == "tilemap"
+                    method = callee[2]
+                    expected_count = 1
+                    result_type = "List[Text]"
+                    if method == "at"
+                        expected_count = 3
+                        result_type = "Text"
+                    else if method == "size"
+                        result_type = "List[Int]"
+                    else if method != "parse"
+                        fail "Unknown tilemap function: " + method
+                    if args.len != expected_count
+                        fail "tilemap." + method + " expects " + string(expected_count) + " arguments."
+                    i = 0
+                    while i < args.len
+                        expected = "List[Text]"
+                        if method == "parse"
+                            expected = "Text"
+                        if method == "at" and i > 0
+                            expected = "Int"
+                        got = try _infer args[i] symbols
+                        if not (_compatible expected got)
+                            fail "tilemap." + method + " expects " + expected + ", got " + got
+                        i += 1
+                    give result_type
                 if owner[0] == "Atom" and owner[2] in ["url", "encoding"]
                     module = owner[2]
                     method = callee[2]
