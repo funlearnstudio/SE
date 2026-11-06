@@ -119,6 +119,12 @@ inline bool se_hashlib_compare(const std::string& left,const std::string& right)
   return difference==0;
 }
 inline std::string se_hashlib_to_hex(const std::string& source){return se_encoding_hex(source);}
+template<class T> bool se_typing_is(const T& value,std::string name){
+  auto actual=se_dynamic_type(value);
+  for(char& c:actual)c=static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  for(char& c:name)c=static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  return actual==name;
+}
 template<class T> T se_typing_cast(const T& value,std::string name){
   auto actual=se_dynamic_type(value);
   for(char& c:actual)c=static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
