@@ -210,7 +210,7 @@ std::shared_ptr<ModuleData> Interpreter::builtin_module(const std::string&name){
   return m;
 }
 
-Value Interpreter::call(Value c,const std::vector<Value>&args,SourcePos p){auto f=std::get_if<std::shared_ptr<CallableData>>(&c.data());if(!f)throw Error(p,"Only a function or method can be called.");if((!(*f)->variadic&&args.size()!=(*f)->min_args)||((*f)->variadic&&args.size()<(*f)->min_args))throw Error(p,"'"+(*f)->name+"' needs "+std::to_string((*f)->min_args)+((*f)->variadic?" or more":"")+" values, but got "+std::to_string(args.size())+".");return (*f)->call(args,p);}
+Value Interpreter::call(Value c,const std::vector<Value>&args,SourcePos p){auto f=std::get_if<std::shared_ptr<CallableData>>(&c.data());if(!f)throw Error(p,"Only a function or method can be called.");if((!(*f)->variadic&&args.size()!=(*f)->min_args)||((*f)->variadic&&args.size()<(*f)->min_args))throw Error(p,"'"+(*f)->name+"' needs "+std::to_string((*f)->min_args)+((*f)->variadic?" or more":"")+" values, but got "+std::to_string(args.size())+".");debug_call_stack_.push_back((*f)->name);try{auto result=(*f)->call(args,p);debug_call_stack_.pop_back();return result;}catch(...){debug_call_stack_.pop_back();throw;}}
 
 Value Interpreter::instantiate(const std::shared_ptr<TypeData>&type,SourcePos p){auto object=std::make_shared<ObjectData>();object->type=type;auto local=std::make_shared<Environment>(type->closure,object);auto old=env_;env_=local;try{for(auto&f:type->fields)object->fields[f.name]=evaluate(f.value);}catch(...){env_=old;throw;}env_=old;(void)p;return object;}
 
@@ -269,6 +269,7 @@ Value Interpreter::evaluate(const ast::ExprPtr& e){
 }
 
 void Interpreter::execute(const ast::StmtPtr& s){
+  if(debug_hook_)debug_hook_(s->pos,source_,*env_,debug_call_stack_);
   if(std::dynamic_pointer_cast<ast::Use>(s))return;if(auto x=std::dynamic_pointer_cast<ast::Say>(s)){out_<<evaluate(x->value).text()<<'\n';return;}if(auto x=std::dynamic_pointer_cast<ast::ExprStmt>(s)){auto value=evaluate(x->value);if(auto m=std::dynamic_pointer_cast<ast::Member>(x->value);m&&m->name=="help")out_<<value.text()<<'\n';return;}
   if(auto x=std::dynamic_pointer_cast<ast::Read>(s)){
     std::size_t length=1;
