@@ -25,9 +25,11 @@ function(check_parity name source)
 endfunction()
 
 file(COPY "${S_ROOT}/examples/type.se" DESTINATION "${S_WORK}")
+file(COPY "${S_ROOT}/examples/sized-list.se" DESTINATION "${S_WORK}")
 file(COPY "${S_ROOT}/examples/collections.se" DESTINATION "${S_WORK}")
 file(COPY "${S_ROOT}/examples/modules" DESTINATION "${S_WORK}")
 check_parity(type "${S_WORK}/type.se")
+check_parity(sized-list "${S_WORK}/sized-list.se")
 check_parity(collections "${S_WORK}/collections.se")
 check_parity(modules "${S_WORK}/modules/main.se")
 
