@@ -401,6 +401,103 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             owner_type = try _infer callee[1] symbols
             if owner_type == "Module"
                 owner = _node callee[1]
+                if owner[0] == "Atom" and owner[2] in ["shutil", "typing", "cookie", "cors", "template", "static", "upload", "dotenv", "config"]
+                    module_name = owner[2]
+                    member_name = callee[2]
+                    required = []
+                    returned = "Unknown"
+                    if module_name == "shutil"
+                        if member_name in ["copy", "move", "copytree"]
+                            required = ["Text", "Text"]
+                        else if member_name in ["remove", "mkdir"]
+                            required = ["Text"]
+                        else
+                            fail "Unknown shutil function: " + member_name
+                    else if module_name == "typing"
+                        if member_name == "type_of"
+                            required = ["Unknown"]
+                            returned = "Text"
+                        else if member_name == "is"
+                            required = ["Unknown", "Text"]
+                            returned = "Bool"
+                        else
+                            fail "Unsupported typing function: " + member_name
+                    else if module_name == "cookie"
+                        if member_name == "parse"
+                            required = ["Text"]
+                            returned = "Map[Text,Text]"
+                        else if member_name == "set"
+                            required = ["Text", "Text"]
+                            returned = "Text"
+                        else
+                            fail "Unknown cookie function: " + member_name
+                    else if module_name == "cors"
+                        if member_name == "allow_origin"
+                            required = ["Text"]
+                            returned = "Map[Text,Text]"
+                        else if member_name == "preflight"
+                            required = ["Text", "Text"]
+                            returned = "Map[Text,Text]"
+                        else
+                            fail "Unknown CORS function: " + member_name
+                    else if module_name == "template"
+                        if member_name == "escape"
+                            required = ["Text"]
+                        else if member_name == "render"
+                            required = ["Text", "Map[Text,Text]"]
+                        else
+                            fail "Unknown template function: " + member_name
+                        returned = "Text"
+                    else if module_name == "static"
+                        if member_name == "mime"
+                            required = ["Text"]
+                        else if member_name == "read"
+                            required = ["Text", "Text"]
+                        else
+                            fail "Unknown static function: " + member_name
+                        returned = "Text"
+                    else if module_name == "upload"
+                        if member_name != "save"
+                            fail "Unknown upload function: " + member_name
+                        required = ["Text", "Text", "Text"]
+                        returned = "Text"
+                    else if module_name == "dotenv"
+                        if member_name == "parse"
+                            required = ["Text"]
+                            returned = "Map[Text,Text]"
+                        else if member_name == "get"
+                            required = ["Map[Text,Text]", "Text"]
+                            returned = "Text"
+                        else
+                            fail "Unknown dotenv function: " + member_name
+                    else if module_name == "config"
+                        if member_name == "parse"
+                            required = ["Text"]
+                            returned = "Map[Text,Text]"
+                        else if member_name in ["get", "get_int", "get_bool", "section"]
+                            required = ["Map[Text,Text]", "Text"]
+                            if member_name == "get"
+                                returned = "Text"
+                            if member_name == "get_int"
+                                returned = "Int"
+                            if member_name == "get_bool"
+                                returned = "Bool"
+                            if member_name == "section"
+                                returned = "Map[Text,Text]"
+                        else if member_name == "merge"
+                            required = ["Map[Text,Text]", "Map[Text,Text]"]
+                            returned = "Map[Text,Text]"
+                        else
+                            fail "Unknown config function: " + member_name
+                    if args.len != required.len
+                        fail module_name + "." + member_name + " expects " + string(required.len) + " arguments."
+                    j = 0
+                    while j < required.len
+                        got = try _infer args[j] symbols
+                        if not _compatible required[j] got
+                            fail module_name + "." + member_name + " argument " + string(j + 1) + " expects " + required[j] + ", got " + got
+                        j += 1
+                    give returned
                 if owner[0] == "Atom" and owner[2] == "collections"
                     method = callee[2]
                     if method == "contains"
