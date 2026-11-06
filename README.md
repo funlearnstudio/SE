@@ -10,7 +10,7 @@ SE 是一門以 C++20 實作、低標點、重視安全性的程式語言。它�
 Language / 語言: SE
 CLI / 指令:       se
 Source / 原始碼:  .se
-Release / 正式版: SE 0.7.6
+Release / 正式版: SE 0.7.8
 ```
 
 ```se
@@ -50,22 +50,22 @@ curl -fsSL https://raw.githubusercontent.com/funlearnstudio/SE/main/install.sh |
 irm https://raw.githubusercontent.com/funlearnstudio/SE/main/install.ps1 | iex
 ```
 
-### Upgrade / 更新到 0.7.6
+### Upgrade / 更新到 0.7.8
 
-Rerun the installation command above to update to the latest stable release. To install exactly 0.7.6:
+Rerun the installation command above to update to the latest stable release. To install exactly 0.7.8:
 
-重新執行上方安裝指令即可更新至最新正式版。指定安裝 0.7.6：
+重新執行上方安裝指令即可更新至最新正式版。指定安裝 0.7.8：
 
 macOS / Linux:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/funlearnstudio/SE/main/install.sh | SE_VERSION=0.7.6 sh
+curl -fsSL https://raw.githubusercontent.com/funlearnstudio/SE/main/install.sh | SE_VERSION=0.7.8 sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-$env:SE_VERSION = '0.7.6'
+$env:SE_VERSION = '0.7.8'
 irm https://raw.githubusercontent.com/funlearnstudio/SE/main/install.ps1 | iex
 Remove-Item Env:SE_VERSION
 ```
@@ -76,17 +76,18 @@ Both installers verify the package against the release's SHA-256 checksums. Wind
 
 ### Downloads / 下載
 
-[SE 0.7.6 release and platform packages / 正式版與各平台安裝包](https://github.com/funlearnstudio/SE/releases/tag/v0.7.6)
+[SE 0.7.8 release and platform packages / 正式版與各平台安裝包](https://github.com/funlearnstudio/SE/releases/tag/v0.7.8)
 
 Supported prebuilt packages / 預編譯平台：macOS Apple Silicon (arm64)、macOS Intel (x64)、Linux x64、Windows x64。
 
-[VS Code extension 0.7.6 / VS Code 擴充套件](https://github.com/funlearnstudio/SE/releases/download/v0.7.6/se-language-0.7.6.vsix) — install using **Extensions → … → Install from VSIX**.
+[VS Code extension 0.7.8 / VS Code 擴充套件](https://github.com/funlearnstudio/SE/releases/download/v0.7.8/se-language-0.7.8.vsix) — install using **Extensions → … → Install from VSIX**.
 
-### Changes in 0.7.6 / 0.7.6 更新
+### Changes in 0.7.8 / 0.7.8 更新
 
-- Arithmetic in bare function calls / 無括號函式呼叫支援運算：`func a-1 + func a-2`。
-- Text concatenation with printable values / 文字可串接不同型別：`say "hello" + 5`。
-- CLI, installers, platform packages and VS Code extension synchronized to 0.7.6 / CLI、安裝器、平台安裝包與 VS Code 擴充套件同步至 0.7.6。
+- Sized integer List declarations / 透過 `a[5] = []` 建立五個初始值為 0 的整數元素。
+- Variable-sized allocation / 支援 `a[n] = []`，長度可為 0 至 1,000,000。
+- Consistent interpreter, native and Web handling / 直譯、原生與 Web 編譯一致支援新語法。
+- CLI, installers, platform packages and VS Code extension synchronized to 0.7.8 / CLI、安裝器、平台安裝包與 VS Code 擴充套件同步至 0.7.8。
 
 Verify / 確認：
 

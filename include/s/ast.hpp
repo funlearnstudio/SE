@@ -35,6 +35,8 @@ struct Variable final : Expr {
 struct Binary final : Expr { Binary(SourcePos p,ExprPtr l,TokenKind o,ExprPtr r):Expr(p),left(std::move(l)),op(o),right(std::move(r)){} ExprPtr left; TokenKind op; ExprPtr right; };
 struct Unary final : Expr { Unary(SourcePos p,TokenKind o,ExprPtr v):Expr(p),op(o),value(std::move(v)){} TokenKind op; ExprPtr value; };
 struct List final : Expr { List(SourcePos p,std::vector<ExprPtr> v):Expr(p),items(std::move(v)){} std::vector<ExprPtr> items; };
+// `a[count] = []` declares a List[Int] with `count` zero-initialized slots.
+struct SizedList final : Expr { SizedList(SourcePos p,ExprPtr n):Expr(p),count(std::move(n)){} ExprPtr count; };
 struct Map final : Expr { Map(SourcePos p,std::vector<std::pair<ExprPtr,ExprPtr>> v):Expr(p),items(std::move(v)){} std::vector<std::pair<ExprPtr,ExprPtr>> items; };
 struct Set final : Expr { Set(SourcePos p,std::vector<ExprPtr> v):Expr(p),items(std::move(v)){} std::vector<ExprPtr> items; };
 struct Index final : Expr { Index(SourcePos p,ExprPtr v,ExprPtr i):Expr(p),value(std::move(v)),index(std::move(i)){} ExprPtr value,index; };

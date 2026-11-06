@@ -49,6 +49,17 @@ int main(){
   EXPECT(run(fib_compact)=="5\n");
   EXPECT(run(fib_spaced)=="5\n");
   EXPECT(run("x = [1, 2]\nx[0] = 9\nsay x[0]\nsay x.len\n")=="9\n2\n");
+  // Sized List declaration reserves zero-initialized Int slots.
+  EXPECT(run("a[5] = []\nsay a\nsay a.len\n")=="[0, 0, 0, 0, 0]\n5\n");
+  EXPECT(run("size = 3\na[size] = []\nfor i in 0..2\n    a[i] = i + 10\nsay a\n")=="[10, 11, 12]\n");
+  EXPECT(run("a[0] = []\nsay a\n")=="[]\n");
+  EXPECT(run("a[2] = []\na.add 8\nsay a\n")=="[0, 0, 8]\n");
+  EXPECT(throws_error([]{check("a[\"5\"] = []\n");}));
+  EXPECT(throws_error([]{check("a[2] = []\na[0] = \"bad\"\n");}));
+  EXPECT(throws_error([]{run("a[-1] = []\n");}));
+  EXPECT(throws_error([]{run("a[1000001] = []\n");}));
+  EXPECT(throws_error([]{run("a[2] = []\na[2] = 7\n");}));
+
 
   // Core conversions and familiar aliases.
   EXPECT(run("say int \"42\"\nsay integer \"-7\"\nsay double \"3.5\"\nsay float 2\nsay string 99\nsay text true\nsay bool \"TRUE\"\nsay boolean \"false\"\nsay char \"é\"\nsay char 65\n")=="42\n-7\n3.5\n2\n99\ntrue\ntrue\nfalse\né\nA\n");

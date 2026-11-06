@@ -203,6 +203,7 @@ std::string expression_js(const ast::ExprPtr& raw,const Bindings& bindings){
   }
   if(auto duration=std::dynamic_pointer_cast<ast::Duration>(e))return std::to_string(duration->milliseconds);
   if(auto variable=std::dynamic_pointer_cast<ast::Variable>(e))return variable->name;
+  if(auto sized=std::dynamic_pointer_cast<ast::SizedList>(e))return "(()=>{const n=("+expression_js(sized->count,bindings)+");if(!Number.isInteger(n)||n<0||n>1000000)throw new Error('A sized List length must be an Int between 0 and 1000000.');return Array(n).fill(0);})()";
   if(auto list=std::dynamic_pointer_cast<ast::List>(e)){
     std::string out="[";for(std::size_t i=0;i<list->items.size();++i){if(i)out+=",";out+=expression_js(list->items[i],bindings);}return out+"]";
   }

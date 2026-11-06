@@ -98,6 +98,7 @@ const ui={
     }
     if(auto x=std::dynamic_pointer_cast<ast::Duration>(e))return std::to_string(x->milliseconds);
     if(auto x=std::dynamic_pointer_cast<ast::Variable>(e))return x->name;
+    if(auto x=std::dynamic_pointer_cast<ast::SizedList>(e))return "(()=>{const n=("+expression(x->count)+");if(!Number.isInteger(n)||n<0||n>1000000)throw new Error('A sized List length must be an Int between 0 and 1000000.');return Array(n).fill(0);})()";
     if(auto x=std::dynamic_pointer_cast<ast::List>(e)){std::string r="[";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+=expression(x->items[i]);}return r+"]";}
     if(auto x=std::dynamic_pointer_cast<ast::Set>(e)){std::string r="new Set([";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+=expression(x->items[i]);}return r+"])";}
     if(auto x=std::dynamic_pointer_cast<ast::Map>(e)){std::string r="({";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+="["+expression(x->items[i].first)+"]:"+expression(x->items[i].second);}return r+"})";}

@@ -1,24 +1,27 @@
-# SE 0.7.6
+# SE 0.7.8
 
-This release synchronizes the native SE CLI, documentation, and VS Code extension.
+This release adds sized integer List declarations and synchronizes the compiler, the VS Code extension and the installation packages.
 
 ## Highlights
 
-- Support typed multi-value input: `ask a:Int b:Int` and `ask name:Text age:Int height:Num`.
-- Read whitespace-separated values on one line, validate their count and numeric types.
-- Preserve the existing `name = ask "Question"` expression.
-- Add an `askmulti` VS Code snippet and diagnostics support.
-- Package SE Language 0.7.6 VSIX plus macOS, Linux and Windows binaries.
+- New syntax: `a[5] = []` creates five zero-initialized integers.
+- The length may be any Int expression, e.g. `n = 5` then `a[n] = []`.
+- `a = []` still means an empty dynamic List; `a.add value` still grows it.
+- Non-Int, negative, and oversized lengths are rejected; maximum 1,000,000 entries.
+- Interpreter, native C++20 build, and SE Web code generation support sized list initialization.
+- The VS Code extension ships a `sizedlist` snippet and updated Traditional Chinese syntax guide.
 
 ## Example
 
 ```se
-ask a:Int b:Int
-say a + b
+a[5] = []
+for i in 0..4
+    a[i] = i + 1
+say a
 ```
 
-Input `10 20` produces `30`.
+Expected output: `[1, 2, 3, 4, 5]`.
 
 ## Install
 
-Download an archive for your platform or `se-language-0.7.6.vsix` from this release.
+Install the new compiler and `se-language-0.7.8.vsix` from this GitHub Release. The editor extension does not replace the CLI; update both for the new syntax.

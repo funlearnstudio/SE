@@ -211,5 +211,15 @@
       "say $1 + $2"
     ],
     "description": "Read multiple whitespace-separated typed values on one input line"
+  },
+  "Sized integer List": {
+    "prefix": "sizedlist",
+    "body": [
+      "${1:a}[${2:5}] = []",
+      "for ${3:i} in 0..${4:4}",
+      "    $1[$3] = int ask \"${5:輸入整數：}\"",
+      "say $1"
+    ],
+    "description": "Allocate a zero-filled List[Int] with a specified length"
   }
 }

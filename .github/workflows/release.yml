@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 env:
-  VERSION: 0.7.6
-  TAG: v0.7.6
+  VERSION: 0.7.8
+  TAG: v0.7.8
 
 jobs:
   build-packages:
@@ -22,16 +22,16 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            asset: se-0.7.6-linux-x64
+            asset: se-0.7.8-linux-x64
             archive: tar.gz
           - os: macos-15-intel
-            asset: se-0.7.6-macos-x64
+            asset: se-0.7.8-macos-x64
             archive: tar.gz
           - os: macos-14
-            asset: se-0.7.6-macos-arm64
+            asset: se-0.7.8-macos-arm64
             archive: tar.gz
           - os: windows-latest
-            asset: se-0.7.6-windows-x64
+            asset: se-0.7.8-windows-x64
             archive: zip
     runs-on: ${{ matrix.os }}
     steps:
@@ -176,7 +176,7 @@ jobs:
           sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
-      - name: Publish SE 0.7.6 release
+      - name: Publish SE 0.7.8 release
         shell: bash
         run: |
           if [ "${{ steps.release.outputs.exists }}" = "true" ]; then
@@ -184,7 +184,7 @@ jobs:
           else
             gh release create "$TAG" \
               --target "${{ github.event.workflow_run.head_sha }}" \
-              --title "SE 0.7.6" \
+              --title "SE 0.7.8" \
               --notes-file RELEASE_NOTES.md \
               release-assets/*
           fi

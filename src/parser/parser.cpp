@@ -317,6 +317,19 @@ ast::StmtPtr Parser::statement(){
   if(match(TokenKind::Equal)){
     auto value=expression(); ast::Block init;
     if(check(TokenKind::Newline)&&peek(1).kind==TokenKind::Indent) init=block(); else line_end();
+    // `a[n] = []` is a sized, zero-initialized Int list declaration, not an
+    // indexed write. Ordinary `a[i] = value` is unchanged.
+    if(auto index=std::dynamic_pointer_cast<ast::Index>(left)){
+      if(auto name=std::dynamic_pointer_cast<ast::Variable>(index->value)){
+        if(name->type_args.empty()){
+          if(auto list=std::dynamic_pointer_cast<ast::List>(value);list&&list->items.empty()){
+            if(!init.empty())throw Error(start.pos,"A sized List declaration cannot have an indented initializer.");
+            return std::make_shared<ast::Assign>(start.pos,index->value,
+              std::make_shared<ast::SizedList>(start.pos,index->index));
+          }
+        }
+      }
+    }
     return std::make_shared<ast::Assign>(start.pos,left,value,std::move(init));
   }
   TokenKind binary=TokenKind::End;

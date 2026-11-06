@@ -1,0 +1,10 @@
+# A sized List[Int] starts with zero-filled slots.
+n = 5
+a[n] = []
+say a.len
+say a
+
+for i in 0..4
+    a[i] = i + 10
+
+say a
