@@ -303,8 +303,8 @@ make _emit_call encoded:Text -> Text
                     give try _apply_or_direct ("se_datetime_" + method) generated node[2]
                 fail "Unknown datetime function: " + method
             if module == "iter"
-                if method == "range"
-                    give try _apply_or_direct "se_iter_range" generated node[2]
+                if method in ["range", "zip", "product", "permutations", "combinations"]
+                    give try _apply_or_direct ("se_iter_" + method) generated node[2]
                 fail "Unsupported iter function: " + method
             if module == "functools"
                 if method in ["partial", "reduce", "map", "filter"]
