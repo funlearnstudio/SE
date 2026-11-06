@@ -114,7 +114,8 @@ for (const command of ['se.run', 'se.check', 'se.checkProblems', 'se.build', 'se
 assert(pkg.contributes.configuration.properties['se.diagnostics.enabled']);
 assert(pkg.contributes.configuration.properties['se.diagnostics.delay']);
 
-JSON.parse(read('vscode/snippets/se.json'));
+const snippets = JSON.parse(read('vscode/snippets/se.json'));
+assert(snippets['Sized integer List']?.body?.[0]?.includes(' = []'), 'Missing a[n] = [] VS Code snippet.');
 assert(fs.existsSync(path.join(root, 'vscode/TUTORIAL-zh-TW.md')), 'Bundled syntax tutorial is missing.');
 
 const parsed = parseSeCheckOutput([
