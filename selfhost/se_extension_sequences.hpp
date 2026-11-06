@@ -209,6 +209,20 @@ inline bool se_enum_has(const SEMap<std::int64_t>& values,const std::string& nam
 }
 
 
+template<class T> SEList<SEList<SEAny>> se_iter_enumerate(const SEList<T>& items){
+  static_assert(std::is_constructible_v<SEAny,T>,
+                "iter.enumerate supports scalar SE values only.");
+  if(items.size()>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()))
+    throw std::runtime_error("iter.enumerate exceeds Int index range.");
+  SEList<SEList<SEAny>> out;
+  for(std::size_t i=0;i<items.size();++i){
+    SEList<SEAny> pair;
+    pair.push_back(SEAny{static_cast<std::int64_t>(i)});
+    pair.push_back(SEAny{items[i]});
+    out.push_back(std::move(pair));
+  }
+  return out;
+}
 template<class T> SEList<SEList<T>> se_iter_zip(const SEList<T>& left,const SEList<T>& right){
   SEList<SEList<T>> out;
   for(std::size_t i=0;i<std::min(left.size(),right.size());++i)
