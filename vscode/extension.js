@@ -253,9 +253,18 @@ function analyzeDocument(document) {
       continue;
     }
 
+    const inputDeclaration = code.match(/^\s*read\s+([A-Za-z_][A-Za-z0-9_]*)\s*(\[[^\]\r\n]+\])?\s*:\s*(Int|Num|Text|Bool)\s*$/);
+    if (inputDeclaration) {
+      const name = inputDeclaration[1];
+      const type = inputDeclaration[2] ? 'List' : inputDeclaration[3];
+      model.variables.set(name, { name, type, line: lineNumber, range: document.lineAt(lineNumber).range });
+      model.symbols.push({ name, kind: vscode.SymbolKind.Variable, line: lineNumber });
+      continue;
+    }
+
     // Sized declarations define a List variable, not an indexed assignment.
-    const sizedList = code.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*\[[^\r\n]*\]\s*=\s*\[\s*\]\s*$/);
-    const assignment = sizedList ? [null, sizedList[1], '[]'] : code.match(/^\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*=\\s*(.+)$/);
+    const sizedList = code.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*(?:\[[^\r\n]*\])+\s*(?::\s*(?:Int|Num|Bool|Text))?\s*=\s*\[\s*\]\s*$/);
+    const assignment = sizedList ? [null, sizedList[1], '[]'] : code.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/);
     if (assignment) {
       const name = assignment[1];
       const rhs = assignment[2];
@@ -772,6 +781,29 @@ async function openSyntaxGuide(context) {
   await vscode.commands.executeCommand('markdown.showPreview', guide);
 }
 
+function normalizeSeFormatting(text) {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  const result = lines.map((line) => {
+    const clean = line.replace(/[ \t]+$/g, '');
+    if (!clean) return '';
+    const indent = clean.match(/^[ \t]*/)[0];
+    const columns = [...indent].reduce((n, ch) => n + (ch === '\t' ? 4 : 1), 0);
+    return ' '.repeat(columns) + clean.slice(indent.length);
+  }).join('\n');
+  return result.endsWith('\n') ? result : result + '\n';
+}
+
+function createFormattingProvider() {
+  return {
+    provideDocumentFormattingEdits(document) {
+      const source = document.getText();
+      const formatted = normalizeSeFormatting(source);
+      if (source === formatted) return [];
+      return [vscode.TextEdit.replace(new vscode.Range(document.positionAt(0), document.positionAt(source.length)), formatted)];
+    }
+  };
+}
+
 function activate(context) {
   const selector = { language: 'se', scheme: 'file' };
   diagnosticCollection = vscode.languages.createDiagnosticCollection('se');
@@ -784,10 +816,12 @@ function activate(context) {
     vscode.languages.registerDocumentSymbolProvider(selector, createDocumentSymbolProvider()),
     vscode.languages.registerSignatureHelpProvider(selector, createSignatureHelpProvider(), ' '),
     vscode.languages.registerReferenceProvider(selector, createReferenceProvider()),
+    vscode.languages.registerDocumentFormattingEditProvider(selector, createFormattingProvider()),
     vscode.commands.registerCommand('se.run', () => run('run')),
     vscode.commands.registerCommand('se.check', () => run('check')),
     vscode.commands.registerCommand('se.checkProblems', checkProblems),
     vscode.commands.registerCommand('se.build', () => run('build')),
+    vscode.commands.registerCommand('se.format', async () => vscode.commands.executeCommand('editor.action.formatDocument')),
     vscode.commands.registerCommand('se.openGuide', () => openSyntaxGuide(context)),
     vscode.workspace.onDidOpenTextDocument((document) => scheduleDiagnostics(document, true)),
     vscode.workspace.onDidSaveTextDocument((document) => scheduleDiagnostics(document, true)),
