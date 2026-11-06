@@ -288,6 +288,44 @@ make _emit_call encoded:Text -> Text
                 if method in ["escape", "render"]
                     give try _apply_or_direct ("se_template_" + method) generated node[2]
                 fail "Unknown template function: " + method
+            if module == "shutil"
+                if method in ["copy", "move", "copytree", "remove", "mkdir"]
+                    give try _apply_or_direct ("se_file_" + method) generated node[2]
+                fail "Unknown shutil function: " + method
+            if module == "typing"
+                if method == "type_of"
+                    give try _apply_or_direct "se_dynamic_type" generated node[2]
+                if method == "is"
+                    give try _apply_or_direct "se_dynamic_is" generated node[2]
+                fail "Unsupported typing function: " + method
+            if module == "cookie"
+                if method in ["parse", "set"]
+                    give try _apply_or_direct ("se_cookie_" + method) generated node[2]
+                fail "Unknown cookie function: " + method
+            if module == "cors"
+                if method in ["allow_origin", "preflight"]
+                    give try _apply_or_direct ("se_cors_" + method) generated node[2]
+                fail "Unknown CORS function: " + method
+            if module == "template"
+                if method in ["escape", "render"]
+                    give try _apply_or_direct ("se_template_" + method) generated node[2]
+                fail "Unknown template function: " + method
+            if module == "static"
+                if method in ["mime", "read"]
+                    give try _apply_or_direct ("se_static_" + method) generated node[2]
+                fail "Unknown static function: " + method
+            if module == "upload"
+                if method == "save"
+                    give try _apply_or_direct "se_upload_save" generated node[2]
+                fail "Unknown upload function: " + method
+            if module == "dotenv"
+                if method in ["parse", "get"]
+                    give try _apply_or_direct ("se_dotenv_" + method) generated node[2]
+                fail "Unknown dotenv function: " + method
+            if module == "config"
+                if method in ["parse", "get", "get_int", "get_bool", "section", "merge"]
+                    give try _apply_or_direct ("se_config_" + method) generated node[2]
+                fail "Unknown config function: " + method
             if module == "url"
                 if method in ["encode", "decode", "query", "parse_query"]
                     give try _apply_or_direct ("se_url_" + method) generated node[2]
