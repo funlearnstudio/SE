@@ -50,7 +50,8 @@ make lex source:Text -> List[List[Text]]
                 c = chars[i]
             else
                 c = "\n"
-            if c != "\n" and c != "#"
+            # A whitespace-only CRLF line must not open or close a block.
+            if c != "\n" and c != carriage_return and c != "#"
                 if spaces % 4 != 0
                     fail "Indentation must use groups of 4 spaces."
                 previous = levels[levels.len - 1]
