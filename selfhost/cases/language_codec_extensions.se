@@ -1,0 +1,15 @@
+use url
+use encoding
+
+say url.encode "a b/+"
+say url.decode "a%20b%2F%2B"
+params = ["a b": "c+d", "percent": "%"]
+say url.query params
+parsed = url.parse_query "?a+b=c%2Bd&percent=%25&empty"
+say parsed["a b"]
+say parsed["percent"]
+say parsed["empty"]
+say encoding.hex "SE"
+say encoding.unhex "5345"
+say encoding.utf8_valid "Hello"
+say encoding.utf8_valid "中文"
