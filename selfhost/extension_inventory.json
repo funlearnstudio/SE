@@ -2202,28 +2202,28 @@
           "name": "parse",
           "kind": "function",
           "usage": "parse text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "stringify",
           "kind": "function",
           "usage": "stringify rows",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "read",
           "kind": "function",
           "usage": "read path",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "write",
           "kind": "function",
           "usage": "write path rows",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]

@@ -283,6 +283,10 @@ make _emit_call encoded:Text -> Text
                     give try _apply_or_direct "se_json_parse" generated node[2]
                 fail "JSON module function not yet supported: " + method
             if module == "csv"
+                if method == "read"
+                    give try _apply_or_direct "se_csv_read" generated node[2]
+                if method == "write"
+                    give try _apply_or_direct "se_csv_write" generated node[2]
                 if method == "parse"
                     give try _apply_or_direct "se_csv_parse" generated node[2]
                 if method == "stringify"

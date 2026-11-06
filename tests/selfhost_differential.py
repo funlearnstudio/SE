@@ -105,6 +105,7 @@ def main() -> None:
         verify_positive("language_expansion_numeric.se", "", tmp)
         verify_positive("language_regex_uuid.se", "", tmp)
         verify_positive("language_operator_module.se", "", tmp)
+        verify_positive("language_csv.se", "", tmp, expected_output="CSV roundtrip passed\n")
         verify_positive("language_dynamic_any.se", "", tmp, expected_output="Int\nText\nBool\ndynamic Any ok\n")
         verify_positive("language_evaluation_order.se", "one\ntwo\nthree\nfour\n", tmp, expected_output="first: second: [one, two]\nthird: fourth: threefour\n")
         verify_positive("language_copy.se", "", tmp, expected_output="9\n9\n7\n1\n")

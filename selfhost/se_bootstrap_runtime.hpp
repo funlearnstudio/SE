@@ -654,6 +654,13 @@ inline void se_append(const std::string& path,const std::string& data) {
   if(!file)throw std::runtime_error("Cannot append: "+path);
   file<<data;
 }
+inline SEList<SEList<std::string>> se_csv_read(const std::string& path){return se_csv_parse(se_read(path));}
+inline void se_csv_write(const std::string& path,const SEList<SEList<std::string>>& rows){
+  std::ofstream file(path,std::ios::binary|std::ios::trunc);
+  if(!file)throw std::runtime_error("csv.write could not open '"+path+"'.");
+  file<<se_csv_stringify(rows);file.flush();
+  if(!file)throw std::runtime_error("csv.write failed.");
+}
 inline void se_file_copy(const std::string& source,const std::string& target){
   std::error_code error;
   std::filesystem::copy_file(source,target,std::filesystem::copy_options::overwrite_existing,error);

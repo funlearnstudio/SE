@@ -1,0 +1,556 @@
+{
+  "complete": false,
+  "advertised_modules": 117,
+  "advertised_members": 586,
+  "missing_lowering_count": 367,
+  "missing_lowerings": {
+    "json": [
+      "pretty"
+    ],
+    "process": [
+      "run",
+      "output"
+    ],
+    "http": [
+      "get",
+      "post",
+      "post_json",
+      "request"
+    ],
+    "web": [
+      "get",
+      "post",
+      "put",
+      "patch",
+      "delete",
+      "listen",
+      "text",
+      "json",
+      "response",
+      "method",
+      "path",
+      "query",
+      "body",
+      "header",
+      "param",
+      "handle",
+      "handle_status",
+      "route_count"
+    ],
+    "js": [
+      "run",
+      "output",
+      "eval"
+    ],
+    "ts": [
+      "run",
+      "compile",
+      "output"
+    ],
+    "option": [
+      "some",
+      "none",
+      "is_some",
+      "is_none",
+      "value",
+      "or"
+    ],
+    "result": [
+      "ok",
+      "err",
+      "is_ok",
+      "is_err",
+      "value",
+      "error",
+      "or"
+    ],
+    "match": [
+      "value",
+      "option",
+      "result"
+    ],
+    "db": [
+      "open",
+      "set",
+      "get",
+      "has",
+      "remove",
+      "keys",
+      "save"
+    ],
+    "https": [
+      "get",
+      "post",
+      "post_json"
+    ],
+    "data": [
+      "append",
+      "extend",
+      "insert",
+      "pop",
+      "clear",
+      "copy",
+      "get",
+      "set",
+      "update",
+      "delete",
+      "has",
+      "keys",
+      "values",
+      "items"
+    ],
+    "net": [
+      "get",
+      "post",
+      "post_json",
+      "request",
+      "download"
+    ],
+    "node": [
+      "version",
+      "run",
+      "output",
+      "eval",
+      "npm",
+      "npx"
+    ],
+    "next": [
+      "create",
+      "dev",
+      "build",
+      "start",
+      "lint"
+    ],
+    "game": [
+      "new",
+      "background",
+      "clear",
+      "rect",
+      "circle",
+      "line",
+      "text",
+      "script",
+      "html",
+      "save",
+      "show"
+    ],
+    "iter": [
+      "range",
+      "enumerate",
+      "zip",
+      "product",
+      "permutations",
+      "combinations"
+    ],
+    "itertools": [
+      "chain",
+      "flatten",
+      "chunked",
+      "take",
+      "drop",
+      "windows",
+      "cycle",
+      "pairs",
+      "unique"
+    ],
+    "decimal": [
+      "parse",
+      "add",
+      "sub",
+      "mul",
+      "div",
+      "quantize"
+    ],
+    "datetime": [
+      "now",
+      "timestamp",
+      "from_timestamp",
+      "format",
+      "add_seconds"
+    ],
+    "hash": [
+      "sha256",
+      "file_sha256"
+    ],
+    "hashlib": [
+      "sha256",
+      "file_sha256",
+      "sha512",
+      "file_sha512",
+      "digest",
+      "file_digest",
+      "hmac_sha256",
+      "compare",
+      "to_hex"
+    ],
+    "pickle": [
+      "dumps",
+      "loads"
+    ],
+    "args": [
+      "parse",
+      "get",
+      "flag"
+    ],
+    "argparse": [
+      "parse_args",
+      "get",
+      "flag",
+      "help",
+      "has",
+      "positionals",
+      "get_int",
+      "require"
+    ],
+    "log": [
+      "level",
+      "debug",
+      "info",
+      "warn",
+      "error"
+    ],
+    "logging": [
+      "set_level",
+      "debug",
+      "info",
+      "warning",
+      "error",
+      "critical",
+      "records"
+    ],
+    "shutil": [
+      "copy",
+      "move",
+      "copytree",
+      "remove",
+      "mkdir"
+    ],
+    "glob": [
+      "match",
+      "find"
+    ],
+    "zip": [
+      "create",
+      "extract",
+      "list"
+    ],
+    "zipfile": [
+      "create",
+      "extract",
+      "is_zip",
+      "entries",
+      "read",
+      "test"
+    ],
+    "subprocess": [
+      "run",
+      "output"
+    ],
+    "socket": [
+      "resolve",
+      "tcp"
+    ],
+    "queue": [
+      "new",
+      "put",
+      "get",
+      "empty",
+      "size"
+    ],
+    "sqlite": [
+      "open",
+      "exec",
+      "query"
+    ],
+    "sqlite3": [
+      "open",
+      "exec",
+      "query",
+      "query_one",
+      "tables",
+      "table_info",
+      "execute_many",
+      "backup"
+    ],
+    "functools": [
+      "partial",
+      "reduce",
+      "map",
+      "filter"
+    ],
+    "enum": [
+      "make",
+      "name",
+      "value",
+      "has"
+    ],
+    "typing": [
+      "type_of",
+      "is",
+      "cast"
+    ],
+    "url": [
+      "encode",
+      "decode",
+      "query",
+      "parse_query"
+    ],
+    "encoding": [
+      "hex",
+      "unhex",
+      "utf8_valid"
+    ],
+    "dotenv": [
+      "parse",
+      "get"
+    ],
+    "config": [
+      "parse",
+      "get",
+      "get_int",
+      "get_bool",
+      "section",
+      "merge"
+    ],
+    "dataset": [
+      "describe",
+      "train_test_split",
+      "filter_eq",
+      "unique"
+    ],
+    "cookie": [
+      "parse",
+      "set"
+    ],
+    "cors": [
+      "allow_origin",
+      "preflight"
+    ],
+    "template": [
+      "escape",
+      "render"
+    ],
+    "static": [
+      "mime",
+      "read"
+    ],
+    "upload": [
+      "save"
+    ],
+    "tilemap": [
+      "parse",
+      "at",
+      "size"
+    ],
+    "http_server": [
+      "get",
+      "post",
+      "put",
+      "patch",
+      "delete",
+      "listen",
+      "text",
+      "json",
+      "response",
+      "method",
+      "path",
+      "query",
+      "body",
+      "header",
+      "param",
+      "handle",
+      "route_count"
+    ],
+    "router": [
+      "get",
+      "post",
+      "put",
+      "delete",
+      "path",
+      "param",
+      "handle",
+      "handle_status",
+      "route_count"
+    ],
+    "dns": [
+      "resolve",
+      "resolve4",
+      "resolve6",
+      "reverse",
+      "is_ip",
+      "lookup_mx",
+      "lookup_txt"
+    ],
+    "toml": [
+      "parse"
+    ],
+    "yaml": [
+      "parse",
+      "stringify"
+    ],
+    "xml": [
+      "parse",
+      "escape"
+    ],
+    "markdown": [
+      "render"
+    ],
+    "crypto": [
+      "sha256",
+      "hmac_sha256",
+      "random_hex",
+      "constant_time_equal"
+    ],
+    "jwt": [
+      "sign",
+      "verify"
+    ],
+    "session": [
+      "encode",
+      "decode"
+    ],
+    "auth": [
+      "hash_password",
+      "verify_password"
+    ],
+    "email": [
+      "compose",
+      "parse"
+    ],
+    "smtp": [
+      "send"
+    ],
+    "imap": [
+      "subjects"
+    ],
+    "ftp": [
+      "list",
+      "download",
+      "upload"
+    ],
+    "ssh": [
+      "run"
+    ],
+    "websocket": [
+      "exchange"
+    ],
+    "ai": [
+      "chat"
+    ],
+    "embedding": [
+      "create"
+    ],
+    "ml": [
+      "linear_regression",
+      "predict"
+    ],
+    "tensor": [
+      "shape",
+      "add",
+      "matmul"
+    ],
+    "video": [
+      "add",
+      "stop"
+    ],
+    "camera": [
+      "start",
+      "stop"
+    ],
+    "gui": [
+      "new",
+      "rect",
+      "circle",
+      "text",
+      "show",
+      "save",
+      "html"
+    ],
+    "window": [
+      "new",
+      "fullscreen",
+      "show"
+    ],
+    "canvas": [
+      "new",
+      "background",
+      "clear",
+      "rect",
+      "circle",
+      "line",
+      "text",
+      "show",
+      "save",
+      "html"
+    ],
+    "input": [
+      "key_move",
+      "follow_mouse"
+    ],
+    "sprite": [
+      "image",
+      "sprite",
+      "sprite_color",
+      "position",
+      "move",
+      "velocity",
+      "animate"
+    ],
+    "physics": [
+      "velocity",
+      "rect_hit",
+      "circle_hit",
+      "distance",
+      "vector",
+      "particles",
+      "camera"
+    ],
+    "sound": [
+      "sound",
+      "play",
+      "stop"
+    ],
+    "keyboard": [
+      "key_move"
+    ],
+    "mouse": [
+      "follow_mouse",
+      "camera"
+    ],
+    "animation": [
+      "animate",
+      "move",
+      "velocity"
+    ],
+    "scene": [
+      "new",
+      "background",
+      "clear",
+      "html",
+      "save",
+      "show"
+    ],
+    "collision": [
+      "rect_hit",
+      "circle_hit",
+      "distance",
+      "vector"
+    ],
+    "image": [
+      "image",
+      "sprite"
+    ],
+    "audio": [
+      "sound",
+      "play",
+      "stop"
+    ]
+  },
+  "limitations": [
+    "Lowering detection is a source scan, not conformance certification.",
+    "CSV parser rejects malformed quoted input more strictly than the production parser.",
+    "Latest CSV changes have execution tests; the previous strict Stage2/3/4 proof predates CSV read/write.",
+    "Any supports scalar values only; arbitrary dynamic objects and full generic inference remain incomplete.",
+    "Native callbacks, by-value structs and full cross-platform ABI verification remain incomplete."
+  ]
+}
