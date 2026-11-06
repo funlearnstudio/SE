@@ -18,6 +18,12 @@ async function main() {
   let buffer=Buffer.alloc(0),id=0,errors='';
   const waiting=new Map();
   const timeout=setTimeout(()=>server.kill(),12000);
+  // On Windows, a child may close stdin as it handles the LSP exit notification.
+  // Prevent a late EPIPE from crashing the parent after a successful test.
+  server.stdin.on('error',error=>{
+    if(error.code!=='EPIPE')process.stderr.write('LSP stdin: '+String(error)+'\n');
+  });
+  const childExited=new Promise(resolve=>server.once('exit',resolve));
   server.stderr.on('data',x=>{errors+=x.toString();});
   server.stdout.on('data',chunk=>{
     buffer=Buffer.concat([buffer,chunk]);
@@ -38,8 +44,7 @@ async function main() {
   });
   function send(method,params,id){
     const body=Buffer.from(JSON.stringify({jsonrpc:'2.0',method,params,...(id===undefined?{}:{id})}));
-    server.stdin.write('Content-Length: '+body.length+'\r\n\r\n');
-    server.stdin.write(body);
+    server.stdin.write(Buffer.concat([Buffer.from('Content-Length: '+body.length+'\r\n\r\n'),body]));
   }
   function request(method,params){
     const requestId=++id;
@@ -66,6 +71,8 @@ async function main() {
     assert.equal(formatting[0].newText,'if true\n    say 1\n');
     await request('shutdown',{});
     send('exit',{});
+    // Give the child time to acknowledge and close its pipe before cleanup.
+    await Promise.race([childExited,new Promise(resolve=>setTimeout(resolve,2000))]);
     console.log('SE LSP protocol smoke test passed.');
   } finally {
     clearTimeout(timeout);
