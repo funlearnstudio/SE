@@ -245,6 +245,24 @@ ast::StmtPtr Parser::statement(){
       return std::make_shared<ast::Page>(start.pos,std::move(route),std::move(body));
     }
   }
+  // Typed, whitespace-separated standard input. A bare `read "path"` remains
+  // the existing file-reading expression, not a read statement.
+  if(identifier("read")&&peek(1).kind==TokenKind::Identifier&&
+      (peek(2).kind==TokenKind::Colon||peek(2).kind==TokenKind::LeftBracket)){
+    ++at_;
+    auto name=take(TokenKind::Identifier,"Give the input variable a name.").text;
+    ast::ExprPtr length;
+    if(match(TokenKind::LeftBracket)){
+      length=expression();
+      take(TokenKind::RightBracket,"Close the input array length with ']'.");
+    }
+    take(TokenKind::Colon,"Typed read needs ':Int', ':Num', ':Text', or ':Bool'.");
+    auto type=take(TokenKind::Identifier,"Expected a read value type.").text;
+    if(type!="Int"&&type!="Num"&&type!="Text"&&type!="Bool")
+      throw Error(start.pos,"read supports Int, Num, Text, and Bool.");
+    line_end();
+    return std::make_shared<ast::Read>(start.pos,std::move(name),std::move(type),std::move(length));
+  }
   // Multiple values from one input line. Single 'ask "prompt"' remains an expression.
   if(check(TokenKind::Ask)&&peek(1).kind==TokenKind::Identifier&&
      (peek(2).kind==TokenKind::Colon||peek(2).kind==TokenKind::Identifier)){
@@ -314,24 +332,32 @@ ast::StmtPtr Parser::statement(){
   if(match(TokenKind::Make)) return function(start.pos);
   if(match(TokenKind::Give)){ auto e=expression(); line_end(); return std::make_shared<ast::Give>(start.pos,e); }
   auto left=expression();
+  ast::TypeRef declared_type;
+  if(match(TokenKind::Colon))declared_type=type_ref();
   if(match(TokenKind::Equal)){
     auto value=expression(); ast::Block init;
-    if(check(TokenKind::Newline)&&peek(1).kind==TokenKind::Indent) init=block(); else line_end();
-    // `a[n] = []` is a sized, zero-initialized Int list declaration, not an
-    // indexed write. Ordinary `a[i] = value` is unchanged.
-    if(auto index=std::dynamic_pointer_cast<ast::Index>(left)){
-      if(auto name=std::dynamic_pointer_cast<ast::Variable>(index->value)){
-        if(name->type_args.empty()){
-          if(auto list=std::dynamic_pointer_cast<ast::List>(value);list&&list->items.empty()){
-            if(!init.empty())throw Error(start.pos,"A sized List declaration cannot have an indented initializer.");
-            return std::make_shared<ast::Assign>(start.pos,index->value,
-              std::make_shared<ast::SizedList>(start.pos,index->index));
-          }
-        }
+    if(check(TokenKind::Newline)&&peek(1).kind==TokenKind::Indent)init=block();else line_end();
+    std::vector<ast::ExprPtr> sizes;
+    auto base=left;
+    while(auto index=std::dynamic_pointer_cast<ast::Index>(base)){
+      sizes.insert(sizes.begin(),index->index);
+      base=index->value;
+    }
+    if(auto name=std::dynamic_pointer_cast<ast::Variable>(base);name&&!sizes.empty()&&name->type_args.empty()){
+      if(auto list=std::dynamic_pointer_cast<ast::List>(value);list&&list->items.empty()){
+        if(!init.empty())throw Error(start.pos,"A sized List declaration cannot have an indented initializer.");
+        if(!declared_type.args.empty())throw Error(start.pos,"A sized List element type must be Int, Num, Text, or Bool.");
+        auto kind=declared_type.empty()?std::string("Int"):declared_type.name;
+        if(kind!="Int"&&kind!="Num"&&kind!="Text"&&kind!="Bool")throw Error(start.pos,"A sized List element type must be Int, Num, Text, or Bool.");
+        return std::make_shared<ast::Assign>(start.pos,base,
+          std::make_shared<ast::SizedList>(start.pos,sizes.front(),
+            std::vector<ast::ExprPtr>(sizes.begin()+1,sizes.end()),std::move(kind)));
       }
     }
+    if(!declared_type.empty())throw Error(start.pos,"A typed, sized List must be initialized with [].");
     return std::make_shared<ast::Assign>(start.pos,left,value,std::move(init));
   }
+  if(!declared_type.empty())throw Error(start.pos,"A type annotation here needs '= []'.");
   TokenKind binary=TokenKind::End;
   if(match(TokenKind::PlusEqual)) binary=TokenKind::Plus;
   else if(match(TokenKind::MinusEqual)) binary=TokenKind::Minus;
