@@ -86,5 +86,12 @@ int main() {
   assert(se_typing_is(std::int64_t{7},"int"));
   assert(se_typing_cast(std::int64_t{7},"INT")==7);
   should_fail([]{(void)se_typing_cast(std::int64_t{7},"Text");});
+  assert(se_datetime_from_timestamp(0)=="1970-01-01T00:00:00Z");
+  assert(se_datetime_format(0,"%Y-%m-%d")=="1970-01-01");
+  assert(se_datetime_add_seconds(10,5)==15);
+  assert((se_iter_range(1,8,2)==SEList<std::int64_t>{1,3,5,7}));
+  assert((se_iter_range(5,0,-2)==SEList<std::int64_t>{5,3,1}));
+  should_fail([]{(void)se_iter_range(0,12,0);});
+  should_fail([]{(void)se_datetime_add_seconds(std::numeric_limits<std::int64_t>::max(),1);});
   std::filesystem::remove_all(root);
 }
