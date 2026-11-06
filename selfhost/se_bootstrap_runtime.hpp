@@ -1031,6 +1031,7 @@ template<class F, class T> auto se_function_reduce(F function, const SEList<T>& 
   return state;
 }
 
+#include "se_extension_codec.hpp"
 #include "se_native_runtime.hpp"
 
 template<class T> auto se_function_pipe(T value){return value;}
