@@ -401,6 +401,75 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             owner_type = try _infer callee[1] symbols
             if owner_type == "Module"
                 owner = _node callee[1]
+                if owner[0] == "Atom" and owner[2] == "glob"
+                    method = callee[2]
+                    expected = 1
+                    returned = "List[Text]"
+                    if method == "match"
+                        expected = 2
+                        returned = "Bool"
+                    else if method != "find"
+                        fail "Unknown glob function: " + method
+                    if args.len != expected
+                        fail "glob." + method + " expects " + string(expected) + " arguments."
+                    for argument in args
+                        got = try _infer argument symbols
+                        if not _compatible "Text" got
+                            fail "glob." + method + " expects Text arguments."
+                    give returned
+                if owner[0] == "Atom" and owner[2] == "hashlib"
+                    method = callee[2]
+                    expected = 1
+                    returned = "Text"
+                    if method == "compare"
+                        expected = 2
+                        returned = "Bool"
+                    else if method != "to_hex"
+                        fail "Unsupported hashlib function: " + method
+                    if args.len != expected
+                        fail "hashlib." + method + " expects " + string(expected) + " arguments."
+                    for argument in args
+                        got = try _infer argument symbols
+                        if not _compatible "Text" got
+                            fail "hashlib." + method + " expects Text arguments."
+                    give returned
+                if owner[0] == "Atom" and owner[2] == "itertools"
+                    method = callee[2]
+                    if not (method in ["chain", "flatten", "chunked", "take", "drop", "windows", "cycle", "pairs", "unique"])
+                        fail "Unknown itertools function: " + method
+                    expected = 1
+                    if method in ["chunked", "take", "drop", "windows", "cycle"]
+                        expected = 2
+                    if method == "chain"
+                        expected = args.len
+                        if expected == 0 or expected > 64
+                            fail "itertools.chain expects 1 to 64 lists."
+                    if args.len != expected
+                        fail "itertools." + method + " expects " + string(expected) + " arguments."
+                    original = try _infer args[0] symbols
+                    parts = decompose_type original
+                    if parts[0] != "List" or parts.len != 2
+                        if original == "Unknown"
+                            give "Unknown"
+                        fail "itertools." + method + " expects a List."
+                    if method == "chain"
+                        i = 1
+                        while i < args.len
+                            following = try _infer args[i] symbols
+                            if not _compatible original following
+                                fail "itertools.chain needs Lists of the same type."
+                            i += 1
+                    if method in ["chunked", "take", "drop", "windows", "cycle"]
+                        width = try _infer args[1] symbols
+                        if width != "Int" and width != "Unknown"
+                            fail "itertools." + method + " expects an Int count."
+                    if method == "flatten"
+                        nested = decompose_type parts[1]
+                        if nested[0] == "List" and nested.len == 2
+                            give parts[1]
+                    if method in ["pairs", "chunked", "windows"]
+                        give "List[" + original + "]"
+                    give original
                 if owner[0] == "Atom" and owner[2] in ["shutil", "typing", "cookie", "cors", "template", "static", "upload", "dotenv", "config"]
                     module_name = owner[2]
                     member_name = callee[2]
@@ -420,6 +489,9 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                         else if member_name == "is"
                             required = ["Unknown", "Text"]
                             returned = "Bool"
+                        else if member_name == "cast"
+                            required = ["Unknown", "Text"]
+                            returned = try _infer args[0] symbols
                         else
                             fail "Unsupported typing function: " + member_name
                     else if module_name == "cookie"
