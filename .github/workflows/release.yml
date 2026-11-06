@@ -27,7 +27,7 @@ jobs:
           - os: macos-15-intel
             asset: se-0.7.8-macos-x64
             archive: tar.gz
-          - os: macos-14
+          - os: macos-15
             asset: se-0.7.8-macos-arm64
             archive: tar.gz
           - os: windows-latest
