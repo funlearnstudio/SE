@@ -911,6 +911,22 @@ make _check_block statements:List[Text] symbols:List[List[Text]] return_type:Tex
 make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> Text
     node = _node encoded
     kind = node[0]
+    if kind == "SizedAssign"
+        dimensions = _node node[2]
+        element = node[3]
+        if dimensions.len == 0 or dimensions.len > 2
+            fail "Sized arrays require one or two dimensions."
+        if not (element in ["Int", "Num", "Bool", "Text"])
+            fail "Sized arrays support Int, Num, Bool or Text elements."
+        for dim in dimensions
+            dim_type = try _infer dim symbols
+            if dim_type != "Int" and dim_type != "Unknown"
+                fail "Sized array dimensions must be Int."
+        result = "List[" + element + "]"
+        if dimensions.len == 2
+            result = "List[" + result + "]"
+        try assign_symbol symbols node[1] result
+        give "OK"
     if kind == "Assign"
         inferred = try _infer node[2] symbols
         shape = _user_shape inferred symbols
