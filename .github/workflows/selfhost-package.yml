@@ -1,0 +1,70 @@
+name: SE self-host compiler downloadable build
+
+on:
+  push:
+    branches:
+      - experiment/se-self-hosting-bootstrap
+    paths:
+      - 'selfhost/**'
+      - 'tools/se_compiler.py'
+      - 'tests/selfhost_*.py'
+      - 'tests/selfhost_*.cpp'
+      - '.github/workflows/selfhost-package.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: se-selfhost-package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package-independent-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Configure production bootstrap
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Build Stage0
+        run: cmake --build build --target se native_test --parallel 2
+      - name: Verify compiler selector
+        run: python3 -m unittest discover -s tests -p test_se_compiler_selector.py -v
+      - name: Compile independent SE compiler and prove Stage2/3/4
+        run: python3 tests/selfhost_stage2.py "$(realpath build/se)"
+      - name: Verify independent compiler executable
+        run: |
+          test -s build/se-selfhost
+          test -s build/se-selfhost.cpp
+          SE_SELFHOST_SOURCE=selfhost/cases/language_core.se \
+          SE_SELFHOST_OUTPUT=build/selfhost-package-smoke.cpp \
+          build/se-selfhost
+          c++ -std=c++20 -O0 -Iselfhost build/selfhost-package-smoke.cpp -o build/selfhost-package-smoke
+          build/selfhost-package-smoke
+      - name: Package separate independent SE compiler
+        run: |
+          set -eu
+          bundle="se-selfhost-0.8.0-experimental-linux-x64"
+          mkdir -p "package/$bundle/bin" "package/$bundle/include/se-selfhost"
+          cp build/se-selfhost "package/$bundle/bin/se-selfhost"
+          cp selfhost/*.hpp "package/$bundle/include/se-selfhost/"
+          cp selfhost/COMPILER_SELECTION.md "package/$bundle/COMPILER_SELECTION.md"
+          cp selfhost/README.md "package/$bundle/SELFHOST_README.md"
+          cp LICENSE "package/$bundle/LICENSE"
+          (cd package && tar -czf "$bundle.tar.gz" "$bundle")
+          sha256sum "package/$bundle.tar.gz" > "package/$bundle.tar.gz.sha256"
+      - name: Upload selectable SE-written compiler (not CMake)
+        uses: actions/upload-artifact@v4
+        with:
+          name: se-selfhost-0.8.0-experimental-linux-x64
+          path: |
+            package/se-selfhost-0.8.0-experimental-linux-x64.tar.gz
+            package/se-selfhost-0.8.0-experimental-linux-x64.tar.gz.sha256
+          if-no-files-found: error
