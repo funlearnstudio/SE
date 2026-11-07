@@ -67,12 +67,14 @@ inline SEMap<std::string> se_url_parse_query(std::string input) {
         end == std::string::npos ? std::string::npos : end - cursor);
     if (!pair.empty()) {
       const auto separator = pair.find('=');
-      auto key = se_url_decode(pair.substr(0, separator));
-      auto value = separator == std::string::npos
-          ? std::string{} : se_url_decode(pair.substr(separator + 1));
-      for (auto& c : key) if (c == '+') c = ' ';
-      for (auto& c : value) if (c == '+') c = ' ';
-      output.put(key, value);
+      // Form-style '+' represents space only in the original encoded bytes.
+      // Decode %2B afterwards so an escaped plus remains a literal '+'.
+      auto encoded_key = pair.substr(0, separator);
+      auto encoded_value = separator == std::string::npos
+          ? std::string{} : pair.substr(separator + 1);
+      for (auto& c : encoded_key) if (c == '+') c = ' ';
+      for (auto& c : encoded_value) if (c == '+') c = ' ';
+      output.put(se_url_decode(encoded_key), se_url_decode(encoded_value));
     }
     if (end == std::string::npos) break;
     cursor = end + 1;
