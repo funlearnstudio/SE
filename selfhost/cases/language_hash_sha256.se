@@ -1,0 +1,8 @@
+use hash
+use hashlib
+
+say hash.sha256 ""
+say hash.sha256 "abc"
+say hash.file_sha256 "selfhost/cases/sha256_abc.txt"
+say hashlib.sha256 "abc"
+say hashlib.file_sha256 "selfhost/cases/sha256_abc.txt"

@@ -1,0 +1,62 @@
+# Lexer + parser smoke/regression test for the SE-written bootstrap front end.
+use lexer
+use parser
+use ast_codec
+use json
+use text
+use test
+
+make node encoded:Text -> List[Text]
+    give json.parse encoded
+
+source = "name = \"SE\"\nif name == \"SE\"\n    say \"Hello SE\"\nelse\n    say \"other\"\n"
+tokens = try lex source
+expected = ["Identifier", "=", "String", "Newline", "if", "Identifier", "==", "String", "Newline", "Indent", "say", "String", "Newline", "Dedent", "else", "Newline", "Indent", "say", "String", "Newline", "Dedent", "End"]
+test.equal expected.len tokens.len
+j = 0
+while j < expected.len
+    test.equal expected[j] tokens[j][0]
+    j += 1
+
+ast = try parse source
+test.equal 2 ast.len
+first = ast[0]
+test.ok (text.contains first "\"Assign\"")
+second = ast[1]
+test.ok (text.contains second "\"If\"")
+if_node = node second
+if_yes = try unpack_block (if_node[2])
+test.ok (text.contains if_yes[0] "say")
+
+arithmetic = try parse "value = 1 + 2 * 3\nsay value\n"
+test.equal 2 arithmetic.len
+math_ast = arithmetic[0]
+test.ok (text.contains math_ast "Binary")
+test.ok (text.contains math_ast "*")
+
+blocks = try parse "make greet name\n    say name\nrepeat 3\n    say \"Hi\"\nwhile true\n    give 1\n"
+test.equal 3 blocks.len
+make_ast = blocks[0]
+test.ok (text.contains make_ast "\"Make\"")
+make_node = node make_ast
+make_body = try unpack_block (make_node[3])
+test.equal 1 make_body.len
+repeat_ast = blocks[1]
+test.ok (text.contains repeat_ast "\"repeat\"")
+repeat_node = node repeat_ast
+repeat_body = try unpack_block (repeat_node[2])
+test.equal 1 repeat_body.len
+while_ast = blocks[2]
+test.ok (text.contains while_ast "\"while\"")
+
+# Windows-style empty/whitespace-only CRLF lines must not create indentation.
+crlf_source = "if true" + (char 13) + "\n    " + (char 13) + "\n    say 1" + (char 13) + "\n"
+crlf_tokens = try lex crlf_source
+crlf_kinds = ["if", "true", "Newline", "Newline", "Indent", "say", "Integer", "Newline", "Dedent", "End"]
+test.equal crlf_kinds.len crlf_tokens.len
+k = 0
+while k < crlf_kinds.len
+    test.equal crlf_kinds[k] crlf_tokens[k][0]
+    k += 1
+
+say "SE selfhost lexer/parser smoke test passed"

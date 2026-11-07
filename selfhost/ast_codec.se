@@ -1,0 +1,13 @@
+# Compact, reversible encoding for AST blocks.
+# Blocks are stored as Base64 JSON Text so nested block depth does not repeatedly
+# escape every quote in the complete descendant AST.
+use json
+use base64
+
+make pack_block statements:List[Text] -> Text
+    encoded = json.stringify statements
+    give try base64.encode encoded
+
+make unpack_block encoded:Text -> List[Text]
+    decoded = try base64.decode encoded
+    give json.parse decoded

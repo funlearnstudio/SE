@@ -1,0 +1,15 @@
+# Cross-function forward calls and mutual recursion.
+# Explicit return and argument types allow C++20 forward declarations.
+make is_even n:Int -> Bool
+    if n == 0
+        give true
+    give is_odd (n - 1)
+
+make is_odd n:Int -> Bool
+    if n == 0
+        give false
+    give is_even (n - 1)
+
+say is_even 10
+say is_even 7
+say is_odd 9

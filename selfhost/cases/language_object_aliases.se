@@ -1,0 +1,35 @@
+type Counter
+    value = 0
+
+    make increment
+        value += 1
+
+make change counter:Counter
+    counter.value = 7
+
+first = Counter
+second = first
+second.increment
+say first.value
+change second
+say first.value
+fresh = Counter
+say fresh.value
+say first == second
+say first == fresh
+second = fresh
+second.value = 3
+say first.value
+say fresh.value
+
+type lower
+    __se_data = 1
+    message = "hello"
+
+make touch item:lower
+    item.message = "changed"
+
+item = lower
+touch item
+say item.message
+say item.__se_data

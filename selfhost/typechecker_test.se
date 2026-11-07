@@ -1,0 +1,17 @@
+use parser
+use typechecker
+use test
+use text
+
+source = "name = \"SE\"\nif name == \"SE\"\n    say \"Hello SE\"\nelse\n    say \"other\"\n"
+ast = try parse source
+symbols = try check_program ast
+test.equal 1 symbols.len
+test.equal "name" symbols[0][0]
+test.equal "Text" symbols[0][1]
+
+arith = try parse "a = 2 + 3 * 4\nsay a\n"
+syms = try check_program arith
+test.equal "Int" syms[0][1]
+
+say "SE selfhost typechecker smoke test passed"

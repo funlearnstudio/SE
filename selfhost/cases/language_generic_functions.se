@@ -1,0 +1,12 @@
+make identity[T] value:T -> T
+    give value
+
+make first[T] a:T b:T -> T
+    give a
+
+number = identity 42
+word = identity "SE"
+result = first 11 22
+say number
+say word
+say result

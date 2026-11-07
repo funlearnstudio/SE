@@ -4,3 +4,9 @@ vscode/package-lock.json
 vscode/*.vsix
 *.s.cpp
 .DS_Store
+
+/selfhost/compiler
+/selfhost/compiler.exe
+/selfhost/*.se.cpp
+/selfhost/generated_*.cpp
+/tests/__pycache__/

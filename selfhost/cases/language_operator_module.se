@@ -1,0 +1,16 @@
+use operator
+use test
+
+test.equal (operator.add 2 3) 5
+test.equal (operator.sub 9 4) 5
+test.equal (operator.mul 6 7) 42
+test.equal (operator.div 7 2) 3.5
+test.equal (operator.mod 17 5) 2
+test.ok (operator.eq 4 4)
+test.ok (operator.ne 4 5)
+test.ok (operator.lt 2 3)
+test.ok (operator.le 3 3)
+test.ok (operator.gt 4 3)
+test.ok (operator.ge 4 4)
+test.equal (operator.add "SE" " language") "SE language"
+say "operator module ok"

@@ -1,0 +1,4 @@
+make f n:Int -> Int
+    if n > 10
+        give n
+say f 12

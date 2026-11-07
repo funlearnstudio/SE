@@ -1,0 +1,2 @@
+use url
+say url.not_a_function "a"

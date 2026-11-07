@@ -1,0 +1,3 @@
+use xml
+say xml.escape "<SE & friends>"
+say xml.escape "plain"

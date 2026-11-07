@@ -1,0 +1,15 @@
+nested = [[1, 2], [3, 4]]
+nested[0][1] = 9
+say nested[0][1]
+
+records = [["x": 1], ["y": 2]]
+records[0]["x"] = 7
+say records[0]["x"]
+
+for record in records
+    for key value in record
+        say key
+
+grid = [[10, 20], [30, 40]]
+(grid)[0][0] = 11
+say grid[0][0]

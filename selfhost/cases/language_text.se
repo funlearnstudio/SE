@@ -1,0 +1,10 @@
+use text
+phrase = "  Hello World  "
+say text.trim phrase
+say phrase.upper
+say text.contains phrase "World"
+words = text.split "a,b,c" ","
+say words[1]
+say words.len
+repeat 2
+    say text.repeat "SE" 2

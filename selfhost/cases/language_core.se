@@ -1,0 +1,27 @@
+use math
+
+make add a:Int b:Int -> Int
+    give a + b
+
+nums = [1, 2, 3]
+nums.add 4
+total = 0
+for item in nums
+    total += item
+say total
+say add 4 5
+say math.sqrt 25
+say "Score " + 7
+say 2 ** 3
+for i in 1..3
+    say i
+
+n = 3
+while n > 0
+    say n
+    n -= 1
+
+if total == 10
+    say "OK"
+else
+    say "BAD"

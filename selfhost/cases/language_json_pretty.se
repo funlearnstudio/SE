@@ -1,0 +1,5 @@
+use json
+say json.pretty "SE"
+say json.pretty ["A", "B"]
+say json.pretty [1, 2]
+say json.pretty true

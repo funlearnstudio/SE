@@ -1,0 +1,250 @@
+# SE-written compiler orchestrator (lexer/parser/semantic analysis/codegen).
+use parser
+use native_abi
+use lexer
+use text
+use typechecker
+use codegen
+use web_codegen
+use file
+use path
+use json
+use collections
+use os
+
+make _node encoded:Text -> List[Text]
+    give json.parse encoded
+
+make _builtin_module name:Text -> Bool
+    give name in ["math","text","collections","file","json","os","random","path","time","base64","test","statistics","regex","re","uuid","copy","function","async","threading","array","series","matrix","linear","probability","fraction","complex","calculus","units","table","dataset","operator","dynamic","csv","url","encoding","shutil","typing","cookie","cors","template","tilemap","static","upload","dotenv","config","itertools","glob","hashlib","datetime","iter","functools","enum","xml","hash","crypto"]
+
+# Port of the source candidates and environment precedence in ModuleLoader::resolve.
+make _resolve_source name:Text importer:Text root:Text -> Text
+    bases = [string (path.parent importer), root]
+    home = os.getenv "SE_HOME"
+    if home == ""
+        home = os.getenv "S_HOME"
+    if home != ""
+        bases.add (string (path.join home "packages"))
+    bases.add (string os.cwd)
+    for base in bases
+        candidates = [string (path.join base (name + ".se")), string (path.join base name (name + ".se")), string (path.join base (name + ".s")), string (path.join base name (name + ".s")), string (path.join base (name + ".snative")), string (path.join base "native" (name + ".snative")), string (path.join base name (name + ".snative"))]
+        for candidate in candidates
+            if path.is_file candidate
+                give candidate
+    fail "SE module not found: " + name + " (project and package directories searched)"
+
+# Source modules keep separate identifier spaces, just as the Stage0 bundler
+# does. Mappings store [source name, emitted name] JSON records in Text Lists.
+make _export_name mapping:List[Text] name:Text -> Text
+    index = mapping.len - 1
+    while index >= 0
+        pair = _node mapping[index]
+        if pair[0] == name
+            give pair[1]
+        index -= 1
+    give ""
+
+make _own_exports statements:List[Text] prefix:Text -> List[Text]
+    mapping = []
+    for encoded in statements
+        node = _node encoded
+        if node[0] in ["Make", "TypeDecl", "Assign", "AssignInit"]
+            name = node[1]
+            emitted = prefix + name
+            if node[0] == "TypeDecl" and prefix != ""
+                emitted = "SETypeModule_" + prefix + name
+            mapping.add (json.stringify ([name, emitted]))
+    give mapping
+
+make _cached_exports entries:List[Text] source_path:Text -> List[Text]
+    for encoded in entries
+        entry = _node encoded
+        if entry[0] == source_path
+            give _node entry[1]
+    fail "Source module export table missing: " + source_path
+
+# Preserve token adjacency when names grow: a[i] stays indexing, while f [i]
+# stays a List argument. String tokens are re-quoted, never searched/replaced.
+make _rewrite_source source:Text mapping:List[Text] aliases:List[Text] -> Text
+    tokens = try lex source
+    parts = []
+    index = 0
+    line_start = true
+    previous_end = 1
+    while tokens[index][0] != "End"
+        token = tokens[index]
+        kind = token[0]
+        if kind == "Newline"
+            parts.add "\n"
+            line_start = true
+            index += 1
+        else if kind == "Indent" or kind == "Dedent"
+            index += 1
+        else
+            raw = token[1]
+            value = raw
+            consumed = 1
+            if kind == "String"
+                value = json.stringify raw
+            if kind == "Identifier"
+                previous_kind = ""
+                if index > 0
+                    previous_kind = tokens[index - 1][0]
+                if previous_kind != "." and previous_kind != "use"
+                    qualified = false
+                    if tokens[index + 1][0] == "."
+                        for encoded_alias in aliases
+                            alias = _node encoded_alias
+                            if alias[0] == raw
+                                member = tokens[index + 2]
+                                exports = _node alias[1]
+                                value = _export_name exports member[1]
+                                if member[1] == "help"
+                                    export_names = []
+                                    for encoded_export in exports
+                                        export = _node encoded_export
+                                        export_names.add export[0]
+                                    value = json.stringify ("members: help, " + (text.join export_names ", "))
+                                if value == ""
+                                    fail "Unknown source module member: " + raw + "." + member[1]
+                                qualified = true
+                                consumed = 3
+                    if not qualified
+                        replacement = _export_name mapping raw
+                        if replacement != ""
+                            value = replacement
+            column = int token[3]
+            if line_start
+                parts.add (text.repeat " " (column - 1))
+            else if column > previous_end
+                parts.add " "
+            parts.add value
+            last = tokens[index + consumed - 1]
+            previous_end = (int last[3]) + last[1].len
+            if last[0] == "String"
+                previous_end += 2
+            line_start = false
+            index += consumed
+    give text.join parts ""
+
+# Cache source paths and their exports independently of the importing module.
+# Root declarations keep their names; imported declarations receive stable
+# prefixes, with local declarations taking precedence over imported exports.
+make _load_source source_path:Text root:Text loaded:List[Text] active:List[Text] entries:List[Text] -> List[Text]
+    if source_path in active
+        fail "Cyclic SE module import: " + source_path
+    seed = [""]
+    combined = collections.take seed 0
+    if source_path in loaded
+        give combined
+    prefix = ""
+    is_root = loaded.len == 0
+    if not is_root
+        prefix = "se_module_" + string loaded.len + "__"
+    loaded.add source_path
+    stack = collections.take active active.len
+    stack.add source_path
+    source = try read source_path
+    if text.ends source_path ".snative"
+        native_nodes = try parse_native source source_path
+        exports = _own_exports native_nodes prefix
+        entries.add (json.stringify ([source_path, json.stringify exports]))
+        for encoded_native in native_nodes
+            node = _node encoded_native
+            if node[0] == "NativeLoad"
+                combined.add encoded_native
+            else
+                node[1] = prefix + node[1]
+                combined.add (json.stringify node)
+        give combined
+    statements = try parse source
+    own = _own_exports statements prefix
+    cache_index = entries.len
+    entries.add (json.stringify ([source_path, json.stringify own]))
+    mapping = []
+    aliases = []
+    for encoded in statements
+        node = _node encoded
+        if node[0] == "Use" and not (_builtin_module node[1])
+            module_path = try _resolve_source node[1] source_path root
+            expanded = try _load_source module_path root loaded stack entries
+            for statement in expanded
+                combined.add statement
+            exports = try _cached_exports entries module_path
+            aliases.add (json.stringify ([node[1], json.stringify exports]))
+            for export in exports
+                pair = _node export
+                if _export_name mapping pair[0] != ""
+                    fail "The name '" + pair[0] + "' is provided by more than one module."
+                mapping.add export
+    for export in own
+        mapping.add export
+    public = []
+    for export in own
+        pair = _node export
+        if not (text.starts pair[0] "_")
+            public.add export
+    entries[cache_index] = json.stringify ([source_path, json.stringify public])
+    if not is_root or aliases.len > 0
+        rewritten = try _rewrite_source source mapping aliases
+        statements = try parse rewritten
+    for encoded in statements
+        node = _node encoded
+        if node[0] != "Use" or _builtin_module node[1]
+            combined.add encoded
+    give combined
+
+make _deduplicate_uses statements:List[Text] -> List[Text]
+    result = []
+    imported = []
+    for encoded in statements
+        node = _node encoded
+        if node[0] == "Use"
+            if not (node[1] in imported)
+                imported.add node[1]
+                result.add encoded
+        else
+            result.add encoded
+    give result
+
+make compile_file source_path:Text output_path:Text -> Text
+    seen = [""]
+    seen = collections.take seen 0
+    active = [""]
+    active = collections.take active 0
+    entries = [""]
+    entries = collections.take entries 0
+    nodes = try _load_source source_path (string (path.parent source_path)) seen active entries
+    nodes = _deduplicate_uses nodes
+    if try has_web nodes
+        fail "Web syntax requires SE_SELFHOST_TARGET=web and an output directory."
+    symbols = try check_program nodes
+    cpp = try emit_checked_program nodes symbols
+    try write output_path cpp
+    give output_path
+
+make compile_text source:Text -> Text
+    nodes = try parse source
+    symbols = try check_program nodes
+    give try emit_checked_program nodes symbols
+
+# The Web target returns real browser assets, not a native placeholder.
+make compile_web_file source_path:Text output_path:Text -> Text
+    seen = [""]
+    seen = collections.take seen 0
+    active = [""]
+    active = collections.take active 0
+    entries = [""]
+    entries = collections.take entries 0
+    nodes = try _load_source source_path (string (path.parent source_path)) seen active entries
+    nodes = _deduplicate_uses nodes
+    bundle = try emit_web nodes
+    if not (path.exists output_path)
+        try file.mkdir output_path
+    filenames = ["index.html", "style.css", "app.js", "app.ts"]
+    index = 0
+    for name in filenames
+        try write (string (path.join output_path name)) bundle[index]
+        index += 1
+    give output_path

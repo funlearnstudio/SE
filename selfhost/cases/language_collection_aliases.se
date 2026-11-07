@@ -1,0 +1,43 @@
+use collections
+
+items = [1, 2]
+alias = items
+alias[0] = 7
+say items[0]
+
+make append_value values:List[Int] -> Int
+    values.add 8
+    give values.len
+
+say append_value items
+say items
+sorted = collections.sort items
+say sorted
+say items
+
+dictionary = ["a": 1]
+map_alias = dictionary
+map_alias["b"] = 2
+say dictionary.len
+
+set_values = set [1, 2]
+set_alias = set_values
+set_alias.add 3
+say set_values.len
+
+nested = [[1]]
+nested_alias = nested
+nested_alias[0][0] = 9
+say nested[0][0]
+
+say collections.contains items 7
+say collections.first items
+say collections.last items
+duplicate_values = [1, 1, 2, 1, 3]
+say collections.unique duplicate_values
+say collections.keys dictionary
+say collections.values dictionary
+
+records = [["score": 4], ["score": 2], ["score": 3]]
+say collections.sort_by records "score"
+say collections.sort_by_desc records "score"

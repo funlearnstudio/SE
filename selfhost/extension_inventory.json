@@ -1,0 +1,4694 @@
+{
+  "module_count": 117,
+  "member_count": 586,
+  "note": "Lowering presence means the self-hosted Codegen recognizes a member and has a standalone runtime implementation; it is NOT certification of argument semantics, cross-platform behavior, or parity. Check differential and C++ CI before promotion.",
+  "modules": [
+    {
+      "module": "file",
+      "members": [
+        {
+          "name": "read",
+          "kind": "function",
+          "usage": "read path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "write",
+          "kind": "function",
+          "usage": "write path text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "append",
+          "kind": "function",
+          "usage": "append path text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "open",
+          "kind": "function",
+          "usage": "open path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "copy",
+          "kind": "function",
+          "usage": "copy source target",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "move",
+          "kind": "function",
+          "usage": "move source target",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "copytree",
+          "kind": "function",
+          "usage": "copytree source target",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "remove",
+          "kind": "function",
+          "usage": "remove path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "mkdir",
+          "kind": "function",
+          "usage": "mkdir path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "path",
+      "members": [
+        {
+          "name": "join",
+          "kind": "function",
+          "usage": "join part...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "name",
+          "kind": "function",
+          "usage": "name path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "ext",
+          "kind": "function",
+          "usage": "ext path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "parent",
+          "kind": "function",
+          "usage": "parent path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "exists",
+          "kind": "function",
+          "usage": "exists path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "is_file",
+          "kind": "function",
+          "usage": "is_file path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "is_dir",
+          "kind": "function",
+          "usage": "is_dir path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "time",
+      "members": [
+        {
+          "name": "now",
+          "kind": "function",
+          "usage": "now",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "unix",
+          "kind": "function",
+          "usage": "unix time",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "from_unix",
+          "kind": "function",
+          "usage": "from_unix timestamp",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "iso",
+          "kind": "function",
+          "usage": "iso time",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "math",
+      "members": [
+        {
+          "name": "pi",
+          "kind": "value",
+          "usage": "pi",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "e",
+          "kind": "value",
+          "usage": "e",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "tau",
+          "kind": "value",
+          "usage": "tau",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "inf",
+          "kind": "value",
+          "usage": "inf",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sqrt",
+          "kind": "function",
+          "usage": "sqrt number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "cbrt",
+          "kind": "function",
+          "usage": "cbrt number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "abs",
+          "kind": "function",
+          "usage": "abs number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "floor",
+          "kind": "function",
+          "usage": "floor number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "ceil",
+          "kind": "function",
+          "usage": "ceil number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "round",
+          "kind": "function",
+          "usage": "round number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "trunc",
+          "kind": "function",
+          "usage": "trunc number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sin",
+          "kind": "function",
+          "usage": "sin number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "cos",
+          "kind": "function",
+          "usage": "cos number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "tan",
+          "kind": "function",
+          "usage": "tan number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "asin",
+          "kind": "function",
+          "usage": "asin number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "acos",
+          "kind": "function",
+          "usage": "acos number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "atan",
+          "kind": "function",
+          "usage": "atan number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sinh",
+          "kind": "function",
+          "usage": "sinh number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "cosh",
+          "kind": "function",
+          "usage": "cosh number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "tanh",
+          "kind": "function",
+          "usage": "tanh number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "asinh",
+          "kind": "function",
+          "usage": "asinh number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "acosh",
+          "kind": "function",
+          "usage": "acosh number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "atanh",
+          "kind": "function",
+          "usage": "atanh number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "exp",
+          "kind": "function",
+          "usage": "exp number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "exp2",
+          "kind": "function",
+          "usage": "exp2 number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "expm1",
+          "kind": "function",
+          "usage": "expm1 number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "log",
+          "kind": "function",
+          "usage": "log number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "log10",
+          "kind": "function",
+          "usage": "log10 number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "log2",
+          "kind": "function",
+          "usage": "log2 number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "log1p",
+          "kind": "function",
+          "usage": "log1p number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "degrees",
+          "kind": "function",
+          "usage": "degrees number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "radians",
+          "kind": "function",
+          "usage": "radians number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "gamma",
+          "kind": "function",
+          "usage": "gamma number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "lgamma",
+          "kind": "function",
+          "usage": "lgamma number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "erf",
+          "kind": "function",
+          "usage": "erf number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "erfc",
+          "kind": "function",
+          "usage": "erfc number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "atan2",
+          "kind": "function",
+          "usage": "atan2 a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "pow",
+          "kind": "function",
+          "usage": "pow a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "fmod",
+          "kind": "function",
+          "usage": "fmod a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "remainder",
+          "kind": "function",
+          "usage": "remainder a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "copysign",
+          "kind": "function",
+          "usage": "copysign a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "nextafter",
+          "kind": "function",
+          "usage": "nextafter a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "hypot",
+          "kind": "function",
+          "usage": "hypot number number...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "min",
+          "kind": "function",
+          "usage": "min number number...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "max",
+          "kind": "function",
+          "usage": "max number number...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "clamp",
+          "kind": "function",
+          "usage": "clamp value min max",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "lerp",
+          "kind": "function",
+          "usage": "lerp a b t",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "map_range",
+          "kind": "function",
+          "usage": "map_range value in_min in_max out_min out_max",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sign",
+          "kind": "function",
+          "usage": "sign number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "isfinite",
+          "kind": "function",
+          "usage": "isfinite number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "isinf",
+          "kind": "function",
+          "usage": "isinf number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "isnan",
+          "kind": "function",
+          "usage": "isnan number",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "gcd",
+          "kind": "function",
+          "usage": "gcd int int...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "lcm",
+          "kind": "function",
+          "usage": "lcm int int...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "factorial",
+          "kind": "function",
+          "usage": "factorial int",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "comb",
+          "kind": "function",
+          "usage": "comb n k",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "perm",
+          "kind": "function",
+          "usage": "perm n k",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sum",
+          "kind": "function",
+          "usage": "sum list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "mean",
+          "kind": "function",
+          "usage": "mean list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "median",
+          "kind": "function",
+          "usage": "median list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "variance",
+          "kind": "function",
+          "usage": "variance list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "stddev",
+          "kind": "function",
+          "usage": "stddev list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "random",
+      "members": [
+        {
+          "name": "int",
+          "kind": "function",
+          "usage": "int min max",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "num",
+          "kind": "function",
+          "usage": "num",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "os",
+      "members": [
+        {
+          "name": "platform",
+          "kind": "value",
+          "usage": "platform",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "cwd",
+          "kind": "function",
+          "usage": "cwd",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "getenv",
+          "kind": "function",
+          "usage": "getenv name",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "has_env",
+          "kind": "function",
+          "usage": "has_env name",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "json",
+      "members": [
+        {
+          "name": "parse",
+          "kind": "function",
+          "usage": "parse text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "stringify",
+          "kind": "function",
+          "usage": "stringify value",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "pretty",
+          "kind": "function",
+          "usage": "pretty value",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "text",
+      "members": [
+        {
+          "name": "trim",
+          "kind": "function",
+          "usage": "trim text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "contains",
+          "kind": "function",
+          "usage": "contains text search",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "starts",
+          "kind": "function",
+          "usage": "starts text prefix",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "ends",
+          "kind": "function",
+          "usage": "ends text suffix",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "replace",
+          "kind": "function",
+          "usage": "replace text old new",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "split",
+          "kind": "function",
+          "usage": "split text separator",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "join",
+          "kind": "function",
+          "usage": "join values separator",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "repeat",
+          "kind": "function",
+          "usage": "repeat text count",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "collections",
+      "members": [
+        {
+          "name": "reverse",
+          "kind": "function",
+          "usage": "reverse values",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "contains",
+          "kind": "function",
+          "usage": "contains values value",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "first",
+          "kind": "function",
+          "usage": "first values",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "last",
+          "kind": "function",
+          "usage": "last values",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "unique",
+          "kind": "function",
+          "usage": "unique values",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sort",
+          "kind": "function",
+          "usage": "sort values",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "keys",
+          "kind": "function",
+          "usage": "keys map",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "values",
+          "kind": "function",
+          "usage": "values map",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "filter",
+          "kind": "function",
+          "usage": "filter list predicate",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "map",
+          "kind": "function",
+          "usage": "map list function",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "reduce",
+          "kind": "function",
+          "usage": "reduce list initial function",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "slice",
+          "kind": "function",
+          "usage": "slice list start end",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "take",
+          "kind": "function",
+          "usage": "take list count",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "drop",
+          "kind": "function",
+          "usage": "drop list count",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sort_by",
+          "kind": "function",
+          "usage": "sort_by list field",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sort_by_desc",
+          "kind": "function",
+          "usage": "sort_by_desc list field",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sort_with",
+          "kind": "function",
+          "usage": "sort_with list comparator",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "test",
+      "members": [
+        {
+          "name": "ok",
+          "kind": "function",
+          "usage": "ok condition",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "equal",
+          "kind": "function",
+          "usage": "equal actual expected",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "not_equal",
+          "kind": "function",
+          "usage": "not_equal actual expected",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "fail",
+          "kind": "function",
+          "usage": "fail message",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "process",
+      "members": [
+        {
+          "name": "run",
+          "kind": "function",
+          "usage": "run command args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "output",
+          "kind": "function",
+          "usage": "output command",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "http",
+      "members": [
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get url",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "post",
+          "kind": "function",
+          "usage": "post url body",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "post_json",
+          "kind": "function",
+          "usage": "post_json url json",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "request",
+          "kind": "function",
+          "usage": "request method url body",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "web",
+      "members": [
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get path handler",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "post",
+          "kind": "function",
+          "usage": "post path handler",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "put",
+          "kind": "function",
+          "usage": "put path handler",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "patch",
+          "kind": "function",
+          "usage": "patch path handler",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "delete",
+          "kind": "function",
+          "usage": "delete path handler",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "listen",
+          "kind": "function",
+          "usage": "listen port",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "text",
+          "kind": "function",
+          "usage": "text body",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "json",
+          "kind": "function",
+          "usage": "json body",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "response",
+          "kind": "function",
+          "usage": "response status body type",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "method",
+          "kind": "function",
+          "usage": "method",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "path",
+          "kind": "function",
+          "usage": "path",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "query",
+          "kind": "function",
+          "usage": "query",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "body",
+          "kind": "function",
+          "usage": "body",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "header",
+          "kind": "function",
+          "usage": "header name",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "param",
+          "kind": "function",
+          "usage": "param name",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "handle",
+          "kind": "function",
+          "usage": "handle method path body",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "handle_status",
+          "kind": "function",
+          "usage": "handle_status method path body",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "route_count",
+          "kind": "function",
+          "usage": "route_count",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "js",
+      "members": [
+        {
+          "name": "run",
+          "kind": "function",
+          "usage": "run file",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "output",
+          "kind": "function",
+          "usage": "output file",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "eval",
+          "kind": "function",
+          "usage": "eval code",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "ts",
+      "members": [
+        {
+          "name": "run",
+          "kind": "function",
+          "usage": "run file",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "compile",
+          "kind": "function",
+          "usage": "compile file",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "output",
+          "kind": "function",
+          "usage": "output file",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "function",
+      "members": [
+        {
+          "name": "bind",
+          "kind": "function",
+          "usage": "bind function args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "partial",
+          "kind": "function",
+          "usage": "partial function args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "call",
+          "kind": "function",
+          "usage": "call function args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "pipe",
+          "kind": "function",
+          "usage": "pipe value functions...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "reduce",
+          "kind": "function",
+          "usage": "reduce function list initial?",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "map",
+          "kind": "function",
+          "usage": "map function list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "filter",
+          "kind": "function",
+          "usage": "filter function list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "async",
+      "members": [
+        {
+          "name": "run",
+          "kind": "function",
+          "usage": "run function args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "await",
+          "kind": "function",
+          "usage": "await task",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "ready",
+          "kind": "function",
+          "usage": "ready task",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "threading",
+      "members": [
+        {
+          "name": "run",
+          "kind": "function",
+          "usage": "run function args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "join",
+          "kind": "function",
+          "usage": "join task",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "ready",
+          "kind": "function",
+          "usage": "ready task",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "option",
+      "members": [
+        {
+          "name": "some",
+          "kind": "function",
+          "usage": "some value",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "none",
+          "kind": "function",
+          "usage": "none",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "is_some",
+          "kind": "function",
+          "usage": "is_some option",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "is_none",
+          "kind": "function",
+          "usage": "is_none option",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "value",
+          "kind": "function",
+          "usage": "value option",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "or",
+          "kind": "function",
+          "usage": "or option fallback",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "result",
+      "members": [
+        {
+          "name": "ok",
+          "kind": "function",
+          "usage": "ok value",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "err",
+          "kind": "function",
+          "usage": "err message",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "is_ok",
+          "kind": "function",
+          "usage": "is_ok result",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "is_err",
+          "kind": "function",
+          "usage": "is_err result",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "value",
+          "kind": "function",
+          "usage": "value result",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "error",
+          "kind": "function",
+          "usage": "error result",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "or",
+          "kind": "function",
+          "usage": "or result fallback",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "match",
+      "members": [
+        {
+          "name": "value",
+          "kind": "function",
+          "usage": "value subject pattern handler ... fallback",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "option",
+          "kind": "function",
+          "usage": "option option some_handler none_handler",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "result",
+          "kind": "function",
+          "usage": "result result ok_handler error_handler",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "db",
+      "members": [
+        {
+          "name": "open",
+          "kind": "function",
+          "usage": "open path",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "set",
+          "kind": "function",
+          "usage": "set database key value",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get database key",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "has",
+          "kind": "function",
+          "usage": "has database key",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "remove",
+          "kind": "function",
+          "usage": "remove database key",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "keys",
+          "kind": "function",
+          "usage": "keys database",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "save",
+          "kind": "function",
+          "usage": "save database",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "https",
+      "members": [
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get url",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "post",
+          "kind": "function",
+          "usage": "post url body",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "post_json",
+          "kind": "function",
+          "usage": "post_json url json",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "data",
+      "members": [
+        {
+          "name": "append",
+          "kind": "function",
+          "usage": "append list value",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "extend",
+          "kind": "function",
+          "usage": "extend list values",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "insert",
+          "kind": "function",
+          "usage": "insert list index value",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "pop",
+          "kind": "function",
+          "usage": "pop list index?",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "clear",
+          "kind": "function",
+          "usage": "clear collection",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "copy",
+          "kind": "function",
+          "usage": "copy collection",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get map key default?",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "set",
+          "kind": "function",
+          "usage": "set map key value",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "update",
+          "kind": "function",
+          "usage": "update map source",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "delete",
+          "kind": "function",
+          "usage": "delete map key",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "has",
+          "kind": "function",
+          "usage": "has collection value",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "keys",
+          "kind": "function",
+          "usage": "keys map",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "values",
+          "kind": "function",
+          "usage": "values map",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "items",
+          "kind": "function",
+          "usage": "items map",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "net",
+      "members": [
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get url",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "post",
+          "kind": "function",
+          "usage": "post url body",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "post_json",
+          "kind": "function",
+          "usage": "post_json url json",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "request",
+          "kind": "function",
+          "usage": "request method url body",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "download",
+          "kind": "function",
+          "usage": "download url path",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "node",
+      "members": [
+        {
+          "name": "version",
+          "kind": "function",
+          "usage": "version",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "run",
+          "kind": "function",
+          "usage": "run file",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "output",
+          "kind": "function",
+          "usage": "output file",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "eval",
+          "kind": "function",
+          "usage": "eval code",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "npm",
+          "kind": "function",
+          "usage": "npm args",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "npx",
+          "kind": "function",
+          "usage": "npx args",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "next",
+      "members": [
+        {
+          "name": "create",
+          "kind": "function",
+          "usage": "create project",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "dev",
+          "kind": "function",
+          "usage": "dev project",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "build",
+          "kind": "function",
+          "usage": "build project",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "start",
+          "kind": "function",
+          "usage": "start project",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "lint",
+          "kind": "function",
+          "usage": "lint project",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "game",
+      "members": [
+        {
+          "name": "new",
+          "kind": "function",
+          "usage": "new width height title",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "background",
+          "kind": "function",
+          "usage": "background scene color",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "clear",
+          "kind": "function",
+          "usage": "clear scene",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "rect",
+          "kind": "function",
+          "usage": "rect scene x y width height color fill",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "circle",
+          "kind": "function",
+          "usage": "circle scene x y radius color fill",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "line",
+          "kind": "function",
+          "usage": "line scene x1 y1 x2 y2 color width",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "text",
+          "kind": "function",
+          "usage": "text scene text x y size color",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "script",
+          "kind": "function",
+          "usage": "script scene javascript",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "html",
+          "kind": "function",
+          "usage": "html scene",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "save",
+          "kind": "function",
+          "usage": "save scene path",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "show",
+          "kind": "function",
+          "usage": "show scene",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "statistics",
+      "members": [
+        {
+          "name": "mean",
+          "kind": "function",
+          "usage": "mean list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "median",
+          "kind": "function",
+          "usage": "median list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "variance",
+          "kind": "function",
+          "usage": "variance list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "pvariance",
+          "kind": "function",
+          "usage": "pvariance list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "stdev",
+          "kind": "function",
+          "usage": "stdev list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "pstdev",
+          "kind": "function",
+          "usage": "pstdev list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "regex",
+      "members": [
+        {
+          "name": "match",
+          "kind": "function",
+          "usage": "match pattern text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "search",
+          "kind": "function",
+          "usage": "search pattern text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "replace",
+          "kind": "function",
+          "usage": "replace pattern text replacement",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "split",
+          "kind": "function",
+          "usage": "split pattern text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "re",
+      "members": [
+        {
+          "name": "find_all",
+          "kind": "function",
+          "usage": "re.find_all",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "count",
+          "kind": "function",
+          "usage": "re.count",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "escape",
+          "kind": "function",
+          "usage": "re.escape",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "groups",
+          "kind": "function",
+          "usage": "re.groups",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "match",
+          "kind": "function",
+          "usage": "re.match",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "search",
+          "kind": "function",
+          "usage": "re.search",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "replace",
+          "kind": "function",
+          "usage": "re.replace",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "split",
+          "kind": "function",
+          "usage": "re.split",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "base64",
+      "members": [
+        {
+          "name": "encode",
+          "kind": "function",
+          "usage": "encode text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "decode",
+          "kind": "function",
+          "usage": "decode text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "uuid",
+      "members": [
+        {
+          "name": "v4",
+          "kind": "function",
+          "usage": "v4",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "valid",
+          "kind": "function",
+          "usage": "valid text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "iter",
+      "members": [
+        {
+          "name": "range",
+          "kind": "function",
+          "usage": "range stop | range start stop step?",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "enumerate",
+          "kind": "function",
+          "usage": "enumerate list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "zip",
+          "kind": "function",
+          "usage": "zip list list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "product",
+          "kind": "function",
+          "usage": "product list list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "permutations",
+          "kind": "function",
+          "usage": "permutations list r?",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "combinations",
+          "kind": "function",
+          "usage": "combinations list r",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "itertools",
+      "members": [
+        {
+          "name": "chain",
+          "kind": "function",
+          "usage": "itertools.chain",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "flatten",
+          "kind": "function",
+          "usage": "itertools.flatten",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "chunked",
+          "kind": "function",
+          "usage": "itertools.chunked",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "take",
+          "kind": "function",
+          "usage": "itertools.take",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "drop",
+          "kind": "function",
+          "usage": "itertools.drop",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "windows",
+          "kind": "function",
+          "usage": "itertools.windows",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "cycle",
+          "kind": "function",
+          "usage": "itertools.cycle",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "pairs",
+          "kind": "function",
+          "usage": "itertools.pairs",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "unique",
+          "kind": "function",
+          "usage": "itertools.unique",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "copy",
+      "members": [
+        {
+          "name": "shallow",
+          "kind": "function",
+          "usage": "shallow value",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "deep",
+          "kind": "function",
+          "usage": "deep value",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "operator",
+      "members": [
+        {
+          "name": "add",
+          "kind": "function",
+          "usage": "add a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sub",
+          "kind": "function",
+          "usage": "sub a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "mul",
+          "kind": "function",
+          "usage": "mul a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "div",
+          "kind": "function",
+          "usage": "div a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "mod",
+          "kind": "function",
+          "usage": "mod a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "eq",
+          "kind": "function",
+          "usage": "eq a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "ne",
+          "kind": "function",
+          "usage": "ne a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "lt",
+          "kind": "function",
+          "usage": "lt a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "le",
+          "kind": "function",
+          "usage": "le a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "gt",
+          "kind": "function",
+          "usage": "gt a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "ge",
+          "kind": "function",
+          "usage": "ge a b",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "decimal",
+      "members": [
+        {
+          "name": "parse",
+          "kind": "function",
+          "usage": "parse text",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "add",
+          "kind": "function",
+          "usage": "add a b",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sub",
+          "kind": "function",
+          "usage": "sub a b",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "mul",
+          "kind": "function",
+          "usage": "mul a b",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "div",
+          "kind": "function",
+          "usage": "div a b precision?",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "quantize",
+          "kind": "function",
+          "usage": "quantize value precision",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "csv",
+      "members": [
+        {
+          "name": "parse",
+          "kind": "function",
+          "usage": "parse text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "stringify",
+          "kind": "function",
+          "usage": "stringify rows",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "read",
+          "kind": "function",
+          "usage": "read path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "write",
+          "kind": "function",
+          "usage": "write path rows",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "datetime",
+      "members": [
+        {
+          "name": "now",
+          "kind": "function",
+          "usage": "now",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "timestamp",
+          "kind": "function",
+          "usage": "timestamp",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "from_timestamp",
+          "kind": "function",
+          "usage": "from_timestamp timestamp",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "format",
+          "kind": "function",
+          "usage": "format timestamp format",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "add_seconds",
+          "kind": "function",
+          "usage": "add_seconds timestamp seconds",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "hash",
+      "members": [
+        {
+          "name": "sha256",
+          "kind": "function",
+          "usage": "sha256 text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "file_sha256",
+          "kind": "function",
+          "usage": "file_sha256 path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "hashlib",
+      "members": [
+        {
+          "name": "sha256",
+          "kind": "function",
+          "usage": "sha256 args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "file_sha256",
+          "kind": "function",
+          "usage": "file_sha256 args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sha512",
+          "kind": "function",
+          "usage": "sha512 args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "file_sha512",
+          "kind": "function",
+          "usage": "file_sha512 args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "digest",
+          "kind": "function",
+          "usage": "digest args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "file_digest",
+          "kind": "function",
+          "usage": "file_digest args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "hmac_sha256",
+          "kind": "function",
+          "usage": "hmac_sha256 args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "compare",
+          "kind": "function",
+          "usage": "compare args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "to_hex",
+          "kind": "function",
+          "usage": "to_hex args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "pickle",
+      "members": [
+        {
+          "name": "dumps",
+          "kind": "function",
+          "usage": "dumps value",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "loads",
+          "kind": "function",
+          "usage": "loads text",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "args",
+      "members": [
+        {
+          "name": "parse",
+          "kind": "function",
+          "usage": "parse argv",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get parsed name default?",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "flag",
+          "kind": "function",
+          "usage": "flag parsed name",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "argparse",
+      "members": [
+        {
+          "name": "parse_args",
+          "kind": "function",
+          "usage": "parse_args args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "flag",
+          "kind": "function",
+          "usage": "flag args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "help",
+          "kind": "function",
+          "usage": "help args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "has",
+          "kind": "function",
+          "usage": "has args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "positionals",
+          "kind": "function",
+          "usage": "positionals args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "get_int",
+          "kind": "function",
+          "usage": "get_int args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "require",
+          "kind": "function",
+          "usage": "require args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "log",
+      "members": [
+        {
+          "name": "level",
+          "kind": "function",
+          "usage": "level name",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "debug",
+          "kind": "function",
+          "usage": "debug message",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "info",
+          "kind": "function",
+          "usage": "info message",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "warn",
+          "kind": "function",
+          "usage": "warn message",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "error",
+          "kind": "function",
+          "usage": "error message",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "logging",
+      "members": [
+        {
+          "name": "set_level",
+          "kind": "function",
+          "usage": "set_level args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "debug",
+          "kind": "function",
+          "usage": "debug args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "info",
+          "kind": "function",
+          "usage": "info args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "warning",
+          "kind": "function",
+          "usage": "warning args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "error",
+          "kind": "function",
+          "usage": "error args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "critical",
+          "kind": "function",
+          "usage": "critical args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "records",
+          "kind": "function",
+          "usage": "records args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "shutil",
+      "members": [
+        {
+          "name": "copy",
+          "kind": "function",
+          "usage": "copy source target",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "move",
+          "kind": "function",
+          "usage": "move source target",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "copytree",
+          "kind": "function",
+          "usage": "copytree source target",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "remove",
+          "kind": "function",
+          "usage": "remove path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "mkdir",
+          "kind": "function",
+          "usage": "mkdir path",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "glob",
+      "members": [
+        {
+          "name": "match",
+          "kind": "function",
+          "usage": "match pattern text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "find",
+          "kind": "function",
+          "usage": "find pattern",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "zip",
+      "members": [
+        {
+          "name": "create",
+          "kind": "function",
+          "usage": "create archive files",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "extract",
+          "kind": "function",
+          "usage": "extract archive directory",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "list",
+          "kind": "function",
+          "usage": "list archive",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "zipfile",
+      "members": [
+        {
+          "name": "create",
+          "kind": "function",
+          "usage": "create args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "extract",
+          "kind": "function",
+          "usage": "extract args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "is_zip",
+          "kind": "function",
+          "usage": "is_zip args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "entries",
+          "kind": "function",
+          "usage": "entries args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "read",
+          "kind": "function",
+          "usage": "read args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "test",
+          "kind": "function",
+          "usage": "test args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "subprocess",
+      "members": [
+        {
+          "name": "run",
+          "kind": "function",
+          "usage": "run command",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "output",
+          "kind": "function",
+          "usage": "output command",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "socket",
+      "members": [
+        {
+          "name": "resolve",
+          "kind": "function",
+          "usage": "resolve host",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "tcp",
+          "kind": "function",
+          "usage": "tcp host port payload",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "queue",
+      "members": [
+        {
+          "name": "new",
+          "kind": "function",
+          "usage": "new",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "put",
+          "kind": "function",
+          "usage": "put queue value",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get queue",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "empty",
+          "kind": "function",
+          "usage": "empty queue",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "size",
+          "kind": "function",
+          "usage": "size queue",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "sqlite",
+      "members": [
+        {
+          "name": "open",
+          "kind": "function",
+          "usage": "open path",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "exec",
+          "kind": "function",
+          "usage": "exec database sql",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "query",
+          "kind": "function",
+          "usage": "query database sql",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "sqlite3",
+      "members": [
+        {
+          "name": "open",
+          "kind": "function",
+          "usage": "open args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "exec",
+          "kind": "function",
+          "usage": "exec args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "query",
+          "kind": "function",
+          "usage": "query args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "query_one",
+          "kind": "function",
+          "usage": "query_one args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "tables",
+          "kind": "function",
+          "usage": "tables args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "table_info",
+          "kind": "function",
+          "usage": "table_info args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "execute_many",
+          "kind": "function",
+          "usage": "execute_many args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "backup",
+          "kind": "function",
+          "usage": "backup args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "functools",
+      "members": [
+        {
+          "name": "partial",
+          "kind": "function",
+          "usage": "partial function args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "reduce",
+          "kind": "function",
+          "usage": "reduce function list initial?",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "map",
+          "kind": "function",
+          "usage": "map function list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "filter",
+          "kind": "function",
+          "usage": "filter function list",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "enum",
+      "members": [
+        {
+          "name": "make",
+          "kind": "function",
+          "usage": "make names",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "name",
+          "kind": "function",
+          "usage": "name enum value",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "value",
+          "kind": "function",
+          "usage": "value enum name",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "has",
+          "kind": "function",
+          "usage": "has enum name",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "typing",
+      "members": [
+        {
+          "name": "type_of",
+          "kind": "function",
+          "usage": "type_of value",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "is",
+          "kind": "function",
+          "usage": "is value type_name",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "cast",
+          "kind": "function",
+          "usage": "cast value type_name",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "url",
+      "members": [
+        {
+          "name": "encode",
+          "kind": "function",
+          "usage": "encode text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "decode",
+          "kind": "function",
+          "usage": "decode text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "query",
+          "kind": "function",
+          "usage": "query map",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "parse_query",
+          "kind": "function",
+          "usage": "parse_query text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "encoding",
+      "members": [
+        {
+          "name": "hex",
+          "kind": "function",
+          "usage": "hex text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "unhex",
+          "kind": "function",
+          "usage": "unhex text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "utf8_valid",
+          "kind": "function",
+          "usage": "utf8_valid text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "dotenv",
+      "members": [
+        {
+          "name": "parse",
+          "kind": "function",
+          "usage": "parse text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get config key",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "config",
+      "members": [
+        {
+          "name": "parse",
+          "kind": "function",
+          "usage": "parse args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "get_int",
+          "kind": "function",
+          "usage": "get_int args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "get_bool",
+          "kind": "function",
+          "usage": "get_bool args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "section",
+          "kind": "function",
+          "usage": "section args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "merge",
+          "kind": "function",
+          "usage": "merge args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "array",
+      "members": [
+        {
+          "name": "sum",
+          "kind": "function",
+          "usage": "sum values",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "mean",
+          "kind": "function",
+          "usage": "mean values",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "slice",
+          "kind": "function",
+          "usage": "slice values start end",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "series",
+      "members": [
+        {
+          "name": "sum",
+          "kind": "function",
+          "usage": "sum args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "mean",
+          "kind": "function",
+          "usage": "mean args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "min",
+          "kind": "function",
+          "usage": "min args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "max",
+          "kind": "function",
+          "usage": "max args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "diff",
+          "kind": "function",
+          "usage": "diff args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "lag",
+          "kind": "function",
+          "usage": "lag args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "moving_average",
+          "kind": "function",
+          "usage": "moving_average args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "cumulative_sum",
+          "kind": "function",
+          "usage": "cumulative_sum args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "returns",
+          "kind": "function",
+          "usage": "returns args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "normalize",
+          "kind": "function",
+          "usage": "normalize args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "matrix",
+      "members": [
+        {
+          "name": "transpose",
+          "kind": "function",
+          "usage": "transpose rows",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "multiply",
+          "kind": "function",
+          "usage": "multiply left right",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "dot",
+          "kind": "function",
+          "usage": "dot left right",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "linear",
+      "members": [
+        {
+          "name": "transpose",
+          "kind": "function",
+          "usage": "transpose args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "multiply",
+          "kind": "function",
+          "usage": "multiply args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "dot",
+          "kind": "function",
+          "usage": "dot args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "add",
+          "kind": "function",
+          "usage": "add args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "subtract",
+          "kind": "function",
+          "usage": "subtract args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "scale",
+          "kind": "function",
+          "usage": "scale args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "identity",
+          "kind": "function",
+          "usage": "identity args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "determinant",
+          "kind": "function",
+          "usage": "determinant args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "inverse",
+          "kind": "function",
+          "usage": "inverse args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "norm",
+          "kind": "function",
+          "usage": "norm args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "normalize",
+          "kind": "function",
+          "usage": "normalize args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "probability",
+      "members": [
+        {
+          "name": "factorial",
+          "kind": "function",
+          "usage": "factorial n",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "choose",
+          "kind": "function",
+          "usage": "choose n k",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "fraction",
+      "members": [
+        {
+          "name": "make",
+          "kind": "function",
+          "usage": "make numerator denominator",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "decimal",
+          "kind": "function",
+          "usage": "decimal fraction",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "complex",
+      "members": [
+        {
+          "name": "make",
+          "kind": "function",
+          "usage": "make real imaginary",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "add",
+          "kind": "function",
+          "usage": "add left right",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "multiply",
+          "kind": "function",
+          "usage": "multiply left right",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "magnitude",
+          "kind": "function",
+          "usage": "magnitude value",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "calculus",
+      "members": [
+        {
+          "name": "polynomial",
+          "kind": "function",
+          "usage": "polynomial coefficients x",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "derivative",
+          "kind": "function",
+          "usage": "derivative coefficients x",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "integral",
+          "kind": "function",
+          "usage": "integral coefficients start end",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "units",
+      "members": [
+        {
+          "name": "convert",
+          "kind": "function",
+          "usage": "convert value from_unit to_unit",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "celsius_to_fahrenheit",
+          "kind": "function",
+          "usage": "celsius_to_fahrenheit value",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "fahrenheit_to_celsius",
+          "kind": "function",
+          "usage": "fahrenheit_to_celsius value",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "table",
+      "members": [
+        {
+          "name": "column",
+          "kind": "function",
+          "usage": "column rows name",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "row_count",
+          "kind": "function",
+          "usage": "row_count rows",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "select",
+          "kind": "function",
+          "usage": "select rows columns",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "dataset",
+      "members": [
+        {
+          "name": "row_count",
+          "kind": "function",
+          "usage": "row_count args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "select",
+          "kind": "function",
+          "usage": "select args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "describe",
+          "kind": "function",
+          "usage": "describe args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "train_test_split",
+          "kind": "function",
+          "usage": "train_test_split args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "columns",
+          "kind": "function",
+          "usage": "columns args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "filter_eq",
+          "kind": "function",
+          "usage": "filter_eq args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "unique",
+          "kind": "function",
+          "usage": "unique args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "split",
+          "kind": "function",
+          "usage": "split args...",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "cookie",
+      "members": [
+        {
+          "name": "parse",
+          "kind": "function",
+          "usage": "parse header",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "set",
+          "kind": "function",
+          "usage": "set name value",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "cors",
+      "members": [
+        {
+          "name": "allow_origin",
+          "kind": "function",
+          "usage": "allow_origin origin",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "preflight",
+          "kind": "function",
+          "usage": "preflight origin methods",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "template",
+      "members": [
+        {
+          "name": "escape",
+          "kind": "function",
+          "usage": "escape text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "render",
+          "kind": "function",
+          "usage": "render source values",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "static",
+      "members": [
+        {
+          "name": "mime",
+          "kind": "function",
+          "usage": "mime filename",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "read",
+          "kind": "function",
+          "usage": "read root filename",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "upload",
+      "members": [
+        {
+          "name": "save",
+          "kind": "function",
+          "usage": "save root filename body",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "tilemap",
+      "members": [
+        {
+          "name": "parse",
+          "kind": "function",
+          "usage": "parse text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "at",
+          "kind": "function",
+          "usage": "at map x y",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "size",
+          "kind": "function",
+          "usage": "size map",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "http_server",
+      "members": [
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "post",
+          "kind": "function",
+          "usage": "post args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "put",
+          "kind": "function",
+          "usage": "put args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "patch",
+          "kind": "function",
+          "usage": "patch args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "delete",
+          "kind": "function",
+          "usage": "delete args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "listen",
+          "kind": "function",
+          "usage": "listen args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "text",
+          "kind": "function",
+          "usage": "text args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "json",
+          "kind": "function",
+          "usage": "json args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "response",
+          "kind": "function",
+          "usage": "response args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "method",
+          "kind": "function",
+          "usage": "method args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "path",
+          "kind": "function",
+          "usage": "path args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "query",
+          "kind": "function",
+          "usage": "query args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "body",
+          "kind": "function",
+          "usage": "body args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "header",
+          "kind": "function",
+          "usage": "header args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "param",
+          "kind": "function",
+          "usage": "param args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "handle",
+          "kind": "function",
+          "usage": "handle args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "route_count",
+          "kind": "function",
+          "usage": "route_count args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "router",
+      "members": [
+        {
+          "name": "get",
+          "kind": "function",
+          "usage": "get args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "post",
+          "kind": "function",
+          "usage": "post args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "put",
+          "kind": "function",
+          "usage": "put args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "delete",
+          "kind": "function",
+          "usage": "delete args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "path",
+          "kind": "function",
+          "usage": "path args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "param",
+          "kind": "function",
+          "usage": "param args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "handle",
+          "kind": "function",
+          "usage": "handle args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "handle_status",
+          "kind": "function",
+          "usage": "handle_status args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "route_count",
+          "kind": "function",
+          "usage": "route_count args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "dns",
+      "members": [
+        {
+          "name": "resolve",
+          "kind": "function",
+          "usage": "resolve args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "resolve4",
+          "kind": "function",
+          "usage": "resolve4 args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "resolve6",
+          "kind": "function",
+          "usage": "resolve6 args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "reverse",
+          "kind": "function",
+          "usage": "reverse args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "is_ip",
+          "kind": "function",
+          "usage": "is_ip args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "lookup_mx",
+          "kind": "function",
+          "usage": "lookup_mx args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "lookup_txt",
+          "kind": "function",
+          "usage": "lookup_txt args...",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "toml",
+      "members": [
+        {
+          "name": "parse",
+          "kind": "function",
+          "usage": "parse text",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "yaml",
+      "members": [
+        {
+          "name": "parse",
+          "kind": "function",
+          "usage": "parse text",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "stringify",
+          "kind": "function",
+          "usage": "stringify value",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "xml",
+      "members": [
+        {
+          "name": "parse",
+          "kind": "function",
+          "usage": "parse text",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "escape",
+          "kind": "function",
+          "usage": "escape text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "markdown",
+      "members": [
+        {
+          "name": "render",
+          "kind": "function",
+          "usage": "render text",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "crypto",
+      "members": [
+        {
+          "name": "sha256",
+          "kind": "function",
+          "usage": "sha256 text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "hmac_sha256",
+          "kind": "function",
+          "usage": "hmac_sha256 key text",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "random_hex",
+          "kind": "function",
+          "usage": "random_hex byte_count",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "constant_time_equal",
+          "kind": "function",
+          "usage": "constant_time_equal left right",
+          "lowering_present": true,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "jwt",
+      "members": [
+        {
+          "name": "sign",
+          "kind": "function",
+          "usage": "sign claims secret",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "verify",
+          "kind": "function",
+          "usage": "verify token secret",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "session",
+      "members": [
+        {
+          "name": "encode",
+          "kind": "function",
+          "usage": "encode claims secret",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "decode",
+          "kind": "function",
+          "usage": "decode token secret",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "auth",
+      "members": [
+        {
+          "name": "hash_password",
+          "kind": "function",
+          "usage": "hash_password password",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "verify_password",
+          "kind": "function",
+          "usage": "verify_password password encoded_hash",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "email",
+      "members": [
+        {
+          "name": "compose",
+          "kind": "function",
+          "usage": "compose sender recipient subject body",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "parse",
+          "kind": "function",
+          "usage": "parse message",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "smtp",
+      "members": [
+        {
+          "name": "send",
+          "kind": "function",
+          "usage": "send host port username password recipient message",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "imap",
+      "members": [
+        {
+          "name": "subjects",
+          "kind": "function",
+          "usage": "subjects host username password mailbox limit",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "ftp",
+      "members": [
+        {
+          "name": "list",
+          "kind": "function",
+          "usage": "list host username password directory",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "download",
+          "kind": "function",
+          "usage": "download host username password filename",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "upload",
+          "kind": "function",
+          "usage": "upload host username password filename body",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "ssh",
+      "members": [
+        {
+          "name": "run",
+          "kind": "function",
+          "usage": "run host username command",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "websocket",
+      "members": [
+        {
+          "name": "exchange",
+          "kind": "function",
+          "usage": "exchange url message",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "ai",
+      "members": [
+        {
+          "name": "chat",
+          "kind": "function",
+          "usage": "chat endpoint api_key model prompt",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "embedding",
+      "members": [
+        {
+          "name": "create",
+          "kind": "function",
+          "usage": "create endpoint api_key model text",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "ml",
+      "members": [
+        {
+          "name": "linear_regression",
+          "kind": "function",
+          "usage": "linear_regression xs ys",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "predict",
+          "kind": "function",
+          "usage": "predict model x",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "tensor",
+      "members": [
+        {
+          "name": "shape",
+          "kind": "function",
+          "usage": "shape values",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "add",
+          "kind": "function",
+          "usage": "add left right",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "matmul",
+          "kind": "function",
+          "usage": "matmul left right",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "video",
+      "members": [
+        {
+          "name": "add",
+          "kind": "function",
+          "usage": "add scene url x y width height",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "stop",
+          "kind": "function",
+          "usage": "stop scene",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "camera",
+      "members": [
+        {
+          "name": "start",
+          "kind": "function",
+          "usage": "start scene x y width height",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "stop",
+          "kind": "function",
+          "usage": "stop scene",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "gui",
+      "members": [
+        {
+          "name": "new",
+          "kind": "function",
+          "usage": "gui.new",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "rect",
+          "kind": "function",
+          "usage": "gui.rect",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "circle",
+          "kind": "function",
+          "usage": "gui.circle",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "text",
+          "kind": "function",
+          "usage": "gui.text",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "show",
+          "kind": "function",
+          "usage": "gui.show",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "save",
+          "kind": "function",
+          "usage": "gui.save",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "html",
+          "kind": "function",
+          "usage": "gui.html",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "window",
+      "members": [
+        {
+          "name": "new",
+          "kind": "function",
+          "usage": "window.new",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "fullscreen",
+          "kind": "function",
+          "usage": "window.fullscreen",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "show",
+          "kind": "function",
+          "usage": "window.show",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "canvas",
+      "members": [
+        {
+          "name": "new",
+          "kind": "function",
+          "usage": "canvas.new",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "background",
+          "kind": "function",
+          "usage": "canvas.background",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "clear",
+          "kind": "function",
+          "usage": "canvas.clear",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "rect",
+          "kind": "function",
+          "usage": "canvas.rect",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "circle",
+          "kind": "function",
+          "usage": "canvas.circle",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "line",
+          "kind": "function",
+          "usage": "canvas.line",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "text",
+          "kind": "function",
+          "usage": "canvas.text",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "show",
+          "kind": "function",
+          "usage": "canvas.show",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "save",
+          "kind": "function",
+          "usage": "canvas.save",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "html",
+          "kind": "function",
+          "usage": "canvas.html",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "input",
+      "members": [
+        {
+          "name": "key_move",
+          "kind": "function",
+          "usage": "input.key_move",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "follow_mouse",
+          "kind": "function",
+          "usage": "input.follow_mouse",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "sprite",
+      "members": [
+        {
+          "name": "image",
+          "kind": "function",
+          "usage": "sprite.image",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sprite",
+          "kind": "function",
+          "usage": "sprite.sprite",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sprite_color",
+          "kind": "function",
+          "usage": "sprite.sprite_color",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "position",
+          "kind": "function",
+          "usage": "sprite.position",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "move",
+          "kind": "function",
+          "usage": "sprite.move",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "velocity",
+          "kind": "function",
+          "usage": "sprite.velocity",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "animate",
+          "kind": "function",
+          "usage": "sprite.animate",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "physics",
+      "members": [
+        {
+          "name": "velocity",
+          "kind": "function",
+          "usage": "physics.velocity",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "rect_hit",
+          "kind": "function",
+          "usage": "physics.rect_hit",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "circle_hit",
+          "kind": "function",
+          "usage": "physics.circle_hit",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "distance",
+          "kind": "function",
+          "usage": "physics.distance",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "vector",
+          "kind": "function",
+          "usage": "physics.vector",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "particles",
+          "kind": "function",
+          "usage": "physics.particles",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "camera",
+          "kind": "function",
+          "usage": "physics.camera",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "sound",
+      "members": [
+        {
+          "name": "sound",
+          "kind": "function",
+          "usage": "sound.sound",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "play",
+          "kind": "function",
+          "usage": "sound.play",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "stop",
+          "kind": "function",
+          "usage": "sound.stop",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "keyboard",
+      "members": [
+        {
+          "name": "key_move",
+          "kind": "function",
+          "usage": "keyboard.key_move",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "mouse",
+      "members": [
+        {
+          "name": "follow_mouse",
+          "kind": "function",
+          "usage": "mouse.follow_mouse",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "camera",
+          "kind": "function",
+          "usage": "mouse.camera",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "animation",
+      "members": [
+        {
+          "name": "animate",
+          "kind": "function",
+          "usage": "animation.animate",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "move",
+          "kind": "function",
+          "usage": "animation.move",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "velocity",
+          "kind": "function",
+          "usage": "animation.velocity",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "scene",
+      "members": [
+        {
+          "name": "new",
+          "kind": "function",
+          "usage": "scene.new",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "background",
+          "kind": "function",
+          "usage": "scene.background",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "clear",
+          "kind": "function",
+          "usage": "scene.clear",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "html",
+          "kind": "function",
+          "usage": "scene.html",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "save",
+          "kind": "function",
+          "usage": "scene.save",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "show",
+          "kind": "function",
+          "usage": "scene.show",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "collision",
+      "members": [
+        {
+          "name": "rect_hit",
+          "kind": "function",
+          "usage": "collision.rect_hit",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "circle_hit",
+          "kind": "function",
+          "usage": "collision.circle_hit",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "distance",
+          "kind": "function",
+          "usage": "collision.distance",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "vector",
+          "kind": "function",
+          "usage": "collision.vector",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "image",
+      "members": [
+        {
+          "name": "image",
+          "kind": "function",
+          "usage": "image.image",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "sprite",
+          "kind": "function",
+          "usage": "image.sprite",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    },
+    {
+      "module": "audio",
+      "members": [
+        {
+          "name": "sound",
+          "kind": "function",
+          "usage": "audio.sound",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "play",
+          "kind": "function",
+          "usage": "audio.play",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        },
+        {
+          "name": "stop",
+          "kind": "function",
+          "usage": "audio.stop",
+          "lowering_present": false,
+          "conformance": "not_certified_by_inventory"
+        }
+      ]
+    }
+  ]
+}

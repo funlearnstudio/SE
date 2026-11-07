@@ -1,0 +1,2 @@
+values = set [1, "no"]
+say values

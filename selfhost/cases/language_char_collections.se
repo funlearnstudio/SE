@@ -1,0 +1,9 @@
+use collections
+
+say char 65
+say char 20013
+items = [1, 2, 3, 4]
+first = collections.take items 2
+rest = collections.drop items 2
+say first
+say rest

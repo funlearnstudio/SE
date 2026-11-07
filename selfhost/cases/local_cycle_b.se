@@ -1,0 +1,2 @@
+use local_cycle_a
+say "B"

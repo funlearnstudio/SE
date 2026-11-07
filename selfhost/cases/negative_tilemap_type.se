@@ -1,0 +1,2 @@
+use tilemap
+say tilemap.size 1

@@ -1,0 +1,8 @@
+use enum
+
+states = enum.make ["idle", "running", "done"]
+say states.len
+say enum.name states 1
+say enum.value states "done"
+say enum.has states "idle"
+say enum.has states "missing"

@@ -1,0 +1,2 @@
+use tilemap
+say tilemap.at ["AB"] 0

@@ -1,0 +1,7 @@
+use text
+
+make _helper value:Int -> Int
+    give value * 2
+
+make right value:Int -> Int
+    give _helper value

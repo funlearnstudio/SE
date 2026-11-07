@@ -1,0 +1,2 @@
+rows = "not a number"
+data[rows] = []

@@ -1,0 +1,35 @@
+use probability
+use fraction
+use complex
+use calculus
+use units
+use table
+use dataset
+
+say try probability.factorial 5
+say try probability.choose 6 2
+negative = 0 - 18
+part = try fraction.make 12 negative
+say part
+say try fraction.decimal part
+z = complex.make 3.0 4.0
+say z
+say try complex.add z z
+say try complex.multiply z z
+say try complex.magnitude z
+coefficients = [1.0, 2.0, 3.0]
+say calculus.polynomial coefficients 2.0
+say calculus.derivative coefficients 2.0
+say calculus.integral coefficients 0.0 1.0
+say try units.convert 3.0 "km" "m"
+say units.celsius_to_fahrenheit 0.0
+say units.fahrenheit_to_celsius 32.0
+rows = [["score": 4], ["score": 2], ["score": 3]]
+say try table.column rows "score"
+say table.row_count rows
+keys = ["score"]
+say try table.select rows keys
+say try dataset.columns rows
+say dataset.row_count rows
+split_rows = try dataset.split rows 0.5
+say split_rows

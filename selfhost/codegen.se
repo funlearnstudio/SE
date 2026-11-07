@@ -1,0 +1,1207 @@
+# C++20 backend written in SE for the bootstrap subset.
+# Emits calls to selfhost/se_bootstrap_runtime.hpp for basic SE semantics.
+use json
+use text
+use ast_codec
+use type_model
+use typechecker
+use symbol_table
+
+make _node encoded:Text -> List[Text]
+    give json.parse encoded
+
+make _indent depth:Int -> Text
+    give text.repeat "    " depth
+
+make _clone_names entries:List[Text] -> List[Text]
+    names = []
+    for item in entries
+        names.add item
+    give names
+
+make _ctype source:Text -> Text
+    parts = decompose_type source
+    if parts[0] == "List" and parts.len == 2
+        give "SEList<" + (try _ctype parts[1]) + ">"
+    if parts[0] == "Set" and parts.len == 2
+        give "SESet<" + (try _ctype parts[1]) + ">"
+    if parts[0] == "Map" and parts.len == 3 and parts[1] == "Text"
+        give "SEMap<" + (try _ctype parts[2]) + ">"
+    if text.starts source "Handle:"
+        give "SENativeHandle"
+    if source == "Bytes"
+        give "SEBytes"
+    if source == "Any"
+        give "SEAny"
+    if source == "None"
+        give "void"
+    if source == "Int"
+        give "std::int64_t"
+    if source == "Num"
+        give "double"
+    if source == "Text"
+        give "std::string"
+    if source == "Bool"
+        give "bool"
+    if source == "Time"
+        give "SETime"
+    if source == "Duration"
+        give "SEDuration"
+    if source == "Error"
+        give "SEError"
+    if source == "File"
+        give "SEFile"
+    if source == "List[Int]"
+        give "SEList<std::int64_t>"
+    if source == "List[Num]"
+        give "SEList<double>"
+    if source == "List[List[Text]]"
+        give "SEList<SEList<std::string>>"
+    if source == "List[List[Int]]"
+        give "SEList<SEList<std::int64_t>>"
+    if source == "List[Text]"
+        give "SEList<std::string>"
+    if source == "List[Any]"
+        give "SEList<SEAny>"
+    if source == "List[Bool]"
+        give "SEList<bool>"
+    if source == "Map[Text,Int]"
+        give "SEMap<std::int64_t>"
+    if source == "Map[Text,Text]"
+        give "SEMap<std::string>"
+    if source == "Map[Text,Num]"
+        give "SEMap<double>"
+    if source == "Map[Text,Bool]"
+        give "SEMap<bool>"
+    if source == "Map[Text,Any]"
+        give "SEMap<SEAny>"
+    if source == "Set[Int]"
+        give "SESet<std::int64_t>"
+    if source == "Set[Text]"
+        give "SESet<std::string>"
+    if source == "Set[Num]"
+        give "SESet<double>"
+    if source == "Set[Bool]"
+        give "SESet<bool>"
+    if source in ["T", "U", "V", "K", "E", "R", "A", "B"]
+        give source
+    if source == "Unknown"
+        give "auto"
+    if parts.len > 1
+        arguments = []
+        i = 1
+        while i < parts.len
+            arguments.add (try _ctype parts[i])
+            i += 1
+        give "SEType_" + parts[0] + "<" + (text.join arguments ", ") + ">"
+    characters = text.split source ""
+    if characters.len > 0
+        if text.contains "ABCDEFGHIJKLMNOPQRSTUVWXYZ" characters[0]
+            give "SEType_" + source
+    give "SEType_" + source
+
+# Preserve mutable cursor, token and symbol-table arguments across calls.
+make _parameter_type declared:Text name:Text -> Text
+    result = try _ctype declared
+    if declared in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[List[Text]]", "List[List[Int]]"]
+        # SE List variables alias shared storage; parameter rebinding still
+        # only changes the local wrapper, while element edits remain visible.
+        give result
+    give result
+
+make _emit_template encoded:Text -> Text
+    node = _node encoded
+    if node.len < 6
+        give ""
+    vars = _node node[5]
+    result = ""
+    for v in vars
+        if result != ""
+            result = result + ", "
+        result = result + "typename " + (try _ctype v)
+    if result == ""
+        give ""
+    give "template <" + result + ">\n"
+
+# Keep SE identifiers distinct from reserved C++20 tokens.
+make _cpp_identifier name:Text -> Text
+    if text.starts name "__se_"
+        give "se_user_" + name
+    if name in ["alignas","alignof","and","and_eq","asm","auto","bitand","bitor","bool","break","case","catch","char","char8_t","char16_t","char32_t","class","compl","concept","const","consteval","constexpr","constinit","const_cast","continue","co_await","co_return","co_yield","decltype","default","delete","do","double","dynamic_cast","else","enum","explicit","export","extern","false","float","for","friend","goto","if","inline","int","long","mutable","namespace","new","noexcept","not","not_eq","nullptr","operator","or","or_eq","private","protected","public","register","reinterpret_cast","requires","return","short","signed","sizeof","static","static_assert","static_cast","struct","switch","template","this","thread_local","throw","true","try","typedef","typeid","typename","union","unsigned","using","virtual","void","volatile","wchar_t","while","xor","xor_eq"]
+        give "se_keyword_" + name
+    give name
+
+make _emit_arguments encoded:Text -> Text
+    args = _node encoded
+    parts = []
+    for item in args
+        parts.add (try _emit_expr item)
+    give text.join parts ", "
+
+# Callable module arguments are passed as values even for nullary functions.
+make _callback_arguments encoded:Text -> Text
+    args = _node encoded
+    parts = []
+    first = true
+    for item in args
+        node = _node item
+        if first and node[0] == "Atom" and node[1] == "Identifier"
+            parts.add ("std::ref(" + (_cpp_identifier node[2]) + ")")
+        else
+            parts.add (try _emit_expr item)
+        first = false
+    give text.join parts ", "
+
+make _last_callback_arguments encoded:Text -> Text
+    args = _node encoded
+    parts = []
+    last = args.len - 1
+    index = 0
+    for item in args
+        node = _node item
+        if index == last and node[0] == "Atom" and node[1] == "Identifier"
+            parts.add ("std::ref(" + (_cpp_identifier node[2]) + ")")
+        else
+            parts.add (try _emit_expr item)
+        index += 1
+    give text.join parts ", "
+
+make _pipe_arguments encoded:Text -> Text
+    args = _node encoded
+    parts = []
+    first = true
+    for item in args
+        node = _node item
+        if not first and node[0] == "Atom" and node[1] == "Identifier"
+            parts.add ("std::ref(" + (_cpp_identifier node[2]) + ")")
+        else
+            parts.add (try _emit_expr item)
+        first = false
+    give text.join parts ", "
+
+# C++ does not order ordinary function arguments. Build a braced tuple first;
+# its elements are evaluated left-to-right, then invoke SE's callable.
+make _ordered_apply function:Text arguments:Text -> Text
+    give "std::apply([&](auto&&... __se_args) -> decltype(auto) { return " + function + "(std::forward<decltype(__se_args)>(__se_args)...); }, std::tuple{" + arguments + "})"
+
+make _has_side_effect encoded:Text -> Bool
+    node = _node encoded
+    kind = node[0]
+    if kind == "Call" or kind == "Ask" or kind == "Try"
+        give true
+    if kind == "Unary"
+        give try _has_side_effect node[2]
+    if kind == "Member"
+        give try _has_side_effect node[1]
+    if kind == "Binary"
+        give (try _has_side_effect node[2]) or (try _has_side_effect node[3])
+    if kind == "Index"
+        give (try _has_side_effect node[1]) or (try _has_side_effect node[2])
+    if kind == "List" or kind == "Set"
+        for item in (_node node[1])
+            if try _has_side_effect item
+                give true
+        give false
+    if kind == "Map"
+        for encoded_pair in (_node node[1])
+            pair = _node encoded_pair
+            if (try _has_side_effect pair[0]) or (try _has_side_effect pair[1])
+                give true
+        give false
+    give false
+
+make _apply_or_direct function:Text arguments:Text encoded:Text -> Text
+    items = _node encoded
+    for item in items
+        if try _has_side_effect item
+            give try _ordered_apply function arguments
+    give function + "(" + arguments + ")"
+
+make _emit_call encoded:Text -> Text
+    node = _node encoded
+    target = _node node[1]
+    args = _node node[2]
+    generated = try _emit_arguments node[2]
+    if target[0] == "Atom" and target[1] == "Identifier"
+        name = target[2]
+        if name in ["int", "integer"]
+            give try _apply_or_direct "se_int" generated node[2]
+        if name in ["num", "float", "double"]
+            give try _apply_or_direct "se_num" generated node[2]
+        if name == "bool" or name == "boolean"
+            give try _apply_or_direct "se_bool" generated node[2]
+        if name in ["text", "string"]
+            give try _apply_or_direct "se_string" generated node[2]
+        if name == "wait"
+            give try _apply_or_direct "se_wait" generated node[2]
+        if name == "bytes"
+            give try _apply_or_direct "se_bytes" generated node[2]
+        if name == "char"
+            give try _apply_or_direct "se_char" generated node[2]
+        if name == "read"
+            give try _apply_or_direct "se_read" generated node[2]
+        if name == "write"
+            give try _apply_or_direct "se_write" generated node[2]
+        if name == "append"
+            give try _apply_or_direct "se_append" generated node[2]
+        if name == "open"
+            give try _apply_or_direct "se_file_open" generated node[2]
+        cpp_name = _cpp_identifier name
+        give try _apply_or_direct cpp_name generated node[2]
+    if target[0] == "Member"
+        owner = _node target[1]
+        method = target[2]
+        if owner[0] == "Atom" and owner[1] == "Identifier"
+            module = owner[2]
+            if module == "async" or module == "threading"
+                if method == "run"
+                    callback_args = try _callback_arguments node[2]
+                    give try _apply_or_direct "se_async_run" callback_args node[2]
+                if method in ["await", "join"]
+                    give try _apply_or_direct "se_async_await" generated node[2]
+                if method == "ready"
+                    give try _apply_or_direct "se_async_ready" generated node[2]
+                fail "Unknown task operation: " + method
+            if module == "function"
+                if method == "pipe"
+                    pipe_args = try _pipe_arguments node[2]
+                    give try _apply_or_direct "se_function_pipe" pipe_args node[2]
+                if method in ["bind", "partial", "call", "map", "filter", "reduce"]
+                    callback_args = try _callback_arguments node[2]
+                    give try _apply_or_direct ("se_function_" + method) callback_args node[2]
+                fail "Unknown function operation: " + method
+            if module == "os"
+                if method == "getenv"
+                    give try _apply_or_direct "se_getenv" generated node[2]
+                if method == "has_env"
+                    give try _apply_or_direct "se_has_env" generated node[2]
+                fail "OS module function not yet supported: " + method
+            if module == "tilemap"
+                if method in ["parse", "at", "size"]
+                    give try _apply_or_direct ("se_tilemap_" + method) generated node[2]
+                fail "Unknown tilemap function: " + method
+            if module == "cookie"
+                if method in ["parse", "set"]
+                    give try _apply_or_direct ("se_cookie_" + method) generated node[2]
+                fail "Unknown cookie function: " + method
+            if module == "cors"
+                if method in ["allow_origin", "preflight"]
+                    give try _apply_or_direct ("se_cors_" + method) generated node[2]
+                fail "Unknown cors function: " + method
+            if module == "template"
+                if method in ["escape", "render"]
+                    give try _apply_or_direct ("se_template_" + method) generated node[2]
+                fail "Unknown template function: " + method
+            if module == "enum"
+                if method in ["make", "name", "value", "has"]
+                    give try _apply_or_direct ("se_enum_" + method) generated node[2]
+                fail "Unknown enum function: " + method
+            if module == "datetime"
+                if method in ["now", "timestamp"]
+                    give "se_datetime_" + method + "()"
+                if method in ["from_timestamp", "format", "add_seconds"]
+                    give try _apply_or_direct ("se_datetime_" + method) generated node[2]
+                fail "Unknown datetime function: " + method
+            if module == "iter"
+                if method in ["range", "enumerate", "zip", "product", "permutations", "combinations"]
+                    give try _apply_or_direct ("se_iter_" + method) generated node[2]
+                fail "Unsupported iter function: " + method
+            if module == "functools"
+                if method in ["partial", "reduce", "map", "filter"]
+                    callback_args = try _callback_arguments node[2]
+                    give try _apply_or_direct ("se_function_" + method) callback_args node[2]
+                fail "Unknown functools function: " + method
+            if module == "itertools"
+                if method in ["chain", "flatten", "chunked", "take", "drop", "windows", "cycle", "pairs", "unique"]
+                    give try _apply_or_direct ("se_itertools_" + method) generated node[2]
+                fail "Unknown itertools function: " + method
+            if module == "glob"
+                if method in ["match", "find"]
+                    give try _apply_or_direct ("se_glob_" + method) generated node[2]
+                fail "Unknown glob function: " + method
+            if module == "crypto"
+                if method in ["sha256", "hmac_sha256"]
+                    give try _apply_or_direct ("se_crypto_" + method) generated node[2]
+                if method == "constant_time_equal"
+                    give try _apply_or_direct "se_hashlib_compare" generated node[2]
+                fail "Unsupported crypto function: " + method
+            if module == "hash"
+                if method in ["sha256", "file_sha256"]
+                    give try _apply_or_direct ("se_hash_" + method) generated node[2]
+                fail "Unsupported hash function: " + method
+            if module == "hashlib"
+                if method in ["sha256", "file_sha256", "hmac_sha256"]
+                    give try _apply_or_direct ("se_hashlib_" + method) generated node[2]
+                if method in ["compare", "to_hex"]
+                    give try _apply_or_direct ("se_hashlib_" + method) generated node[2]
+                fail "Unsupported hashlib function: " + method
+            if module == "shutil"
+                if method in ["copy", "move", "copytree", "remove", "mkdir"]
+                    give try _apply_or_direct ("se_file_" + method) generated node[2]
+                fail "Unknown shutil function: " + method
+            if module == "typing"
+                if method == "type_of"
+                    give try _apply_or_direct "se_dynamic_type" generated node[2]
+                if method == "is"
+                    give try _apply_or_direct "se_typing_is" generated node[2]
+                if method == "cast"
+                    give try _apply_or_direct "se_typing_cast" generated node[2]
+                fail "Unsupported typing function: " + method
+            if module == "cookie"
+                if method in ["parse", "set"]
+                    give try _apply_or_direct ("se_cookie_" + method) generated node[2]
+                fail "Unknown cookie function: " + method
+            if module == "cors"
+                if method in ["allow_origin", "preflight"]
+                    give try _apply_or_direct ("se_cors_" + method) generated node[2]
+                fail "Unknown CORS function: " + method
+            if module == "template"
+                if method in ["escape", "render"]
+                    give try _apply_or_direct ("se_template_" + method) generated node[2]
+                fail "Unknown template function: " + method
+            if module == "static"
+                if method in ["mime", "read"]
+                    give try _apply_or_direct ("se_static_" + method) generated node[2]
+                fail "Unknown static function: " + method
+            if module == "upload"
+                if method == "save"
+                    give try _apply_or_direct "se_upload_save" generated node[2]
+                fail "Unknown upload function: " + method
+            if module == "dotenv"
+                if method in ["parse", "get"]
+                    give try _apply_or_direct ("se_dotenv_" + method) generated node[2]
+                fail "Unknown dotenv function: " + method
+            if module == "config"
+                if method in ["parse", "get", "get_int", "get_bool", "section", "merge"]
+                    give try _apply_or_direct ("se_config_" + method) generated node[2]
+                fail "Unknown config function: " + method
+            if module == "url"
+                if method in ["encode", "decode", "query", "parse_query"]
+                    give try _apply_or_direct ("se_url_" + method) generated node[2]
+                fail "Unknown url function: " + method
+            if module == "encoding"
+                if method in ["hex", "unhex", "utf8_valid"]
+                    give try _apply_or_direct ("se_encoding_" + method) generated node[2]
+                fail "Unknown encoding function: " + method
+            if module == "xml"
+                if method == "escape"
+                    give try _apply_or_direct "se_xml_escape" generated node[2]
+                fail "Unsupported XML function: " + method
+            if module == "json"
+                if method == "stringify"
+                    give try _apply_or_direct "se_json_stringify" generated node[2]
+                if method == "parse"
+                    give try _apply_or_direct "se_json_parse" generated node[2]
+                if method == "pretty"
+                    give try _apply_or_direct "se_json_pretty" generated node[2]
+                fail "JSON module function not yet supported: " + method
+            if module == "csv"
+                if method == "read"
+                    give try _apply_or_direct "se_csv_read" generated node[2]
+                if method == "write"
+                    give try _apply_or_direct "se_csv_write" generated node[2]
+                if method == "parse"
+                    give try _apply_or_direct "se_csv_parse" generated node[2]
+                if method == "stringify"
+                    give try _apply_or_direct "se_csv_stringify" generated node[2]
+                fail "CSV module function not supported: " + method
+            if module == "path"
+                if method in ["join", "name", "ext", "parent", "exists", "is_file", "is_dir"]
+                    give try _apply_or_direct ("se_path_" + method) generated node[2]
+                fail "Path function not yet supported: " + method
+            if module == "random"
+                if method == "int"
+                    give try _apply_or_direct "se_random_int" generated node[2]
+                fail "Random module function not yet supported: " + method
+            if module == "base64"
+                if method == "encode"
+                    give try _apply_or_direct "se_base64_encode" generated node[2]
+                if method == "decode"
+                    give try _apply_or_direct "se_base64_decode" generated node[2]
+                fail "Base64 module function not yet supported: " + method
+            if module == "time"
+                if method == "now"
+                    give "se_time_now()"
+                if method == "unix"
+                    give try _apply_or_direct "se_time_unix" generated node[2]
+                if method == "from_unix"
+                    give try _apply_or_direct "se_time_from_unix" generated node[2]
+                if method == "iso"
+                    give try _apply_or_direct "se_time_iso" generated node[2]
+                fail "Time module function not yet supported: " + method
+            if module == "file"
+                if method == "read"
+                    give try _apply_or_direct "se_read" generated node[2]
+                if method == "write"
+                    give try _apply_or_direct "se_write" generated node[2]
+                if method == "append"
+                    give try _apply_or_direct "se_append" generated node[2]
+                if method == "open"
+                    give try _apply_or_direct "se_file_open" generated node[2]
+                if method in ["copy", "move", "copytree", "remove", "mkdir"]
+                    give try _apply_or_direct ("se_file_" + method) generated node[2]
+                fail "File module function not yet supported: " + method
+            if module == "test"
+                if method == "ok"
+                    give try _apply_or_direct "se_test_ok" generated node[2]
+                if method == "equal"
+                    give try _apply_or_direct "se_test_equal" generated node[2]
+                if method == "not_equal"
+                    give try _apply_or_direct "se_test_not_equal" generated node[2]
+                if method == "fail"
+                    give try _apply_or_direct "se_test_fail" generated node[2]
+                fail "Test module function not supported: " + method
+            if module == "statistics"
+                if method in ["mean", "median", "pvariance", "pstdev", "variance", "stdev"]
+                    give try _apply_or_direct ("se_statistics_" + method) generated node[2]
+                fail "Unknown statistics function: " + method
+            if module == "regex" or module == "re"
+                if method in ["match", "search", "replace", "split", "find_all", "count", "escape", "groups"]
+                    give try _apply_or_direct ("se_regex_" + method) generated node[2]
+                fail "Unknown regex function: " + method
+            if module == "uuid"
+                if method == "v4"
+                    give "se_uuid_v4()"
+                if method == "valid"
+                    give try _apply_or_direct "se_uuid_valid" generated node[2]
+                fail "Unknown UUID function: " + method
+            if module == "operator"
+                if method in ["add", "sub", "mul", "div", "mod", "eq", "ne", "lt", "le", "gt", "ge"]
+                    give try _apply_or_direct ("se_operator_" + method) generated node[2]
+                fail "Unknown operator function: " + method
+            if module == "dynamic"
+                if method == "type_of"
+                    give try _apply_or_direct "se_dynamic_type" generated node[2]
+                if method == "is"
+                    give try _apply_or_direct "se_dynamic_is" generated node[2]
+                fail "Unknown dynamic operation: " + method
+            if module == "copy"
+                if method == "shallow"
+                    give try _apply_or_direct "se_copy_shallow" generated node[2]
+                if method == "deep"
+                    give try _apply_or_direct "se_copy_deep" generated node[2]
+                fail "Unknown copy operation: " + method
+            if module == "math"
+                if method in ["cbrt", "abs", "floor", "ceil", "round", "trunc", "sin", "cos", "tan", "asin", "acos", "atan", "sinh", "cosh", "tanh", "asinh", "acosh", "atanh", "exp", "exp2", "expm1", "log", "log10", "log2", "log1p", "gamma", "lgamma", "erf", "erfc", "pow", "atan2", "fmod", "remainder", "copysign", "nextafter", "sqrt", "degrees", "radians", "hypot", "min", "max", "clamp", "lerp", "map_range", "sign", "isfinite", "isinf", "isnan", "gcd", "lcm", "factorial", "comb", "perm", "sum", "mean", "median", "variance", "stddev"]
+                    give try _apply_or_direct ("se_math_" + method) generated node[2]
+                fail "Math module function not yet supported: " + method
+            if module == "text"
+                if method in ["split", "trim", "contains", "repeat", "join", "starts", "ends", "replace"]
+                    give try _apply_or_direct ("se_" + method) generated node[2]
+                fail "Text module function not yet supported: " + method
+            if module == "collections"
+                if method in ["contains", "first", "last", "unique", "keys", "values"]
+                    give try _apply_or_direct ("se_" + method) generated node[2]
+                if method in ["map", "filter", "reduce", "sort_with"]
+                    callback_args = try _last_callback_arguments node[2]
+                    function_name = "se_" + method
+                    if method == "map"
+                        function_name = "se_transform"
+                    give try _apply_or_direct function_name callback_args node[2]
+                if method in ["sort_by", "sort_by_desc"]
+                    give try _apply_or_direct ("se_" + method) generated node[2]
+                if method == "sort"
+                    give try _apply_or_direct "se_sorted" generated node[2]
+                if method == "reverse"
+                    give try _apply_or_direct "se_reversed" generated node[2]
+                if method == "take"
+                    give try _apply_or_direct "se_take" generated node[2]
+                if method == "drop"
+                    give try _apply_or_direct "se_drop" generated node[2]
+                if method == "slice"
+                    give try _apply_or_direct "se_slice" generated node[2]
+                fail "Collection function not yet supported: " + method
+            if module == "array" or module == "series"
+                if method in ["sum", "mean", "min", "max", "diff", "lag", "moving_average", "cumulative_sum", "returns", "normalize"]
+                    give try _apply_or_direct ("se_series_" + method) generated node[2]
+                if method == "slice"
+                    give try _apply_or_direct "se_slice" generated node[2]
+                fail "Array/series function not yet supported: " + method
+            if module == "matrix" or module == "linear"
+                if method in ["transpose", "multiply", "dot", "add", "subtract", "scale", "identity", "determinant", "inverse", "norm", "normalize"]
+                    give try _apply_or_direct ("se_linear_" + method) generated node[2]
+                fail "Linear algebra function not yet supported: " + method
+            if module == "probability"
+                if method in ["factorial", "choose"]
+                    give try _apply_or_direct ("se_probability_" + method) generated node[2]
+            if module == "fraction"
+                if method in ["make", "decimal"]
+                    give try _apply_or_direct ("se_fraction_" + method) generated node[2]
+            if module == "complex"
+                if method in ["make", "add", "multiply", "magnitude"]
+                    give try _apply_or_direct ("se_complex_" + method) generated node[2]
+            if module == "calculus"
+                if method in ["polynomial", "derivative", "integral"]
+                    give try _apply_or_direct ("se_calculus_" + method) generated node[2]
+            if module == "units"
+                if method in ["convert", "celsius_to_fahrenheit", "fahrenheit_to_celsius"]
+                    give try _apply_or_direct ("se_units_" + method) generated node[2]
+            if module == "table" or module == "dataset"
+                if method in ["column", "row_count", "select", "columns", "split"]
+                    prefix = "dataset_"
+                    if module == "table"
+                        prefix = "table_"
+                    give try _apply_or_direct ("se_" + prefix + method) generated node[2]
+        obj = try _emit_expr target[1]
+        if method == "add"
+            give "se_add_item(" + obj + ", " + generated + ")"
+        if method == "remove"
+            give "se_remove_item(" + obj + ", " + generated + ")"
+        # A user-defined object's method is a regular C++20 member call.
+        cpp_method = _cpp_identifier method
+        give "([&](){ auto&& __se_object = " + obj + "; return std::apply([&](auto&&... __se_args) -> decltype(auto) { return __se_object." + cpp_method + "(std::forward<decltype(__se_args)>(__se_args)...); }, std::tuple{" + generated + "}); }())"
+    fail "Only named functions and supported module methods can be called."
+
+make _abi_type source:Text -> Text
+    if source in ["Int", "Bool"]
+        give "int"
+    if source == "Text"
+        give "const char*"
+    if source == "Bytes"
+        give "SENativeBytesView"
+    if text.starts source "Handle:"
+        give "void*"
+    give try _ctype source
+
+make _emit_expr encoded:Text -> Text
+    node = _node encoded
+    kind = node[0]
+    if kind == "NativeCall"
+        types = _node node[5]
+        arguments = _node node[6]
+        values = []
+        index = 0
+        for argument in arguments
+            value = try _emit_expr argument
+            if text.starts types[index] "Handle:"
+                tag = text.replace types[index] "Handle:" ""
+                values.add ("se_native_handle(" + value + ", " + (json.stringify tag) + ")")
+            else if types[index] == "Num"
+                values.add ("static_cast<double>(" + value + ")")
+            else
+                values.add ("se_native_argument(" + value + ")")
+            index += 1
+        suffix = ""
+        if values.len > 0
+            suffix = ", " + (text.join values ", ")
+        tag = text.replace node[4] "Handle:" ""
+        result = "se_native_invoke<" + (try _abi_type node[4]) + ">(" + (json.stringify node[1]) + ", " + (json.stringify node[2]) + ", " + (json.stringify node[3]) + ", " + node[7] + ", " + (json.stringify node[8]) + ", " + (json.stringify tag) + ", " + (json.stringify node[9]) + suffix + ")"
+        if node[4] == "Bool"
+            result = "(" + result + " != 0)"
+        give result
+    if kind == "Atom"
+        value_kind = node[1]
+        raw = node[2]
+        if value_kind == "String"
+            quoted = json.stringify raw
+            give "std::string(" + quoted + ")"
+        if value_kind == "Integer"
+            give "std::int64_t{" + raw + "}"
+        if value_kind == "Duration"
+            give "se_duration(" + (json.stringify raw) + ")"
+        if value_kind == "Identifier"
+            # Production SE auto-invokes zero-argument functions referenced as
+            # values. Preserve ordinary values and higher-arity callbacks.
+            give "se_implicit_call(" + (_cpp_identifier raw) + ")"
+        if value_kind in ["Number", "true", "false"]
+            give raw
+        fail "Unrecognized literal: " + value_kind
+    if kind == "TypeInstance"
+        arguments = _node node[2]
+        cpp_args = []
+        for argument in arguments
+            cpp_args.add (try _ctype argument)
+        give "SEType_" + node[1] + "<" + (text.join cpp_args ", ") + ">{}"
+    if kind == "Unary"
+        op = node[1]
+        if op == "not"
+            op = "!"
+        rhs = try _emit_expr node[2]
+        give "(" + op + rhs + ")"
+    if kind == "Binary"
+        op = node[1]
+        left = try _emit_expr node[2]
+        right = try _emit_expr node[3]
+        side_effects = (try _has_side_effect node[2]) or (try _has_side_effect node[3])
+        if not side_effects
+            if op == "and"
+                give "(" + left + " && " + right + ")"
+            if op == "or"
+                give "(" + left + " || " + right + ")"
+            if op == ".."
+                give "se_range(" + left + ", " + right + ")"
+            if op == "in"
+                give "se_contains(" + right + ", " + left + ")"
+            if op == "+"
+                give "se_add(" + left + ", " + right + ")"
+            if op == "**"
+                give "std::pow(" + left + ", " + right + ")"
+            if op != "/"
+                give "(" + left + " " + op + " " + right + ")"
+        if op == "and"
+            give "([&](){ const auto __se_left = " + left + "; if (!__se_left) return false; return static_cast<bool>(" + right + "); }())"
+        if op == "or"
+            give "([&](){ const auto __se_left = " + left + "; if (__se_left) return true; return static_cast<bool>(" + right + "); }())"
+        if op == ".."
+            give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return se_range(__se_left, __se_right); }())"
+        if op == "in"
+            give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return se_contains(__se_right, __se_left); }())"
+        if op == "+"
+            give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return se_add(__se_left, __se_right); }())"
+        if op == "**"
+            give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return std::pow(__se_left, __se_right); }())"
+        if op == "/"
+            give "([&](){ const auto __se_left = se_num(" + left + "); const auto __se_right = se_num(" + right + "); if (__se_right == 0) throw std::runtime_error(\"Division by zero.\"); return __se_left / __se_right; }())"
+        give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return (__se_left " + op + " __se_right); }())"
+    if kind == "List"
+        items = try _emit_arguments node[1]
+        has_effects = false
+        for item in (_node node[1])
+            if try _has_side_effect item
+                has_effects = true
+        if not has_effects
+            give "se_list(" + items + ")"
+        give "se_list_ordered(std::tuple{" + items + "})"
+    if kind == "Map"
+        pairs = _node node[1]
+        output = ""
+        has_effects = false
+        for item in pairs
+            pair = _node item
+            if (try _has_side_effect pair[0]) or (try _has_side_effect pair[1])
+                has_effects = true
+            key = try _emit_expr pair[0]
+            value = try _emit_expr pair[1]
+            if output != ""
+                output = output + ", "
+            output = output + "se_ordered_pair(std::tuple{" + key + ", " + value + "})"
+        give "se_map_ordered(std::tuple{" + output + "})"
+    if kind == "Set"
+        items = try _emit_arguments node[1]
+        has_effects = false
+        for item in (_node node[1])
+            if try _has_side_effect item
+                has_effects = true
+        if not has_effects
+            give "se_set(" + items + ")"
+        give "se_set_ordered(std::tuple{" + items + "})"
+    if kind == "Index"
+        base = try _emit_expr node[1]
+        index = try _emit_expr node[2]
+        if not (try _has_side_effect node[1]) and not (try _has_side_effect node[2])
+            give "se_index(" + base + ", " + index + ")"
+        give "([&](){ auto __se_container = " + base + "; const auto __se_index = " + index + "; auto __se_result = se_index(__se_container, __se_index); return __se_result; }())"
+    if kind == "Member"
+        owner = _node node[1]
+        member = node[2]
+        if owner[0] == "Atom" and owner[1] == "Identifier"
+            module = owner[2]
+            if member == "help"
+                give "se_module_help(" + (json.stringify module) + ")"
+            if module == "math"
+                if member == "pi"
+                    give "std::numbers::pi_v<double>"
+                if member == "e"
+                    give "std::numbers::e_v<double>"
+                if member == "tau"
+                    give "(2.0 * std::numbers::pi_v<double>)"
+                if member == "inf"
+                    give "std::numeric_limits<double>::infinity()"
+            if module == "random" and member == "num"
+                give "se_random_num()"
+            if module == "os"
+                if member == "platform"
+                    give "se_platform()"
+                if member == "cwd"
+                    give "se_cwd()"
+            if module == "time" and member == "now"
+                give "se_time_now()"
+            if module == "datetime"
+                if member == "now"
+                    give "se_datetime_now()"
+                if member == "timestamp"
+                    give "se_datetime_timestamp()"
+            if module == "uuid" and member == "v4"
+                give "se_uuid_v4()"
+        base = try _emit_expr node[1]
+        member = node[2]
+        if member == "help"
+            give "se_help_text(" + base + ")"
+        if member == "len"
+            give "static_cast<std::int64_t>(" + base + ".size())"
+        if member == "upper" or member == "lower"
+            give "se_" + member + "(" + base + ")"
+        # A static C++20 property-or-zero-argument-method expression.
+        # Requires-expressions discard the invalid branch at compilation time.
+        cpp_member = _cpp_identifier member
+        give "([&](auto&& __se_object)->decltype(auto){if constexpr (requires { __se_object." + cpp_member + "(); }) return __se_object." + cpp_member + "(); else return (__se_object." + cpp_member + ");})(" + base + ")"
+    if kind == "Call"
+        give try _emit_call encoded
+    if kind == "Ask"
+        question = try _emit_expr node[1]
+        give "se_ask(" + question + ")"
+    if kind == "Try"
+        give try _emit_expr node[1]
+    fail "Unsupported AST expression for C++ codegen: " + kind
+
+# Generate a C++20 concrete object type with fields and methods.
+make _emit_type encoded:Text -> Text
+    node = _node encoded
+    fields = _node node[2]
+    methods = try unpack_block node[3]
+    generics = []
+    if node.len > 4
+        generics = _node node[4]
+    header = ""
+    if generics.len > 0
+        declarations = []
+        for variable in generics
+            declarations.add ("typename " + (try _ctype variable))
+        header = "template <" + (text.join declarations ", ") + ">\n"
+    output = header + "struct SEType_" + node[1] + " {\n    struct Storage {\n"
+    accessors = ""
+    field_names = []
+    for encoded_field in fields
+        field = _node encoded_field
+        value = try _emit_expr field[1]
+        field_names.add field[0]
+        cpp_field = _cpp_identifier field[0]
+        accessors = accessors + "    auto& " + cpp_field + "() { return __se_data->" + cpp_field + "; }\n    const auto& " + cpp_field + "() const { return __se_data->" + cpp_field + "; }\n"
+        if field.len > 2 and field[2] != "Unknown"
+            field_cpp_type = try _ctype field[2]
+            if field[3] == "required"
+                output = output + "    " + field_cpp_type + " " + cpp_field + "{};\n"
+            else
+                output = output + "    " + field_cpp_type + " " + cpp_field + " = " + value + ";\n"
+        else
+            output = output + "    decltype(" + value + ") " + cpp_field + " = " + value + ";\n"
+    output = output + "    };\n    std::shared_ptr<Storage> __se_data = std::make_shared<Storage>();\n" + accessors
+    output = output + "    bool operator==(const SEType_" + node[1] + "& other) const { return __se_data == other.__se_data; }\n"
+    for encoded_method in methods
+        method = _node encoded_method
+        parameters = _node method[2]
+        arguments = ""
+        local_names = _clone_names field_names
+        parameter_names = []
+        for encoded_param in parameters
+            parameter = _node encoded_param
+            typename = try _parameter_type parameter[1] parameter[0]
+            if arguments != ""
+                arguments = arguments + ", "
+            cpp_parameter = _cpp_identifier parameter[0]
+            arguments = arguments + typename + " " + cpp_parameter
+            parameter_names.add parameter[0]
+            local_names.add parameter[0]
+        prelude = ""
+        for encoded_field in fields
+            field = _node encoded_field
+            if not (field[0] in parameter_names)
+                cpp_field = _cpp_identifier field[0]
+                prelude = prelude + "        auto& " + cpp_field + " = this->" + cpp_field + "();\n"
+        return_type = try _ctype method[4]
+        body = try _emit_block method[3] 2 local_names
+        cpp_method = _cpp_identifier method[1]
+        method_template = try _emit_template encoded_method
+        if method_template != ""
+            output = output + "    " + method_template
+        output = output + "    " + return_type + " " + cpp_method + "(" + arguments + ") {\n"
+        output = output + prelude + body + "    }\n"
+    cpp_type = _cpp_identifier node[1]
+    output = output + "};\n"
+    if generics.len == 0
+        output = output + "inline auto " + cpp_type + " = [] { return SEType_" + node[1] + "{}; };\n"
+    give output
+
+# Shared heap cells preserve lexical mutation after an enclosing call returns.
+# Only functions containing closures pay this cost; compiler-internal reference
+# parameters retain their existing representation in ordinary functions.
+make _contains_closure encoded:Text -> Bool
+    statements = try unpack_block encoded
+    for item in statements
+        node = _node item
+        kind = node[0]
+        if kind == "Make"
+            give true
+        if kind == "If"
+            if try _contains_closure node[2]
+                give true
+            if try _contains_closure node[3]
+                give true
+        if kind in ["while", "repeat"]
+            if try _contains_closure node[2]
+                give true
+        if kind == "For"
+            if try _contains_closure node[3]
+                give true
+        if kind == "ForPairs"
+            if try _contains_closure node[4]
+                give true
+        if kind == "TryStmt"
+            if try _contains_closure node[1]
+                give true
+            if try _contains_closure node[3]
+                give true
+        if kind == "Match"
+            cases = _node node[2]
+            for case_item in cases
+                choice = _node case_item
+                if try _contains_closure choice[1]
+                    give true
+            if try _contains_closure node[3]
+                give true
+    give false
+
+make _declare_local name:Text value:Text pad:Text names:List[Text] -> Text
+    cpp_name = _cpp_identifier name
+    if "@shared" in names
+        names.add ("@cell:" + name)
+        cell = "__se_cell_" + cpp_name
+        give pad + "auto " + cell + " = se_cell(" + value + ");\n" + pad + "auto& " + cpp_name + " = *" + cell + ";\n"
+    give pad + "auto " + cpp_name + " = " + value + ";\n"
+
+make _emit_block encoded:Text level:Int names:List[Text] -> Text
+    statements = try unpack_block encoded
+    parts = []
+    for item in statements
+        generated = try _emit_stmt item level names
+        parts.add generated
+    give text.join parts ""
+
+make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
+    node = _node encoded
+    kind = node[0]
+    pad = _indent level
+    if kind == "SizedAssign"
+        name = node[1]
+        dims = _node node[2]
+        element_type = try _ctype node[3]
+        first_size = try _emit_expr dims[0]
+        expr = "se_sized_list<" + element_type + ">(" + first_size + ")"
+        if dims.len == 2
+            second_size = try _emit_expr dims[1]
+            expr = "se_sized_matrix<" + element_type + ">(" + first_size + ", " + second_size + ")"
+        cpp_name = _cpp_identifier name
+        if name in names or ("@global:" + name) in names
+            if not (name in names)
+                names.add name
+            give pad + cpp_name + " = " + expr + ";\n"
+        names.add name
+        give _declare_local name expr pad names
+    if kind == "Assign"
+        name = node[1]
+        expr = try _emit_expr node[2]
+        cpp_name = _cpp_identifier name
+        if name in names or ("@global:" + name) in names
+            if not (name in names)
+                names.add name
+            give pad + cpp_name + " = " + expr + ";\n"
+        names.add name
+        give _declare_local name expr pad names
+    if kind == "AssignInit"
+        name = node[1]
+        expr = try _emit_expr node[2]
+        output = ""
+        cpp_name = _cpp_identifier name
+        if name in names or ("@global:" + name) in names
+            if not (name in names)
+                names.add name
+            output = pad + cpp_name + " = " + expr + ";\n"
+        else
+            names.add name
+            output = _declare_local name expr pad names
+        fields = _node node[3]
+        for encoded_field in fields
+            field = _node encoded_field
+            value = try _emit_expr field[1]
+            cpp_field = _cpp_identifier field[0]
+            output = output + pad + "se_implicit_call(" + cpp_name + ")." + cpp_field + "() = " + value + ";\n"
+        give output
+    if kind == "TypeDecl"
+        give try _emit_type encoded
+    if kind == "say"
+        printable = try _emit_expr node[2]
+        give pad + "se_say(" + printable + ");\n"
+    if kind == "give"
+        result = try _emit_expr node[2]
+        give pad + "return " + result + ";\n"
+    if kind == "fail"
+        result = try _emit_expr node[2]
+        give pad + "throw std::runtime_error(se_string(" + result + "));\n"
+    if kind == "AssignIndex"
+        base = try _emit_expr node[1]
+        index = try _emit_expr node[2]
+        value = try _emit_expr node[3]
+        give pad + "{ auto __se_rhs = " + value + "; auto __se_base = " + base + "; const auto __se_index = " + index + "; se_assign_index(__se_base, __se_index, std::move(__se_rhs)); }\n"
+    if kind == "AssignMember"
+        base = try _emit_expr node[1]
+        value = try _emit_expr node[3]
+        cpp_field = _cpp_identifier node[2]
+        give pad + "{ auto __se_rhs = " + value + "; auto&& __se_base = " + base + "; __se_base." + cpp_field + "() = std::move(__se_rhs); }\n"
+    if kind == "MultiAsk"
+        fields = _node node[1]
+        suffix = string names.len
+        line_name = "__se_line_" + suffix
+        values_name = "__se_values_" + suffix
+        stream_name = "__se_stream_" + suffix
+        token_name = "__se_token_" + suffix
+        output = pad + "std::string " + line_name + ";\n"
+        output = output + pad + "if (!std::getline(std::cin, " + line_name + ")) throw std::runtime_error(\"Input ended\");\n"
+        output = output + pad + "std::istringstream " + stream_name + "(" + line_name + ");\n"
+        output = output + pad + "std::vector<std::string> " + values_name + ";\n"
+        output = output + pad + "std::string " + token_name + ";\n"
+        output = output + pad + "while (" + stream_name + " >> " + token_name + ") " + values_name + ".push_back(" + token_name + ");\n"
+        output = output + pad + "if (" + values_name + ".size() != " + string fields.len + ") throw std::runtime_error(\"Wrong ask field count\");\n"
+        i = 0
+        for item in fields
+            field = _node item
+            expr = values_name + ".at(" + string i + ")"
+            if field[1] == "Int"
+                expr = "se_int(" + expr + ")"
+            if field[1] == "Num"
+                expr = "se_num(" + expr + ")"
+            if field[0] in names
+                cpp_field = _cpp_identifier field[0]
+                output = output + pad + cpp_field + " = " + expr + ";\n"
+            else
+                names.add field[0]
+                typename = try _ctype field[1]
+                cpp_field = _cpp_identifier field[0]
+                output = output + pad + typename + " " + cpp_field + " = " + expr + ";\n"
+            i += 1
+        give output
+    if kind == "ExprStmt"
+        expr_node = _node node[2]
+        if expr_node[0] == "Member" and expr_node[2] == "help"
+            printable = try _emit_expr node[2]
+            give pad + "se_say(" + printable + ");\n"
+        result = try _emit_expr node[2]
+        give pad + result + ";\n"
+    if kind == "NativeLoad"
+        give pad + "se_native_library(" + (json.stringify node[1]) + ", " + (json.stringify node[2]) + ");\n"
+    if kind == "Use"
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "url", "encoding", "cookie", "cors", "template", "tilemap", "static", "upload", "shutil", "typing", "dotenv", "config", "itertools", "glob", "hashlib", "datetime", "iter", "functools", "enum", "xml", "hash", "crypto"]
+            give ""
+        fail "C++ bootstrap backend cannot yet import module: " + node[1]
+    if kind == "TryStmt"
+        protected_names = _clone_names names
+        protected = try _emit_block node[1] (level + 1) protected_names
+        output = pad + "try {\n" + protected + pad + "} catch (const std::exception& __se_caught) {\n"
+        recovery = try unpack_block node[3]
+        if recovery.len > 0
+            error_names = _clone_names names
+            error_names.add node[2]
+            fallback = try _emit_block node[3] (level + 1) error_names
+            cpp_error = _cpp_identifier node[2]
+            output = output + pad + "    SEError " + cpp_error + "{__se_caught.what(), se_error_kind(__se_caught)};\n"
+            output = output + fallback
+        else
+            output = output + pad + "    throw;\n"
+        give output + pad + "}\n"
+    if kind == "Match"
+        value = try _emit_expr node[1]
+        choices = _node node[2]
+        local_name = "__se_match_value"
+        output = pad + "{\n"
+        output = output + pad + "    const auto " + local_name + " = " + value + ";\n"
+        first = true
+        for encoded_case in choices
+            choice = _node encoded_case
+            pattern = try _emit_expr choice[0]
+            branch_names = _clone_names names
+            body = try _emit_block choice[1] (level + 2) branch_names
+            if first
+                output = output + pad + "    if ("
+                first = false
+            else
+                output = output + " else if ("
+            output = output + local_name + " == " + pattern + ") {\n"
+            output = output + body + pad + "    }"
+        fallback = try unpack_block node[3]
+        if fallback.len > 0
+            branch_names = _clone_names names
+            body = try _emit_block node[3] (level + 2) branch_names
+            output = output + " else {\n" + body + pad + "    }"
+        give output + "\n" + pad + "}\n"
+    if kind == "If"
+        yes_ast = node[2]
+        no_ast = node[3]
+        test_ast = node[1]
+        then_names = _clone_names names
+        else_names = _clone_names names
+        yes = try _emit_block yes_ast (level + 1) then_names
+        no = try _emit_block no_ast (level + 1) else_names
+        condition = try _emit_expr test_ast
+        output = pad + "if (" + condition + ") {\n" + yes + pad + "}"
+        if no != ""
+            output = output + " else {\n" + no + pad + "}"
+        give output + "\n"
+    if kind == "while"
+        loop_names = _clone_names names
+        body = try _emit_block node[2] (level + 1) loop_names
+        condition = try _emit_expr node[1]
+        give pad + "while (" + condition + ") {\n" + body + pad + "}\n"
+    if kind == "repeat"
+        loop_names = _clone_names names
+        body = try _emit_block node[2] (level + 1) loop_names
+        count = try _emit_expr node[1]
+        give pad + "for (std::int64_t __se_repeat_index = 0; __se_repeat_index < " + count + "; ++__se_repeat_index) {\n" + body + pad + "}\n"
+    if kind == "ForPairs"
+        scope = _clone_names names
+        scope.add node[1]
+        scope.add node[2]
+        first_decl = _declare_local node[1] "__se_pair.first" (_indent (level + 1)) scope
+        second_decl = _declare_local node[2] "__se_pair.second" (_indent (level + 1)) scope
+        body = try _emit_block node[4] (level + 1) scope
+        iterable = try _emit_expr node[3]
+        output = pad + "for (const auto& __se_pair : " + iterable + ".items) {\n"
+        give output + first_decl + second_decl + body + pad + "}\n"
+    if kind == "For"
+        scope = _clone_names names
+        scope.add node[1]
+        cpp_loop = _cpp_identifier node[1]
+        declaration = _declare_local node[1] ("__se_loop_" + cpp_loop) (_indent (level + 1)) scope
+        body = try _emit_block node[3] (level + 1) scope
+        iterable = try _emit_expr node[2]
+        give pad + "for (auto __se_loop_" + cpp_loop + " : " + iterable + ") {\n" + declaration + body + pad + "}\n"
+    if kind == "Make"
+        params = _node node[2]
+        local_names = []
+        for visible in names
+            if not (text.starts visible "@global:")
+                local_names.add visible
+        shared = try _contains_closure node[3]
+        if "@shared" in local_names
+            shared = true
+        if shared and not ("@shared" in local_names)
+            local_names.add "@shared"
+        args = ""
+        prelude = ""
+        concrete = node[4] != "Unknown"
+        arg_types = []
+        for item in params
+            param = _node item
+            typename = try _parameter_type param[1] param[0]
+            arg_types.add typename
+            if param[1] == "Unknown"
+                concrete = false
+            if args != ""
+                args = args + ", "
+            cpp_param = _cpp_identifier param[0]
+            argument_name = cpp_param
+            if shared
+                argument_name = "__se_arg_" + cpp_param
+                prelude = prelude + (_declare_local param[0] argument_name (_indent (level + 1)) local_names)
+            args = args + typename + " " + argument_name
+            local_names.add param[0]
+        result_type = try _ctype node[4]
+        cpp_function = _cpp_identifier node[1]
+        if level > 0
+            # Capture shared cells by value, then rebuild references inside the
+            # body. Returning the callable keeps its captured environment alive.
+            captures = []
+            aliases = ""
+            for name in names
+                if text.starts name "@cell:"
+                    source_name = text.replace name "@cell:" ""
+                    cpp_capture = _cpp_identifier source_name
+                    cell = "__se_cell_" + cpp_capture
+                    captures.add cell
+                    aliases = aliases + (_indent (level + 1)) + "auto& " + cpp_capture + " = *" + cell + ";\n"
+            local_names.add node[1]
+            body = try _emit_block node[3] (level + 1) local_names
+            generic_header = ""
+            if node.len > 5
+                variables = _node node[5]
+                generic_parts = []
+                for variable in variables
+                    generic_parts.add ("typename " + (try _ctype variable))
+                if generic_parts.len > 0
+                    concrete = false
+                    generic_header = "<" + (text.join generic_parts ", ") + ">"
+            lambda_args = "auto& " + cpp_function
+            if args != ""
+                lambda_args = lambda_args + ", " + args
+            expression = "se_closure([" + (text.join captures ", ") + "]" + generic_header + "(" + lambda_args + ") mutable -> " + result_type + " {\n" + aliases + prelude + body + pad + "})"
+            if concrete
+                signature = result_type + "(" + (text.join arg_types ", ") + ")"
+                expression = "std::function<" + signature + ">(" + expression + ")"
+            names.add node[1]
+            give _declare_local node[1] expression pad names
+        body = try _emit_block node[3] 1 local_names
+        header = try _emit_template encoded
+        if header != ""
+            give header + result_type + " SEGeneric_" + cpp_function + "::operator()(" + args + ") const {\n" + prelude + body + "}\n"
+        give header + result_type + " " + cpp_function + "(" + args + ") {\n" + prelude + body + "}\n"
+    fail "Unsupported AST statement for C++ codegen: " + kind
+
+# Emit forward declarations for functions with explicit signatures. This lets
+# typed SE functions call functions defined later, including mutual recursion.
+# Unknown return or parameter types cannot be safely forward-declared in C++20.
+make _emit_prototype encoded:Text -> Text
+    node = _node encoded
+    header = try _emit_template encoded
+    if node[4] == "Unknown" and header == ""
+        give ""
+    params = _node node[2]
+    arguments = ""
+    for item in params
+        param = _node item
+        if param[1] == "Unknown" and header == ""
+            give ""
+        if arguments != ""
+            arguments = arguments + ", "
+        cpp_param = _cpp_identifier param[0]
+        arguments = arguments + (try _parameter_type param[1] param[0]) + " " + cpp_param
+    return_type = try _ctype node[4]
+    header = try _emit_template encoded
+    cpp_function = _cpp_identifier node[1]
+    if header != ""
+        give "struct SEGeneric_" + cpp_function + " {\n" + header + return_type + " operator()(" + arguments + ") const;\n};\ninline constexpr SEGeneric_" + cpp_function + " " + cpp_function + "{};\n"
+    give header + return_type + " " + cpp_function + "(" + arguments + ");\n"
+
+make emit_checked_program ast:List[Text] symbols:List[List[Text]] -> Text
+    type_parts = []
+    prototype_parts = []
+    function_parts = []
+    body_parts = []
+    names = []
+    global_parts = []
+    # Preserve source-order initialization in main while making existing
+    # top-level bindings visible to functions. SEGlobal has no eager side effects.
+    for statement in ast
+        global_node = _node statement
+        if global_node[0] in ["Assign", "AssignInit", "SizedAssign"]
+            global_name = global_node[1]
+            if not (("@global:" + global_name) in names)
+                entry = lookup_symbol symbols global_name
+                if not (text.contains entry[1] "Unknown") and entry[1] != "Function"
+                    names.add ("@global:" + global_name)
+                    cpp_global = _cpp_identifier global_name
+                    global_parts.add ("SEGlobal<" + (try _ctype entry[1]) + "> " + cpp_global + ";\n")
+    # C++ needs declarations before definitions for mutual recursion and forward calls.
+    for stmt in ast
+        node = _node stmt
+        if node[0] == "Make"
+            prototype_parts.add (try _emit_prototype stmt)
+        if node[0] == "TypeDecl"
+            type_parts.add (try _emit_type stmt)
+            type_parts.add "\n"
+    for stmt in ast
+        node = _node stmt
+        if node[0] == "Make"
+            generated = try _emit_stmt stmt 0 names
+            function_parts.add generated
+            function_parts.add "\n"
+        else if node[0] != "TypeDecl"
+            generated = try _emit_stmt stmt 2 names
+            body_parts.add generated
+    type_decls = text.join type_parts ""
+    globals = text.join global_parts ""
+    prototypes = text.join prototype_parts ""
+    functions = text.join function_parts ""
+    body = text.join body_parts ""
+    give "#include \"se_bootstrap_runtime.hpp\"\n\n" + type_decls + globals + prototypes + "\n" + functions + "int main() {\n    try {\n" + body + "        return 0;\n    } catch (const std::exception& e) {\n        std::cerr << e.what() << '\\n';\n        return 1;\n    }\n}\n"
+
+make emit_program ast:List[Text] -> Text
+    symbols = try check_program ast
+    give try emit_checked_program ast symbols

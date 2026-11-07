@@ -1,0 +1,19 @@
+# Match/case/else semantics must agree with the production interpreter.
+value = 2
+label = ""
+match value
+    case 1
+        label = "one"
+    case 2
+        label = "two"
+    else
+        label = "other"
+say label
+
+match "SE"
+    case "Python"
+        say "wrong"
+    case "SE"
+        say "matched"
+    else
+        say "fallback"

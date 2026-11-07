@@ -1,0 +1,12 @@
+use math
+use random
+use path
+say math.pi > 3
+say random.int 7 7
+say path.join "a" "b.txt"
+say path.name "a/b.txt"
+say path.ext "a/b.txt"
+say path.parent "a/b.txt"
+say path.exists "selfhost/sample.se"
+say path.is_file "selfhost/sample.se"
+say path.is_dir "selfhost"

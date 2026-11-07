@@ -1,0 +1,96 @@
+#ifdef NDEBUG
+#undef NDEBUG  // Keep runtime assertions active even in Release CI builds.
+#endif
+#include <cassert>
+#include "se_bootstrap_runtime.hpp"
+#include <stdexcept>
+#include <string>
+
+int main() {
+  assert(se_hash_sha256("") == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+  assert(se_hash_sha256("abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+  assert(se_hashlib_hmac_sha256("key","The quick brown fox jumps over the lazy dog") ==
+         "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8");
+  assert(se_hashlib_compare("same","same"));
+  assert(!se_hashlib_compare("same","different"));
+  assert(se_xml_escape("<SE & friends>") == "&lt;SE &amp; friends&gt;");
+  assert(se_xml_escape("plain") == "plain");
+  assert(se_xml_escape("\"'") == "&quot;&apos;");
+  assert(se_json_pretty(std::string("SE")) == "\"SE\"");
+  const SEList<std::string> pretty_values{"A","B"};
+  assert(se_json_pretty(pretty_values) == "[\n  \"A\",\n  \"B\"\n]");
+  assert(se_json_pretty(SEList<std::string>{}) == "[]");
+  assert(se_url_encode("a b/+") == "a%20b%2F%2B");
+  assert(se_url_decode("a%20b%2F%2B") == "a b/+");
+  assert(se_url_decode("%E4%B8%AD") == "\xE4\xB8\xAD");
+  SEMap<std::string> args;
+  args.put("a b", "c+d");
+  args.put("percent", "%");
+  assert(se_url_query(args) == "a%20b=c%2Bd&percent=%25");
+  const auto parsed = se_url_parse_query("?a+b=c%2Bd&percent=%25&empty");
+  assert(parsed.at("a b") == "c+d");
+  assert(parsed.at("percent") == "%");
+  assert(parsed.at("empty") == "");
+  assert(se_encoding_hex("SE") == "5345");
+  assert(se_encoding_unhex("5345") == "SE");
+  assert(se_encoding_hex(std::string("\0\xff", 2)) == "00ff");
+  assert(se_encoding_unhex("00FF") == std::string("\0\xff", 2));
+  assert(se_encoding_utf8_valid("SE"));
+  assert(se_encoding_utf8_valid("\xE4\xB8\xAD"));
+  assert(!se_encoding_utf8_valid("\xC0\xAF"));
+  assert(!se_encoding_utf8_valid("\xED\xA0\x80"));
+  assert(!se_encoding_utf8_valid("\xF4\x90\x80\x80"));
+  assert(!se_encoding_utf8_valid("\xE4\xB8"));
+  auto rejects = [](auto function) {
+    try { function(); }
+    catch (const std::runtime_error&) { return true; }
+    return false;
+  };
+  // SE 0.8 independent sized collection allocation and bounds.
+  auto zeros = se_sized_list<std::int64_t>(5);
+  assert(zeros.size() == 5 && zeros[0] == 0 && zeros[4] == 0);
+  auto blank_names = se_sized_list<std::string>(2);
+  assert(blank_names.size() == 2 && blank_names[0].empty());
+  auto boolean_values = se_sized_list<bool>(2);
+  assert(boolean_values.size() == 2 && !boolean_values[1]);
+  auto matrix = se_sized_matrix<std::int64_t>(2, 3);
+  assert(matrix.size() == 2 && matrix[0].size() == 3 && matrix[1][2] == 0);
+  matrix[1][2] = 42;
+  assert(matrix[0][2] == 0 && matrix[1][2] == 42);
+  assert(se_sized_list<std::int64_t>(0).empty());
+  assert(rejects([] { (void)se_sized_list<std::int64_t>(-1); }));
+  assert(rejects([] { (void)se_sized_list<std::int64_t>(1000001); }));
+  assert(rejects([] { (void)se_sized_matrix<std::int64_t>(1000, 1001); }));
+  assert(rejects([] { (void)se_sized_matrix<std::int64_t>(-1, 2); }));
+  assert(rejects([] { (void)se_url_decode("%XZ"); }));
+  assert(rejects([] { (void)se_url_parse_query("a=%ZZ"); }));
+  assert(rejects([] { (void)se_encoding_unhex("0"); }));
+  assert(rejects([] { (void)se_encoding_unhex("GG"); }));
+  const auto cookies=se_cookie_parse("a=1; b=two ; empty=");
+  assert(cookies.at("a")=="1");
+  assert(cookies.at("b")=="two");
+  assert(cookies.at("empty")=="");
+  assert(se_cookie_set("session","ok")=="session=ok; Path=/; HttpOnly; SameSite=Lax");
+  assert(rejects([] { (void)se_cookie_set("bad;name","ok"); }));
+  assert(rejects([] { (void)se_cookie_set("safe","bad\r\nHeader: value"); }));
+  assert(se_cors_allow_origin("https://example.test").at("Vary")=="Origin");
+  assert(se_cors_preflight("https://example.test","GET, POST").at(
+      "Access-Control-Allow-Methods")=="GET, POST");
+  assert(rejects([] { (void)se_cors_allow_origin("x\r\nInjected: yes"); }));
+  assert(rejects([] { (void)se_cors_preflight("x","GET\nInjected"); }));
+  assert(se_template_escape("<&>'\"")=="&lt;&amp;&gt;&#39;&quot;");
+  SEMap<std::string> context;
+  context.put("name","<SE>");
+  assert(se_template_render("Hello {{ name }}!",context)=="Hello &lt;SE&gt;!");
+  assert(rejects([&] { (void)se_template_render("{{ missing }}",context); }));
+  assert(rejects([&] { (void)se_template_render("{{ name",context); }));
+  const auto map=se_tilemap_parse("AB\nCD\n");
+  const auto dimensions=se_tilemap_size(map);
+  assert(dimensions.size()==2 && dimensions[0]==2 && dimensions[1]==2);
+  assert(se_tilemap_at(map,0,0)=="A");
+  assert(se_tilemap_at(map,1,1)=="D");
+  assert(rejects([] { (void)se_tilemap_parse("AB\nC\n"); }));
+  assert(rejects([] { (void)se_tilemap_parse(""); }));
+  assert(rejects([&] { (void)se_tilemap_at(map,2,0); }));
+  assert(rejects([&] { (void)se_tilemap_at(map,-1,0); }));
+}

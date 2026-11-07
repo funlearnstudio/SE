@@ -1,0 +1,37 @@
+use async
+use threading
+use function
+
+make double value:Int -> Int
+    give value * 2
+
+make add a:Int b:Int -> Int
+    give a + b
+
+make broken value:Int -> Int
+    fail "task failed"
+
+make answer -> Int
+    give 42
+
+job = async.run double 21
+say try async.await job
+say try async.await job
+say async.ready job
+thread = threading.run double 10
+say try threading.join thread
+bound = function.bind add 10
+say function.call bound 5
+partial = function.partial add 2
+say partial 3
+values = [1, 2, 3]
+say function.reduce add values 0
+say function.reduce add values
+say function.map double values
+try
+    failure = async.run broken 1
+    say try async.await failure
+else err
+    say err.message
+
+say function.pipe 3 double double

@@ -1,0 +1,5 @@
+# class, template and namespace are valid SE names, not C++ code.
+class = 7
+template = class + 1
+namespace = template + 2
+say namespace

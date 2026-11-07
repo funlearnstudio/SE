@@ -1,0 +1,12 @@
+use imports_left
+use imports_right
+
+make _helper value:Int -> Int
+    give value - 1
+
+say left 5
+say right 5
+say _helper 5
+box = Box[Int]
+    value = 42
+say box.value

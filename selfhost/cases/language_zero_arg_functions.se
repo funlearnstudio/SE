@@ -1,0 +1,20 @@
+# Bare references to zero-argument functions must evaluate them, not
+# print function addresses or emit invalid native C++.
+make answer -> Int
+    give 42
+
+make status -> Text
+    give "ready"
+
+make is_ready -> Bool
+    give answer == 42
+
+make twice value:Int -> Int
+    give value * 2
+
+value = answer
+say value
+say answer + 1
+say status
+say is_ready
+say twice answer

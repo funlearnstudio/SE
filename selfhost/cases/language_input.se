@@ -1,0 +1,3 @@
+ask a:Int b:Int label:Text
+say a + b
+say label

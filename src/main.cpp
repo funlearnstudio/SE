@@ -150,6 +150,14 @@ int doctor_command(){
   std::cout<<"  TypeScript bridge: requires ts-node/tsc on PATH for use ts\n";
   std::cout<<"  HTTPS bridge: requires curl on PATH for use https\n";
   std::cout<<"  current directory: "<<std::filesystem::current_path().string()<<"\n";
+  // The interpreter works without native headers, but 'se build' needs the
+  // relocatable C++ runtime bundle. Report this separately.
+  try{
+    const auto root=native_runtime_root();
+    std::cout<<"  native runtime: "<<root.string()<<" [ok]\n";
+  }catch(const std::exception&e){
+    std::cout<<"  native runtime: unavailable ("<<e.what()<<")\n";
+  }
   std::cout<<"Doctor finished. Use 'se check file.se' or 'se check-all .' for source diagnostics.\n";
   return 0;
 }
@@ -383,13 +391,44 @@ int file_command(const std::string&cmd,const std::filesystem::path&path){
   auto source=read_file(path);
   try{auto p=frontend_file(path);if(cmd=="check"){std::cout<<path.string()<<" is valid SE.\n";return 0;}if(cmd=="run"){s::Interpreter vm(std::cin,std::cout);vm.run(p);return 0;}
     const auto root=native_runtime_root();
-    auto cpp=s::CppCompiler{}.generate(p);auto cpp_path=path;cpp_path.replace_extension(".se.cpp");auto output=path;output.replace_extension();{std::ofstream f(cpp_path);f<<cpp;}
+    auto cpp=s::CppCompiler{}.generate(p);auto cpp_path=path;cpp_path.replace_extension(".se.cpp");auto output=path;output.replace_extension();
+    {std::ofstream f(cpp_path,std::ios::binary|std::ios::trunc);
+      if(!f)throw std::runtime_error("Could not write generated C++ file: "+cpp_path.string());
+      f<<cpp;
+      if(!f)throw std::runtime_error("Failed while writing generated C++ file: "+cpp_path.string());
+    }
     const char*cxx=std::getenv("CXX");std::string compiler=cxx?cxx:"c++";
-    std::string command=compiler+" -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -Wno-misleading-indentation -I"+shell_quote((root/"include").string())+" "+shell_quote(cpp_path.string())+" "+shell_quote((root/"src/runtime/error.cpp").string())+" "+shell_quote((root/"src/runtime/value.cpp").string())+" "+shell_quote((root/"src/runtime/platform_base.cpp").string())+" "+shell_quote((root/"src/runtime/advanced.cpp").string())+" "+shell_quote((root/"src/runtime/database.cpp").string())+" "+shell_quote((root/"src/runtime/expansion.cpp").string())+" "+shell_quote((root/"src/runtime/formats.cpp").string())+" "+shell_quote((root/"src/interpreter/interpreter.cpp").string())+" "+shell_quote((root/"src/ffi/ffi.cpp").string())+" -pthread";
+    std::string optimization="-O2";
+    if(const char* override_opt=std::getenv("SE_NATIVE_OPT")) {
+      const std::string level=override_opt;
+      if(level=="0"||level=="1"||level=="2"||level=="3"||level=="s"||level=="g")
+        optimization="-O"+level;
+      else
+        throw std::runtime_error("Invalid SE_NATIVE_OPT; choose 0, 1, 2, 3, s or g.");
+    }
+    std::string command=compiler+" -std=c++20 "+optimization+" -g0 -Wall -Wextra -Wpedantic -Werror -Wno-misleading-indentation -I"+shell_quote((root/"include").string())+" "+shell_quote(cpp_path.string());
+    // Reuse an already-built SE runtime archive when supplied. This is
+    // an optional fast native build path, not a claim of independent runtime.
+    if(const char* core_env=std::getenv("SE_NATIVE_CORE_LIB"); core_env && *core_env){
+      const std::filesystem::path archive=std::filesystem::absolute(core_env);
+      if(!std::filesystem::is_regular_file(archive))
+        throw std::runtime_error("SE_NATIVE_CORE_LIB does not name a regular file: "+archive.string());
+      command+=" "+shell_quote(archive.string());
+    }else{
+      command+=" "+shell_quote((root/"src/runtime/error.cpp").string())+" "+shell_quote((root/"src/runtime/value.cpp").string())+" "+shell_quote((root/"src/runtime/platform_base.cpp").string())+" "+shell_quote((root/"src/runtime/advanced.cpp").string())+" "+shell_quote((root/"src/runtime/database.cpp").string())+" "+shell_quote((root/"src/runtime/expansion.cpp").string())+" "+shell_quote((root/"src/runtime/formats.cpp").string())+" "+shell_quote((root/"src/interpreter/interpreter.cpp").string())+" "+shell_quote((root/"src/ffi/ffi.cpp").string());
+    }
+    command+=" -pthread";
 #ifdef __linux__
     command+=" -ldl";
 #endif
-    command+=" -o "+shell_quote(output.string());int code=std::system(command.c_str());std::filesystem::remove(cpp_path);if(code!=0)throw std::runtime_error("The C++ compiler could not build the generated program.");std::cout<<"Built "<<output.string()<<"\n";return 0;
+    command+=" -o "+shell_quote(output.string());
+    const int code=std::system(command.c_str());
+    if(code!=0){
+      throw std::runtime_error("Native C++ compilation failed. Generated source kept at "+cpp_path.string()+
+        ". Check that a C++20 compiler is installed and that SE's native runtime bundle is complete.");
+    }
+    std::filesystem::remove(cpp_path);
+    std::cout<<"Built "<<output.string()<<"\n";return 0;
   }catch(const s::Error&e){std::cerr<<s::format_error(e,source);return 1;}catch(const s::RuntimeFailure&e){auto&x=e.error();std::cerr<<x.kind;if(!x.source.empty())std::cerr<<" in "<<x.source;if(x.line)std::cerr<<" on line "<<x.line;std::cerr<<": "<<x.message<<'\n';return 1;}
 }
 int bind_command(const std::filesystem::path&definition,const std::filesystem::path&output){

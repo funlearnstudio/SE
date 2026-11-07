@@ -1,0 +1,30 @@
+use dotenv
+use config
+use cookie
+use cors
+use template
+use static
+use typing
+use url
+use encoding
+
+environment = dotenv.parse "export NAME=SE\n"
+say dotenv.get environment "NAME"
+settings = config.parse "[app]\nport=42\nactive=yes\n"
+say config.get_int settings "app.port"
+say config.get_bool settings "app.active"
+say config.get (config.section settings "app") "port"
+cookies = cookie.parse "session=ok; theme=light"
+say cookies["theme"]
+say cookie.set "session" "ok"
+headers = cors.preflight "https://example.com" "GET, POST"
+say headers["Vary"]
+say headers["Access-Control-Allow-Methods"]
+say template.escape "<&>"
+values = ["name": "<SE>"]
+say template.render "Hi {{name}}!" values
+say static.mime "app.css"
+say typing.type_of 7
+say typing.is 7 "Int"
+say url.encode "a b"
+say encoding.hex "SE"
