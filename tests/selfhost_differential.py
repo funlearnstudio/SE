@@ -99,6 +99,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="se-selfhost-") as folder:
         tmp = Path(folder)
         verify_positive("language_sized_arrays.se", "", tmp, expected_output="5\n0\n7\n2\n\nSE\nfalse\n2\n3\n42\n3\n")
+        verify_positive("language_xml_escape.se", "", tmp, expected_output="&lt;SE &amp; friends&gt;\nplain\n")
         verify_positive("language_object_aliases.se", "", tmp)
         verify_positive("language_collection_aliases.se", "", tmp)
         verify_positive("language_series.se", "", tmp)
