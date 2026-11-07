@@ -374,6 +374,20 @@ inline std::string se_json_stringify(const SEList<std::string>& values){
   }
   return result+"]";
 }
+// Pretty-print the subset of JSON values supported by the independent
+// bootstrap runtime, using the production JSON formatter's two-space indent.
+inline std::string se_json_pretty(const std::string& value) {
+  return se_json_stringify(value);
+}
+inline std::string se_json_pretty(const SEList<std::string>& values) {
+  if (values.empty()) return "[]";
+  std::string out="[\n";
+  for (std::size_t i=0;i<values.size();++i) {
+    out+="  "+se_json_stringify(values[i]);
+    out+=(i+1==values.size()?"\n":",\n");
+  }
+  return out+"]";
+}
 inline SEList<std::string> se_json_parse(const std::string& json){
   std::size_t pos=0;
   auto whitespace=[&](){
