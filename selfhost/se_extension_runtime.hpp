@@ -11,6 +11,25 @@
 #include <sstream>
 #include <system_error>
 
+
+// XML 1.0 escape routine used by the independent SE native backend.
+// Escape ampersand first, without re-escaping characters inserted here.
+inline std::string se_xml_escape(const std::string& source) {
+  std::string out;
+  out.reserve(source.size());
+  for (char ch : source) {
+    switch (ch) {
+      case '&': out += "&amp;"; break;
+      case '<': out += "&lt;"; break;
+      case '>': out += "&gt;"; break;
+      case '"': out += "&quot;"; break;
+      case '\'': out += "&apos;"; break;
+      default: out += ch; break;
+    }
+  }
+  return out;
+}
+
 inline std::string se_ext_trim(const std::string& source) {
   auto left=source.find_first_not_of(" \r\n\t");
   if(left==std::string::npos)return "";
