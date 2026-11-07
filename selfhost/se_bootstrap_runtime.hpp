@@ -809,6 +809,20 @@ inline std::string se_module_help(const std::string& module){
   if(module=="file")return "members: help, read, write, append, open, copy, move, copytree, remove";
   if(module=="base64")return "members: help, encode, decode";
   if(module=="test")return "members: help, ok, equal, not_equal, fail";
+  if(module=="iter")return "members: help, range, enumerate, zip, product, permutations, combinations";
+  if(module=="itertools")return "members: help, chain, flatten, chunked, take, drop, windows, cycle, pairs, unique";
+  if(module=="url")return "members: help, encode, decode, query, parse_query";
+  if(module=="encoding")return "members: help, hex, unhex, utf8_valid";
+  if(module=="config")return "members: help, parse, get, get_int, get_bool, section, merge";
+  if(module=="dotenv")return "members: help, parse, get";
+  if(module=="decimal")return "members: help, parse, add, sub, mul, div, quantize";
+  if(module=="datetime")return "members: help, now, timestamp, from_timestamp, format, add_seconds";
+  if(module=="data")return "members: help, append, extend, insert, pop, clear, copy, get, set, update, delete, has, keys, values, items";
+  if(module=="enum")return "members: help, make, name, value, has";
+  if(module=="typing")return "members: help, type_of, is, cast";
+  if(module=="process"||module=="subprocess")return "members: help, run, output";
+  if(module=="shutil")return "members: help, copy, move, copytree, remove, mkdir";
+  if(module=="functools")return "members: help, partial, reduce, map, filter";
   return "members: help";
 }
 inline std::string se_help_text(const std::string&){return "members: help, len, upper, lower";}
@@ -1102,3 +1116,6 @@ template<class T,class F,class... Rest> auto se_function_pipe(T value,F first,Re
 #include "se_config_runtime.hpp"
 #include "se_decimal_runtime.hpp"
 #include "se_datetime_runtime.hpp"
+#include "se_process_runtime.hpp"
+#include "se_data_runtime.hpp"
+#include "se_enum_typing_runtime.hpp"

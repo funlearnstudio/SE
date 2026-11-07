@@ -112,6 +112,10 @@ def main() -> None:
         verify_positive("language_encoding_url.se", "", tmp, expected_output="encoding and URL passed\n")
         verify_positive("language_configuration.se", "", tmp, expected_output="configuration passed\n")
         verify_positive("language_decimal_datetime.se", "", tmp, expected_output="decimal and datetime passed\n")
+        verify_positive("language_data_module.se", "", tmp, expected_output="data module passed\n")
+        verify_positive("language_standard_helpers.se", "", tmp, expected_output="standard helpers passed\n")
+        if os.name != "nt":
+            verify_positive("language_process_helpers.se", "", tmp, expected_output="process helpers passed\n")
         verify_positive("language_dynamic_any.se", "", tmp, expected_output="Int\nText\nBool\ndynamic Any ok\n")
         verify_positive("language_evaluation_order.se", "one\ntwo\nthree\nfour\n", tmp, expected_output="first: second: [one, two]\nthird: fourth: threefour\n")
         verify_positive("language_copy.se", "", tmp, expected_output="9\n9\n7\n1\n")

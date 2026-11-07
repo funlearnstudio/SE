@@ -1,0 +1,32 @@
+use data
+use test
+
+values = [1, 2]
+try data.append values 3
+try data.extend values values
+test.equal values [1, 2, 3, 1, 2, 3]
+try data.insert values (-1) 9
+test.equal (try data.pop values) 3
+test.equal (try data.pop values (-1)) 9
+copy = try data.copy values
+try data.clear copy
+test.equal copy.len 0
+test.equal values.len 5
+mapping = ["a": 1]
+try data.set mapping "b" 2
+test.ok (try data.has mapping "b")
+test.equal (int (try data.get mapping "b")) 2
+test.equal (int (try data.get mapping "missing" 42)) 42
+updates = ["a": 7, "c": 3]
+try data.update mapping updates
+test.equal mapping["a"] 7
+test.equal (try data.keys mapping) ["a", "b", "c"]
+test.equal (try data.values mapping) [7, 2, 3]
+pairs = try data.items mapping
+test.equal (text pairs[0][0]) "a"
+test.equal (int pairs[0][1]) 7
+test.ok (try data.delete mapping "b")
+test.ok (not (try data.delete mapping "missing"))
+test.ok (try data.has values 3)
+test.equal (try data.keys mapping) ["a", "c"]
+say "data module passed"

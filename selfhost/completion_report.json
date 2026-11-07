@@ -2,14 +2,10 @@
   "complete": false,
   "advertised_modules": 117,
   "advertised_members": 586,
-  "missing_lowering_count": 326,
+  "missing_lowering_count": 292,
   "missing_lowerings": {
     "json": [
       "pretty"
-    ],
-    "process": [
-      "run",
-      "output"
     ],
     "http": [
       "get",
@@ -82,22 +78,6 @@
       "get",
       "post",
       "post_json"
-    ],
-    "data": [
-      "append",
-      "extend",
-      "insert",
-      "pop",
-      "clear",
-      "copy",
-      "get",
-      "set",
-      "update",
-      "delete",
-      "has",
-      "keys",
-      "values",
-      "items"
     ],
     "net": [
       "get",
@@ -184,13 +164,6 @@
       "critical",
       "records"
     ],
-    "shutil": [
-      "copy",
-      "move",
-      "copytree",
-      "remove",
-      "mkdir"
-    ],
     "glob": [
       "match",
       "find"
@@ -207,10 +180,6 @@
       "entries",
       "read",
       "test"
-    ],
-    "subprocess": [
-      "run",
-      "output"
     ],
     "socket": [
       "resolve",
@@ -237,23 +206,6 @@
       "table_info",
       "execute_many",
       "backup"
-    ],
-    "functools": [
-      "partial",
-      "reduce",
-      "map",
-      "filter"
-    ],
-    "enum": [
-      "make",
-      "name",
-      "value",
-      "has"
-    ],
-    "typing": [
-      "type_of",
-      "is",
-      "cast"
     ],
     "dataset": [
       "describe",
@@ -501,7 +453,7 @@
     "date": "2026-11-07",
     "strict_stage2_stage3_stage4": true,
     "direct_multifile_selfhosting": true,
-    "positive_execution_cases": 68,
+    "positive_execution_cases": 72,
     "negative_rejection_cases": 25,
     "eager_native_load_failure": true,
     "se_unit_groups": 6,
@@ -513,6 +465,6 @@
     "statement_record_bytes_after": 522018,
     "verified_source_commit": "d0b5845"
   },
-  "current_batch": "iter/itertools, URL and encoding, config/dotenv, decimal/datetime API lowering with standalone runtime implementations and differential cases",
+  "current_batch": "data, enum/typing, functools alias, shutil, process/subprocess API lowering and standalone runtimes",
   "current_batch_committed": false
 }

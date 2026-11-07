@@ -17,7 +17,7 @@ make _node encoded:Text -> List[Text]
     give unpack_node encoded
 
 make _builtin_module name:Text -> Bool
-    give name in ["math","text","collections","file","json","os","random","path","time","base64","test","statistics","regex","re","uuid","copy","function","async","threading","array","series","matrix","linear","probability","fraction","complex","calculus","units","table","dataset","operator","dynamic","csv","iter","itertools","url","encoding","config","dotenv","decimal","datetime"]
+    give name in ["math","text","collections","file","json","os","random","path","time","base64","test","statistics","regex","re","uuid","copy","function","functools","async","threading","array","series","matrix","linear","probability","fraction","complex","calculus","units","table","dataset","operator","dynamic","csv","iter","itertools","url","encoding","config","dotenv","decimal","datetime","process","subprocess","shutil","data","enum","typing"]
 
 # Port of the source candidates and environment precedence in ModuleLoader::resolve.
 make _resolve_source name:Text importer:Text root:Text -> Text

@@ -287,6 +287,34 @@ make _emit_call encoded:Text -> Text
                 if method == "now"
                     give "se_datetime_now()"
                 fail "Unknown datetime operation: " + method
+            if module == "process"
+                if method == "run"
+                    give try _apply_or_direct "se_process_exec" generated node[2]
+                if method == "output"
+                    give try _apply_or_direct "se_process_output" generated node[2]
+                fail "Unknown process operation: " + method
+            if module == "subprocess"
+                if method == "run"
+                    give try _apply_or_direct "se_process_run" generated node[2]
+                if method == "output"
+                    give try _apply_or_direct "se_process_output" generated node[2]
+                fail "Unknown subprocess operation: " + method
+            if module == "shutil"
+                if method in ["copy", "move", "copytree", "remove", "mkdir"]
+                    give try _apply_or_direct ("se_file_" + method) generated node[2]
+                fail "Unknown shutil operation: " + method
+            if module == "data"
+                if method in ["append", "extend", "insert", "pop", "clear", "copy", "get", "set", "update", "delete", "has", "keys", "values", "items"]
+                    give try _apply_or_direct ("se_data_" + method) generated node[2]
+                fail "Unknown data operation: " + method
+            if module == "enum"
+                if method in ["make", "name", "value", "has"]
+                    give try _apply_or_direct ("se_enum_" + method) generated node[2]
+                fail "Unknown enum operation: " + method
+            if module == "typing"
+                if method in ["type_of", "is", "cast"]
+                    give try _apply_or_direct ("se_typing_" + method) generated node[2]
+                fail "Unknown typing operation: " + method
             if module == "async" or module == "threading"
                 if method == "run"
                     callback_args = try _callback_arguments node[2]
@@ -296,7 +324,7 @@ make _emit_call encoded:Text -> Text
                 if method == "ready"
                     give try _apply_or_direct "se_async_ready" generated node[2]
                 fail "Unknown task operation: " + method
-            if module == "function"
+            if module == "function" or module == "functools"
                 if method == "pipe"
                     pipe_args = try _pipe_arguments node[2]
                     give try _apply_or_direct "se_function_pipe" pipe_args node[2]
@@ -921,7 +949,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     if kind == "NativeLoad"
         give pad + "se_native_library(" + (json.stringify node[1]) + ", " + (json.stringify node[2]) + ");\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "iter", "itertools", "url", "encoding", "config", "dotenv", "decimal", "datetime"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "functools", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "iter", "itertools", "url", "encoding", "config", "dotenv", "decimal", "datetime", "process", "subprocess", "shutil", "data", "enum", "typing"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"

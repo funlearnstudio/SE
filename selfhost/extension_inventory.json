@@ -900,14 +900,14 @@
           "name": "run",
           "kind": "function",
           "usage": "run command args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "output",
           "kind": "function",
           "usage": "output command",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -1448,98 +1448,98 @@
           "name": "append",
           "kind": "function",
           "usage": "append list value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "extend",
           "kind": "function",
           "usage": "extend list values",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "insert",
           "kind": "function",
           "usage": "insert list index value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "pop",
           "kind": "function",
           "usage": "pop list index?",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "clear",
           "kind": "function",
           "usage": "clear collection",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "copy",
           "kind": "function",
           "usage": "copy collection",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "get",
           "kind": "function",
           "usage": "get map key default?",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "set",
           "kind": "function",
           "usage": "set map key value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "update",
           "kind": "function",
           "usage": "update map source",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "delete",
           "kind": "function",
           "usage": "delete map key",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "has",
           "kind": "function",
           "usage": "has collection value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "keys",
           "kind": "function",
           "usage": "keys map",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "values",
           "kind": "function",
           "usage": "values map",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "items",
           "kind": "function",
           "usage": "items map",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2562,35 +2562,35 @@
           "name": "copy",
           "kind": "function",
           "usage": "copy source target",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "move",
           "kind": "function",
           "usage": "move source target",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "copytree",
           "kind": "function",
           "usage": "copytree source target",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "remove",
           "kind": "function",
           "usage": "remove path",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "mkdir",
           "kind": "function",
           "usage": "mkdir path",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2694,14 +2694,14 @@
           "name": "run",
           "kind": "function",
           "usage": "run command",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "output",
           "kind": "function",
           "usage": "output command",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2859,28 +2859,28 @@
           "name": "partial",
           "kind": "function",
           "usage": "partial function args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "reduce",
           "kind": "function",
           "usage": "reduce function list initial?",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "map",
           "kind": "function",
           "usage": "map function list",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "filter",
           "kind": "function",
           "usage": "filter function list",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2892,28 +2892,28 @@
           "name": "make",
           "kind": "function",
           "usage": "make names",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "name",
           "kind": "function",
           "usage": "name enum value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "value",
           "kind": "function",
           "usage": "value enum name",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "has",
           "kind": "function",
           "usage": "has enum name",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2925,21 +2925,21 @@
           "name": "type_of",
           "kind": "function",
           "usage": "type_of value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "is",
           "kind": "function",
           "usage": "is value type_name",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "cast",
           "kind": "function",
           "usage": "cast value type_name",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]

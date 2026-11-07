@@ -1,0 +1,32 @@
+use typing
+use enum
+use functools
+use test
+
+make plus a:Int b:Int -> Int
+    give a + b
+make twice a:Int -> Int
+    give a * 2
+make positive a:Int -> Bool
+    give a > 0
+
+test.equal (try typing.type_of 42) "Int"
+test.ok (try typing.is "SE" "text")
+test.equal (try typing.cast 42 "int") 42
+values = [1, 2]
+test.equal (try typing.type_of values) "List"
+labels = ["red", "green", "blue"]
+colors = enum.make labels
+test.equal (try enum.value colors "green") 1
+test.equal (try enum.name colors 2) "blue"
+test.ok (try enum.has colors "red")
+test.ok (not (try enum.has colors "orange"))
+numbers = [1, 2, 3]
+negatives = [-1, 0, 1]
+increment = functools.partial plus 1
+test.equal (increment 41) 42
+test.equal (try functools.map twice numbers) [2, 4, 6]
+test.equal (try functools.filter positive negatives) [1]
+test.equal (try functools.reduce plus numbers) 6
+test.equal (try functools.reduce plus numbers 10) 16
+say "standard helpers passed"
