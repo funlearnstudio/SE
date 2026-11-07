@@ -106,7 +106,7 @@ def main() -> None:
         verify_positive("language_regex_uuid.se", "", tmp)
         verify_positive("language_operator_module.se", "", tmp)
         verify_positive("language_iter_combinatorics.se", "", tmp, expected_output="2\n7\n6\n8\n6\n1\n3\n2\n3\n0\n3\n")
-        verify_positive("language_enum_module.se", "", tmp, expected_output="3\ngreen\n2\ntrue\nfalse\n")
+        verify_positive("language_enum_module.se", "", tmp, expected_output="3\nrunning\n2\ntrue\nfalse\n")
         verify_positive("language_datetime_iter.se", "", tmp, expected_output="1970-01-01T00:00:00Z\n1970-01-01\n15\n4\n1\n3\n3\n3\n2\n2\n6\n")
         verify_positive("language_itertools_glob.se", "", tmp, expected_output="5\n2\n2\n2\n2\n3\n2\n3\n6\n2\ntrue\ntrue\n4869\n7\ntrue\n")
         verify_positive("language_extension_utilities.se", "", tmp, expected_output="SE\n42\ntrue\n42\nlight\nsession=ok; Path=/; HttpOnly; SameSite=Lax\nOrigin\nGET, POST\n&lt;&amp;&gt;\nHi &lt;SE&gt;!\ntext/css; charset=utf-8\nInt\ntrue\na%20b\n5345\n")
