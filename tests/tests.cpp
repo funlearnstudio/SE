@@ -1,4 +1,5 @@
 #include "s/checker.hpp"
+#include "s/compiler.hpp"
 #include "s/error.hpp"
 #include "s/ffi.hpp"
 #include "s/interpreter.hpp"
@@ -17,6 +18,7 @@ static int failures=0;
 s::ast::Program parse(const std::string&x){s::Lexer l(x);s::Parser p(l.scan());return p.parse();}
 void check(const std::string&x){auto p=parse(x);s::Checker{}.check(p);}
 std::string run(const std::string&x){auto p=parse(x);s::Checker{}.check(p);std::istringstream in;std::ostringstream out;s::Interpreter vm(in,out);vm.run(p);return out.str();}
+std::string run_input(const std::string&source,const std::string&input){auto p=parse(source);s::Checker{}.check(p);std::istringstream in(input);std::ostringstream out;s::Interpreter vm(in,out);vm.run(p);return out.str();}
 std::string run_project(const std::filesystem::path&p){s::ModuleLoader l;auto program=l.load(p);s::Checker{}.check(program);std::istringstream in;std::ostringstream out;s::Interpreter vm(in,out);vm.run(program);return out.str();}
 template<class F>bool throws_error(F f){try{f();return false;}catch(const s::Error&){return true;}}
 template<class F>bool throws_runtime(F f){try{f();return false;}catch(const s::RuntimeFailure&){return true;}}
@@ -49,6 +51,41 @@ int main(){
   EXPECT(run(fib_compact)=="5\n");
   EXPECT(run(fib_spaced)=="5\n");
   EXPECT(run("x = [1, 2]\nx[0] = 9\nsay x[0]\nsay x.len\n")=="9\n2\n");
+  // Sized List declaration reserves zero-initialized Int slots.
+  EXPECT(run("a[5] = []\nsay a\nsay a.len\n")=="[0, 0, 0, 0, 0]\n5\n");
+  EXPECT(run("size = 3\na[size] = []\nfor i in 0..2\n    a[i] = i + 10\nsay a\n")=="[10, 11, 12]\n");
+  EXPECT(run("a[0] = []\nsay a\n")=="[]\n");
+  EXPECT(run("a[2] = []\na.add 8\nsay a\n")=="[0, 0, 8]\n");
+  EXPECT(throws_error([]{check("a[\"5\"] = []\n");}));
+  EXPECT(throws_error([]{check("a[2] = []\na[0] = \"bad\"\n");}));
+  EXPECT(throws_error([]{run("a[-1] = []\n");}));
+  EXPECT(throws_error([]{run("a[1000001] = []\n");}));
+  EXPECT(throws_error([]{run("a[2] = []\na[2] = 7\n");}));
+
+
+  // Typed and multidimensional preallocated Lists.
+  EXPECT(run("names[3]:Text = []\nnames[1] = \"Steve\"\nsay names\n")=="[, Steve, ]\n");
+  EXPECT(run("flags[2]:Bool = []\nflags[0] = true\nsay flags\n")=="[true, false]\n");
+  EXPECT(run("grid[2][3] = []\ngrid[1][2] = 9\nsay grid[1]\n")=="[0, 0, 9]\n");
+  EXPECT(run("matrix[2][2]:Num = []\nmatrix[0][1] = 1.5\nsay matrix[0][1]\n")=="1.5\n");
+  EXPECT(run("zero[0][3] = []\nsay zero.len\n")=="0\n");
+  EXPECT(throws_error([]{check("a[2]:Invalid = []\n");}));
+  EXPECT(throws_error([]{check("a[2][\"bad\"] = []\n");}));
+  EXPECT(throws_error([]{run("a[1001][1001] = []\n");}));
+
+  // Quiet contest input consumes whitespace-separated tokens across newlines.
+  EXPECT(run_input("read n:Int\nread a[n]:Int\nsay a\n","5\n10 20\n30 40 50\n")=="[10, 20, 30, 40, 50]\n");
+  EXPECT(run_input("read x:Num\nread name:Text\nread enabled:Bool\nsay x\nsay name\nsay enabled\n","3.5\nSteve true\n")=="3.5\nSteve\ntrue\n");
+  EXPECT(run_input("read a[0]:Int\nsay a.len\n","")=="0\n");
+  EXPECT(throws_error([]{check("read x:Invalid\n");}));
+  EXPECT(throws_error([]{check("read x[\"bad\"]:Int\n");}));
+  EXPECT(throws_error([]{run_input("read x:Int\n","oops\n");}));
+  EXPECT(throws_error([]{run_input("read x:Int\n","");}));
+  EXPECT(throws_error([]{run_input("read a[3]:Int\n","1 2\n");}));
+
+  // AOT direct lowering is enabled for pure, straight-line programs only.
+  EXPECT(s::CppCompiler{}.generate(parse("a = 2\nsay a * 3\n")).find("SE direct native straight-line backend")!=std::string::npos);
+  EXPECT(s::CppCompiler{}.generate(parse("repeat 2\n    say 1\n")).find("SE direct native straight-line backend")==std::string::npos);
 
   // Core conversions and familiar aliases.
   EXPECT(run("say int \"42\"\nsay integer \"-7\"\nsay double \"3.5\"\nsay float 2\nsay string 99\nsay text true\nsay bool \"TRUE\"\nsay boolean \"false\"\nsay char \"é\"\nsay char 65\n")=="42\n-7\n3.5\n2\n99\ntrue\ntrue\nfalse\né\nA\n");

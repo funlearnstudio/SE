@@ -210,7 +210,7 @@ std::shared_ptr<ModuleData> Interpreter::builtin_module(const std::string&name){
   return m;
 }
 
-Value Interpreter::call(Value c,const std::vector<Value>&args,SourcePos p){auto f=std::get_if<std::shared_ptr<CallableData>>(&c.data());if(!f)throw Error(p,"Only a function or method can be called.");if((!(*f)->variadic&&args.size()!=(*f)->min_args)||((*f)->variadic&&args.size()<(*f)->min_args))throw Error(p,"'"+(*f)->name+"' needs "+std::to_string((*f)->min_args)+((*f)->variadic?" or more":"")+" values, but got "+std::to_string(args.size())+".");return (*f)->call(args,p);}
+Value Interpreter::call(Value c,const std::vector<Value>&args,SourcePos p){auto f=std::get_if<std::shared_ptr<CallableData>>(&c.data());if(!f)throw Error(p,"Only a function or method can be called.");if((!(*f)->variadic&&args.size()!=(*f)->min_args)||((*f)->variadic&&args.size()<(*f)->min_args))throw Error(p,"'"+(*f)->name+"' needs "+std::to_string((*f)->min_args)+((*f)->variadic?" or more":"")+" values, but got "+std::to_string(args.size())+".");debug_call_stack_.push_back((*f)->name);try{auto result=(*f)->call(args,p);debug_call_stack_.pop_back();return result;}catch(...){debug_call_stack_.pop_back();throw;}}
 
 Value Interpreter::instantiate(const std::shared_ptr<TypeData>&type,SourcePos p){auto object=std::make_shared<ObjectData>();object->type=type;auto local=std::make_shared<Environment>(type->closure,object);auto old=env_;env_=local;try{for(auto&f:type->fields)object->fields[f.name]=evaluate(f.value);}catch(...){env_=old;throw;}env_=old;(void)p;return object;}
 
@@ -241,13 +241,121 @@ Value Interpreter::member(Value v,const std::string&name,SourcePos p,bool auto_c
 
 Value Interpreter::evaluate(const ast::ExprPtr& e){
   if(auto x=std::dynamic_pointer_cast<ast::Literal>(e))return std::visit([](auto v){return Value(v);},x->value);if(auto x=std::dynamic_pointer_cast<ast::Duration>(e))return DurationData{x->milliseconds};if(auto x=std::dynamic_pointer_cast<ast::Variable>(e)){Value v;if(env_->has(x->name))v=env_->get(x->name,x->pos);else if(auto builtin=conversion_callable(x->name))v=Value(builtin);else v=env_->get(x->name,x->pos);if(auto t=std::get_if<std::shared_ptr<TypeData>>(&v.data()))return instantiate(*t,x->pos);if(auto f=std::get_if<std::shared_ptr<CallableData>>(&v.data());f&&(*f)->min_args==0&&!(*f)->variadic)return call(v,{},x->pos);return v;}if(auto x=std::dynamic_pointer_cast<ast::Unary>(e)){auto v=evaluate(x->value);if(x->op==TokenKind::Not)return !v.truth(x->pos);if(auto n=std::get_if<std::int64_t>(&v.data()))return -*n;if(auto n=std::get_if<double>(&v.data()))return -*n;throw Error(x->pos,"Only a number can follow '-'.");}if(auto x=std::dynamic_pointer_cast<ast::Binary>(e)){auto a=evaluate(x->left);if(x->op==TokenKind::And&&!a.truth(x->pos))return false;if(x->op==TokenKind::Or&&a.truth(x->pos))return true;return binary(x->op,a,evaluate(x->right),x->pos);}
+  if(auto x=std::dynamic_pointer_cast<ast::SizedList>(e)){
+    std::vector<std::size_t> dimensions;
+    auto length=[&](const ast::ExprPtr& source){
+      auto count=evaluate(source);
+      if(!std::holds_alternative<std::int64_t>(count.data()))throw Error(source->pos,"A sized List dimension needs Int.");
+      auto n=std::get<std::int64_t>(count.data());
+      if(n<0||n>1000000)throw Error(source->pos,"A sized List dimension must be between 0 and 1000000.");
+      return static_cast<std::size_t>(n);
+    };
+    dimensions.push_back(length(x->count));
+    for(const auto& extra:x->other_counts)dimensions.push_back(length(extra));
+    // Limit the sum of allocated List nodes and scalar slots, not only the last dimension.
+    std::size_t nodes=0,layer=1;
+    for(auto n:dimensions){
+      if(layer!=0&&n>1000000/layer)throw Error(x->pos,"A sized List exceeds 1000000 allocated slots.");
+      layer*=n;
+      if(nodes>1000000-layer)throw Error(x->pos,"A sized List exceeds 1000000 allocated slots.");
+      nodes+=layer;
+    }
+    Value default_value=x->element_type=="Text"?Value(std::string{}):
+      x->element_type=="Bool"?Value(false):
+      x->element_type=="Num"?Value(0.0):Value(std::int64_t{0});
+    std::function<Value(std::size_t)> make=[&](std::size_t depth)->Value{
+      auto list=std::make_shared<ListData>();
+      if(depth+1==dimensions.size())list->items.resize(dimensions[depth],default_value);
+      else{
+        list->items.reserve(dimensions[depth]);
+        for(std::size_t i=0;i<dimensions[depth];++i)list->items.push_back(make(depth+1));
+      }
+      return Value(list);
+    };
+    return make(0);
+  }
   if(auto x=std::dynamic_pointer_cast<ast::List>(e)){auto l=std::make_shared<ListData>();for(auto&i:x->items)l->items.push_back(evaluate(i));return l;}if(auto x=std::dynamic_pointer_cast<ast::Set>(e)){auto s=std::make_shared<SetData>();for(auto&i:x->items){auto v=evaluate(i);bool found=false;for(auto&old:s->items)if(value_equal(old,v)){found=true;break;}if(!found)s->items.push_back(std::move(v));}return s;}if(auto x=std::dynamic_pointer_cast<ast::Map>(e)){auto m=std::make_shared<MapData>();for(auto&i:x->items){auto k=evaluate(i.first);if(!std::holds_alternative<std::string>(k.data()))throw Error(i.first->pos,"Map keys are Text in SE.");auto key=std::get<std::string>(k.data());auto v=evaluate(i.second);auto old=std::find_if(m->items.begin(),m->items.end(),[&](auto&q){return q.first==key;});if(old==m->items.end())m->items.emplace_back(std::move(key),std::move(v));else old->second=std::move(v);}return m;}if(auto x=std::dynamic_pointer_cast<ast::Range>(e)){auto a=evaluate(x->start),b=evaluate(x->end);if(!std::holds_alternative<std::int64_t>(a.data())||!std::holds_alternative<std::int64_t>(b.data()))throw Error(x->pos,"A range needs two Int values.");auto l=std::make_shared<ListData>();auto from=std::get<std::int64_t>(a.data()),to=std::get<std::int64_t>(b.data());auto step=from<=to?1:-1;for(auto n=from;;n+=step){l->items.emplace_back(n);if(n==to)break;}return l;}
   if(auto x=std::dynamic_pointer_cast<ast::Index>(e)){auto v=evaluate(x->value),i=evaluate(x->index);if(auto l=std::get_if<std::shared_ptr<ListData>>(&v.data())){if(!std::holds_alternative<std::int64_t>(i.data()))throw Error(x->pos,"A List index needs Int.");auto n=std::get<std::int64_t>(i.data());if(n<0||static_cast<std::size_t>(n)>=(*l)->items.size())throw Error(x->pos,"List index "+std::to_string(n)+" is out of bounds. This list has "+std::to_string((*l)->items.size())+" items.");return (*l)->items[static_cast<std::size_t>(n)];}if(auto m=std::get_if<std::shared_ptr<MapData>>(&v.data())){if(!std::holds_alternative<std::string>(i.data()))throw Error(x->pos,"A Map key needs Text.");auto key=std::get<std::string>(i.data());for(auto&q:(*m)->items)if(q.first==key)return q.second;throw Error(x->pos,"Map has no key '"+key+"'.");}throw Error(x->pos,"Only List and Map can use [index].");}
   if(auto x=std::dynamic_pointer_cast<ast::Member>(e))return member(evaluate(x->value),x->name,x->pos,true);if(auto x=std::dynamic_pointer_cast<ast::Ask>(e)){auto q=evaluate(x->question);if(!std::holds_alternative<std::string>(q.data()))throw Error(x->pos,"ask needs Text.");out_<<q.text()<<": ";std::string answer;std::getline(in_,answer);return answer;}if(auto x=std::dynamic_pointer_cast<ast::TryExpr>(e))return evaluate(x->value);if(auto x=std::dynamic_pointer_cast<ast::Call>(e)){Value c;if(auto m=std::dynamic_pointer_cast<ast::Member>(x->callee))c=member(evaluate(m->value),m->name,m->pos,false);else if(auto v=std::dynamic_pointer_cast<ast::Variable>(x->callee)){if(env_->has(v->name))c=env_->get(v->name,x->pos);else if(auto builtin=conversion_callable(v->name))c=Value(builtin);else c=env_->get(v->name,x->pos);}else c=evaluate(x->callee);std::vector<Value>a;for(auto&i:x->args)a.push_back(evaluate(i));return call(c,a,x->pos);}throw Error(e->pos,"This expression is not implemented.");
 }
 
 void Interpreter::execute(const ast::StmtPtr& s){
+  if(debug_hook_)debug_hook_(s->pos,source_,*env_,debug_call_stack_);
   if(std::dynamic_pointer_cast<ast::Use>(s))return;if(auto x=std::dynamic_pointer_cast<ast::Say>(s)){out_<<evaluate(x->value).text()<<'\n';return;}if(auto x=std::dynamic_pointer_cast<ast::ExprStmt>(s)){auto value=evaluate(x->value);if(auto m=std::dynamic_pointer_cast<ast::Member>(x->value);m&&m->name=="help")out_<<value.text()<<'\n';return;}
+  if(auto x=std::dynamic_pointer_cast<ast::Read>(s)){
+    std::size_t length=1;
+    if(x->count){
+      const auto value=evaluate(x->count);
+      if(!std::holds_alternative<std::int64_t>(value.data()))throw Error(x->pos,"read array length needs Int.");
+      const auto n=std::get<std::int64_t>(value.data());
+      if(n<0||n>1000000)throw Error(x->pos,"read array length must be between 0 and 1000000.");
+      length=static_cast<std::size_t>(n);
+    }
+    auto list=std::make_shared<ListData>();
+    if(x->count)list->items.reserve(length);
+    Value single;
+    for(std::size_t i=0;i<length;++i){
+      std::string token;
+      if(!(in_>>token))throw Error(x->pos,"read: unexpected end of standard input for '"+x->name+"'.");
+      Value value;
+      try{
+        if(x->type=="Int"){
+          std::size_t used=0;
+          auto n=std::stoll(token,&used,10);
+          if(used!=token.size())throw std::invalid_argument("trailing characters");
+          value=Value(static_cast<std::int64_t>(n));
+        }else if(x->type=="Num"){
+          std::size_t used=0;
+          auto n=std::stod(token,&used);
+          if(used!=token.size()||!std::isfinite(n))throw std::invalid_argument("invalid number");
+          value=Value(n);
+        }else if(x->type=="Bool"){
+          if(token=="true"||token=="1")value=Value(true);
+          else if(token=="false"||token=="0")value=Value(false);
+          else throw std::invalid_argument("invalid Bool");
+        }else value=Value(token);
+      }catch(const std::exception&){
+        throw Error(x->pos,"read: '"+x->name+"' needs "+x->type+", got '"+token+"'.");
+      }
+      if(x->count)list->items.push_back(value);else single=value;
+    }
+    env_->set(x->name,x->count?Value(list):single);
+    return;
+  }
+  if(auto x=std::dynamic_pointer_cast<ast::MultiAsk>(s)){
+    out_<<"Input "<<x->names.size()<<" space-separated values: ";
+    std::string line;
+    if(!std::getline(in_,line))throw Error(x->pos,"ask: unable to read input.");
+    std::istringstream stream(line);
+    std::vector<std::string> fields;
+    std::string field;
+    while(stream>>field)fields.push_back(field);
+    if(fields.size()!=x->names.size())
+      throw Error(x->pos,"ask: expected "+std::to_string(x->names.size())+
+                         " values but received "+std::to_string(fields.size())+".");
+    std::vector<Value> values;
+    values.reserve(fields.size());
+    for(std::size_t i=0;i<fields.size();++i){
+      try{
+        if(x->types[i]=="Int"){
+          std::size_t end=0;
+          auto n=std::stoll(fields[i],&end,10);
+          if(end!=fields[i].size())throw std::invalid_argument("trailing characters");
+          values.emplace_back(static_cast<std::int64_t>(n));
+        }else if(x->types[i]=="Num"){
+          std::size_t end=0;
+          auto n=std::stod(fields[i],&end);
+          if(end!=fields[i].size()||!std::isfinite(n))throw std::invalid_argument("invalid number");
+          values.emplace_back(n);
+        }else values.emplace_back(fields[i]);
+      }catch(const std::exception&){
+        throw Error(x->pos,"ask: '"+x->names[i]+"' needs "+x->types[i]+
+                           ", got '"+fields[i]+"'.");
+      }
+    }
+    for(std::size_t i=0;i<values.size();++i)env_->set(x->names[i],values[i]);
+    return;
+  }
   if(auto x=std::dynamic_pointer_cast<ast::Assign>(s)){auto v=evaluate(x->value);if(auto n=std::dynamic_pointer_cast<ast::Variable>(x->target)){env_->set(n->name,v);if(!x->init.empty()){auto o=std::get_if<std::shared_ptr<ObjectData>>(&v.data());if(!o)throw Error(x->pos,"Indented initialization needs an object.");execute_block(x->init,std::make_shared<Environment>(env_,*o));}return;}if(auto m=std::dynamic_pointer_cast<ast::Member>(x->target)){auto owner=evaluate(m->value);auto o=std::get_if<std::shared_ptr<ObjectData>>(&owner.data());if(!o||!(*o)->fields.contains(m->name))throw Error(x->pos,"Unknown object field '"+m->name+"'.");(*o)->fields[m->name]=v;return;}if(auto i=std::dynamic_pointer_cast<ast::Index>(x->target)){auto c=evaluate(i->value),k=evaluate(i->index);if(auto l=std::get_if<std::shared_ptr<ListData>>(&c.data())){if(!std::holds_alternative<std::int64_t>(k.data()))throw Error(x->pos,"A List index needs Int.");auto n=std::get<std::int64_t>(k.data());if(n<0||static_cast<std::size_t>(n)>=(*l)->items.size())throw Error(x->pos,"List index is out of bounds.");(*l)->items[static_cast<std::size_t>(n)]=v;return;}if(auto mp=std::get_if<std::shared_ptr<MapData>>(&c.data())){if(!std::holds_alternative<std::string>(k.data()))throw Error(x->pos,"A Map key needs Text.");auto key=std::get<std::string>(k.data());for(auto&q:(*mp)->items)if(q.first==key){q.second=v;return;}(*mp)->items.emplace_back(key,v);return;}throw Error(x->pos,"Only List or Map items can be assigned by index.");}throw Error(x->pos,"You can only assign to a name, field, or collection item.");}
   if(auto x=std::dynamic_pointer_cast<ast::If>(s)){execute_block(evaluate(x->condition).truth(x->pos)?x->then_block:x->else_block,std::make_shared<Environment>(env_));return;}
   if(auto x=std::dynamic_pointer_cast<ast::Match>(s)){auto subject=evaluate(x->value);for(auto& c:x->cases){if(value_equal(subject,evaluate(c.pattern))){execute_block(c.body,std::make_shared<Environment>(env_));return;}}execute_block(x->else_block,std::make_shared<Environment>(env_));return;}

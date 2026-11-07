@@ -1,0 +1,54 @@
+name: Build SE VSIX
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'vscode/**'
+      - '.github/workflows/build-vsix.yml'
+  pull_request:
+    paths:
+      - 'vscode/**'
+      - 'src/**'
+      - 'include/**'
+      - 'tests/ask-multiple-smoke.sh'
+      - 'examples/ask-multiple.se'
+      - '.github/workflows/build-vsix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  vsix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build SE and verify multi-value ask
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel 2
+          SE_BIN=./build/se bash tests/ask-multiple-smoke.sh
+      - name: Package extension
+        run: |
+          cd vscode
+          npm install --no-audit --no-fund
+          npx vsce package --no-dependencies
+      - name: Export source snapshot for independent native verification
+        run: |
+          git archive --format=zip --output=/tmp/se-source-wip.zip HEAD
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: se-source-wip
+          path: /tmp/se-source-wip.zip
+          if-no-files-found: error
+      - name: Upload installable VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: se-language-vsix
+          path: vscode/*.vsix
+          if-no-files-found: error

@@ -203,5 +203,48 @@
       "test.equal $1 ${3:4}"
     ],
     "description": "Create a simple SE test"
+  },
+  "Ask multiple values": {
+    "prefix": "askmulti",
+    "body": [
+      "ask ${1:a}:Int ${2:b}:Int",
+      "say $1 + $2"
+    ],
+    "description": "Read multiple whitespace-separated typed values on one input line"
+  },
+  "Sized integer List": {
+    "prefix": "sizedlist",
+    "body": [
+      "${1:a}[${2:5}] = []",
+      "for ${3:i} in 0..${4:4}",
+      "    $1[$3] = int ask \"${5:輸入整數：}\"",
+      "say $1"
+    ],
+    "description": "Allocate a zero-filled List[Int] with a specified length"
+  },
+  "Typed standard input": {
+    "prefix": "read",
+    "body": [
+      "read ${1:n}:Int"
+    ],
+    "description": "Read a typed token from standard input without a prompt"
+  },
+  "Contest input array": {
+    "prefix": "readarray",
+    "body": [
+      "read ${1:n}:Int",
+      "read ${2:a}[$1]:Int",
+      "say $2"
+    ],
+    "description": "Read a sized array of typed values from standard input"
+  },
+  "Typed multidimensional List": {
+    "prefix": "typedmatrix",
+    "body": [
+      "${1:grid}[${2:3}][${3:4}]:${4:Int} = []",
+      "$1[${5:0}][${6:0}] = ${7:42}",
+      "say $1"
+    ],
+    "description": "Create a typed, multidimensional List"
   }
 }

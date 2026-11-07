@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $Repo = 'funlearnstudio/SE'
-$FallbackVersion = '0.7.5'
+$FallbackVersion = '0.8.0'
 
 if ($env:SE_VERSION) {
     $Version = $env:SE_VERSION
@@ -20,7 +20,7 @@ else {
 $Version = ([string]$Version).Trim()
 if ($Version.StartsWith('v')) { $Version = $Version.Substring(1) }
 if ($Version -notmatch '^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$') {
-    throw "SE installer: invalid version '$Version'. Use 0.7.5 or v0.7.5."
+    throw "SE installer: invalid version '$Version'. Use 0.8.0 or v0.8.0."
 }
 $Tag = "v$Version"
 $Asset = "se-$Version-windows-x64"

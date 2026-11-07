@@ -10,7 +10,7 @@ SE 是一門以 C++20 實作、低標點、重視安全性的程式語言。它�
 Language / 語言: SE
 CLI / 指令:       se
 Source / 原始碼:  .se
-Release / 正式版: SE 0.7.5
+Release / 正式版: SE 0.8.0
 ```
 
 ```se
@@ -50,22 +50,22 @@ curl -fsSL https://raw.githubusercontent.com/funlearnstudio/SE/main/install.sh |
 irm https://raw.githubusercontent.com/funlearnstudio/SE/main/install.ps1 | iex
 ```
 
-### Upgrade / 更新到 0.7.5
+### Upgrade / 更新到 0.8.0
 
-Rerun the installation command above to update to the latest stable release. To install exactly 0.7.5:
+Rerun the installation command above to update to the latest stable release. To install exactly 0.8.0:
 
-重新執行上方安裝指令即可更新至最新正式版。指定安裝 0.7.5：
+重新執行上方安裝指令即可更新至最新正式版。指定安裝 0.8.0：
 
 macOS / Linux:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/funlearnstudio/SE/main/install.sh | SE_VERSION=0.7.5 sh
+curl -fsSL https://raw.githubusercontent.com/funlearnstudio/SE/main/install.sh | SE_VERSION=0.8.0 sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-$env:SE_VERSION = '0.7.5'
+$env:SE_VERSION = '0.8.0'
 irm https://raw.githubusercontent.com/funlearnstudio/SE/main/install.ps1 | iex
 Remove-Item Env:SE_VERSION
 ```
@@ -76,17 +76,18 @@ Both installers verify the package against the release's SHA-256 checksums. Wind
 
 ### Downloads / 下載
 
-[SE 0.7.5 release and platform packages / 正式版與各平台安裝包](https://github.com/funlearnstudio/SE/releases/tag/v0.7.5)
+[SE 0.8.0 release and platform packages / 正式版與各平台安裝包](https://github.com/funlearnstudio/SE/releases/tag/v0.8.0)
 
 Supported prebuilt packages / 預編譯平台：macOS Apple Silicon (arm64)、macOS Intel (x64)、Linux x64、Windows x64。
 
-[VS Code extension 0.7.5 / VS Code 擴充套件](https://github.com/funlearnstudio/SE/releases/download/v0.7.5/se-language-0.7.5.vsix) — install using **Extensions → … → Install from VSIX**.
+[VS Code extension 0.8.0 / VS Code 擴充套件](https://github.com/funlearnstudio/SE/releases/download/v0.8.0/se-language-0.8.0.vsix) — install using **Extensions → … → Install from VSIX**.
 
-### Changes in 0.7.5 / 0.7.5 更新
+### Changes in 0.8.0 / 0.8.0 更新
 
-- Arithmetic in bare function calls / 無括號函式呼叫支援運算：`func a-1 + func a-2`。
-- Text concatenation with printable values / 文字可串接不同型別：`say "hello" + 5`。
-- CLI, installers, platform packages and VS Code extension synchronized to 0.7.5 / CLI、安裝器、平台安裝包與 VS Code 擴充套件同步至 0.7.5。
+- Sized integer List declarations / 透過 `a[5] = []` 建立五個初始值為 0 的整數元素。
+- Variable-sized allocation / 支援 `a[n] = []`，長度可為 0 至 1,000,000。
+- Consistent interpreter, native and Web handling / 直譯、原生與 Web 編譯一致支援新語法。
+- CLI, installers, platform packages and VS Code extension synchronized to 0.8.0 / CLI、安裝器、平台安裝包與 VS Code 擴充套件同步至 0.8.0。
 
 Verify / 確認：
 
@@ -189,3 +190,12 @@ SE 是早期 S codebase 的後繼名稱。內部 C++ namespace 與部分舊 `.s`
 ## License
 
 MIT
+
+## SE 0.8.0 新增功能
+
+- `read n:Int`、`read a[n]:Int`：無提示標準輸入，適用程式競賽。
+- `a[5]:Text = []`、`grid[10][10] = []`：型別陣列與多維陣列。
+- `se fmt`、`se debug`、`se trace`、`se lsp`、`se pkg`：開發工具。
+- 直接 C++ lowering 僅支援簡單、無副作用的直線程式；其餘保留完整執行期。
+
+SE 自編譯器及完整 Native 最佳化仍屬獨立開發項目，並未在本版完成。

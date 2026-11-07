@@ -35,6 +35,14 @@ struct Variable final : Expr {
 struct Binary final : Expr { Binary(SourcePos p,ExprPtr l,TokenKind o,ExprPtr r):Expr(p),left(std::move(l)),op(o),right(std::move(r)){} ExprPtr left; TokenKind op; ExprPtr right; };
 struct Unary final : Expr { Unary(SourcePos p,TokenKind o,ExprPtr v):Expr(p),op(o),value(std::move(v)){} TokenKind op; ExprPtr value; };
 struct List final : Expr { List(SourcePos p,std::vector<ExprPtr> v):Expr(p),items(std::move(v)){} std::vector<ExprPtr> items; };
+// `a[n] = []`, `a[n]:Text = []`, and `a[rows][cols] = []`.
+struct SizedList final : Expr {
+  SizedList(SourcePos p,ExprPtr n,std::vector<ExprPtr> more={},std::string t="Int"):
+    Expr(p),count(std::move(n)),other_counts(std::move(more)),element_type(std::move(t)){}
+  ExprPtr count;
+  std::vector<ExprPtr> other_counts;
+  std::string element_type;
+};
 struct Map final : Expr { Map(SourcePos p,std::vector<std::pair<ExprPtr,ExprPtr>> v):Expr(p),items(std::move(v)){} std::vector<std::pair<ExprPtr,ExprPtr>> items; };
 struct Set final : Expr { Set(SourcePos p,std::vector<ExprPtr> v):Expr(p),items(std::move(v)){} std::vector<ExprPtr> items; };
 struct Index final : Expr { Index(SourcePos p,ExprPtr v,ExprPtr i):Expr(p),value(std::move(v)),index(std::move(i)){} ExprPtr value,index; };
@@ -45,6 +53,15 @@ struct Range final : Expr { Range(SourcePos p,ExprPtr a,ExprPtr b):Expr(p),start
 struct TryExpr final : Expr { TryExpr(SourcePos p,ExprPtr v):Expr(p),value(std::move(v)){} ExprPtr value; };
 
 struct ExprStmt final : Stmt { ExprStmt(SourcePos p,ExprPtr v):Stmt(p),value(std::move(v)){} ExprPtr value; };
+struct Read final : Stmt {
+  Read(SourcePos p,std::string n,std::string t,ExprPtr len={}):Stmt(p),name(std::move(n)),type(std::move(t)),count(std::move(len)){}
+  std::string name,type;
+  ExprPtr count;
+};
+struct MultiAsk final : Stmt {
+  MultiAsk(SourcePos p,std::vector<std::string> n,std::vector<std::string> t):Stmt(p),names(std::move(n)),types(std::move(t)){}
+  std::vector<std::string> names,types;
+};
 struct Assign final : Stmt { Assign(SourcePos p,ExprPtr t,ExprPtr v,Block i={}):Stmt(p),target(std::move(t)),value(std::move(v)),init(std::move(i)){} ExprPtr target,value; Block init; };
 struct Say final : Stmt { Say(SourcePos p,ExprPtr v):Stmt(p),value(std::move(v)){} ExprPtr value; };
 struct If final : Stmt { If(SourcePos p,ExprPtr c,Block t,Block e):Stmt(p),condition(std::move(c)),then_block(std::move(t)),else_block(std::move(e)){} ExprPtr condition; Block then_block,else_block; };

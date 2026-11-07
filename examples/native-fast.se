@@ -1,0 +1,7 @@
+# Straight-line programs can use the direct native backend.
+a = 12
+b = 3
+say "A=" + a
+say a / b
+say a % b
+say a != b

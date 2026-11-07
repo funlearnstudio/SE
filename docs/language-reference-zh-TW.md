@@ -243,3 +243,21 @@ se web build app.se dist
 ```
 
 Browser request、routing 與表單請看 [Browser API](browser-api-0.8-zh-TW.md)。
+
+## SE 0.8.0: 競賽輸入與開發工具
+
+以下為 0.8.0 新增的正式 C++ 編譯器語法；輸入只讀取空白分隔資料，不會輸出提示文字。
+
+```se
+read n:Int
+read a[n]:Int
+sum = 0
+for item in a
+    sum += item
+say sum
+
+names[5]:Text = []
+grid[10][10]:Int = []
+```
+
+可以使用 `se fmt file.se` 與 `se fmt --check file.se` 格式化、`se debug file.se` 除錯、`se trace file.se` 追蹤、`se lsp` 啟動實驗性語言伺服器、`se pkg init|add|remove|list|verify` 管理本機模組。套件管理尚未提供遠端套件註冊表或密碼學簽章。

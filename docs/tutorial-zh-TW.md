@@ -22,6 +22,8 @@ se run hello.se
 
 ```bash
 se check hello.se
+se fmt hello.se         # 正規化縮排和行尾空白
+se fmt --check hello.se # 檢查是否已符合格式，不修改檔案
 ```
 
 ## 2. 變數與值
@@ -45,6 +47,21 @@ say "Hello " + name
 ```
 
 `say` 輸出值；`ask` 顯示提示並取得文字輸入。
+
+### 競賽模式標準輸入（開發分支）
+
+`ask` 是互動式輸入，適合一般程式；新增的 `read` 語句可從標準輸入讀取以空白或換行分隔的資料，不輸出任何提示文字：
+
+```se
+read n:Int
+read values[n]:Int
+sum = 0
+for value in values
+    sum += value
+say sum
+```
+
+如果標準輸入為 `5`、`10 20 30 40 50`，程式只輸出 `150`。單一值支援 `Int`、`Num`、`Text`、`Bool`；同樣可使用 `read flags[n]:Bool`。`read "file.txt"` 作為檔案讀取表達式保持原有意義。
 
 ## 4. 數學、比較與邏輯
 
@@ -174,6 +191,43 @@ if 3 in values
 ```
 
 SE 會檢查不合法的 collection 操作，而不是把 C++ undefined behavior 暴露給一般 SE 程式。
+
+### 預先配置固定數量的整數元素
+
+需要先建立 5 個位置、之後才輸入資料時，可以寫：
+
+```se
+a[5] = []             # 建立長度為 5 的 List[Int]；初值全為 0
+for i in 0..4
+    a[i] = int ask "請輸入數值："
+say a
+```
+
+長度也可以是 Int 變數：
+
+```se
+n = int ask "陣列長度："
+a[n] = []
+say a.len
+```
+
+這裡的 `a[n] = []` 是**陣列建立／重新初始化語法**，不是對第 n 個元素賦值。
+`a = []` 仍建立可透過 `a.add value` 擴充的空陣列。新語法初始元素是整數 `0`，索引從 0 開始；長度不得為負，也不能大於 1,000,000。若需其他元素型別，請用一般 List literal 或 `.add` 建立。
+
+
+### 型別陣列與多維陣列（開發分支）
+
+```se
+names[3]:Text = []
+flags[5]:Bool = []
+scores[3]:Num = []
+grid[10][10]:Int = []
+
+grid[2][3] = 99
+say grid[2][3]
+```
+
+建立時會依元素型別填入預設值：`Int` 為 `0`、`Num` 為 `0.0`、`Text` 為空字串、`Bool` 為 `false`。二維與多維陣列各列獨立，長度必須是非負整數，且總配置量有 1,000,000 個節點／元素的安全限制。原有 `a[5] = []` 仍可用，預設為 `List[Int]`。
 
 ## 9. Text 與 Bytes
 

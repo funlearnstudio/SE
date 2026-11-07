@@ -203,6 +203,13 @@ std::string expression_js(const ast::ExprPtr& raw,const Bindings& bindings){
   }
   if(auto duration=std::dynamic_pointer_cast<ast::Duration>(e))return std::to_string(duration->milliseconds);
   if(auto variable=std::dynamic_pointer_cast<ast::Variable>(e))return variable->name;
+  if(auto sized=std::dynamic_pointer_cast<ast::SizedList>(e)){
+    std::string dims="["+expression_js(sized->count,bindings);
+    for(std::size_t i=0;i<sized->other_counts.size();++i)dims+=","+expression_js(sized->other_counts[i],bindings);
+    dims+="]";
+    const std::string leaf=sized->element_type=="Text"?"\"\"":sized->element_type=="Bool"?"false":sized->element_type=="Num"?"0.0":"0";
+    return "(()=>{const d="+dims+";let total=0,layer=1;for(const n of d){if(!Number.isSafeInteger(n)||n<0||n>1000000||(layer&&n>Math.floor(1000000/layer)))throw new Error('Invalid sized List dimensions.');layer*=n;total+=layer;if(total>1000000)throw new Error('A sized List exceeds 1000000 slots.');}const build=i=>i===d.length?"+leaf+":Array.from({length:d[i]},()=>build(i+1));return build(0);})()";
+  }
   if(auto list=std::dynamic_pointer_cast<ast::List>(e)){
     std::string out="[";for(std::size_t i=0;i<list->items.size();++i){if(i)out+=",";out+=expression_js(list->items[i],bindings);}return out+"]";
   }

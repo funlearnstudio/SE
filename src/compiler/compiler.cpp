@@ -1,6 +1,9 @@
 #include "s/compiler.hpp"
 #include <iomanip>
 #include <sstream>
+#include <optional>
+#include <functional>
+#include <unordered_set>
 
 namespace s {
 namespace {
@@ -26,12 +29,89 @@ std::string type_ref(const ast::TypeRef&t){std::string r="ast::TypeRef{"+q(t.nam
 std::string type_refs(const std::vector<ast::TypeRef>&v){std::string r="std::vector<ast::TypeRef>{";for(std::size_t i=0;i<v.size();++i){if(i)r+=",";r+=type_ref(v[i]);}return r+"}";}
 }
 
+// A direct native backend for side-effect-free straight-line programs. Programs
+// with calls, closures, control flow, imports, or dynamic features keep using the
+// full VM backend. This lowers evaluated values directly, without building an AST
+// in the executable, while reusing the runtime for exact SE arithmetic semantics.
+static std::optional<std::string> direct_native(const ast::Program& program){
+  const ast::Block* statements=&program.statements;
+  if(!program.modules.empty()){
+    if(program.modules.size()!=1)return std::nullopt;
+    const auto& module=program.modules.front();
+    if(module.builtin||module.native||!module.imports.empty()||module.name!=program.entry)
+      return std::nullopt;
+    statements=&module.statements;
+  }
+  if(statements->empty())return std::nullopt;
+  std::unordered_set<std::string> names;
+  std::function<bool(const ast::ExprPtr&)> supported=[&](const ast::ExprPtr& expr){
+    if(std::dynamic_pointer_cast<ast::Literal>(expr))return true;
+    if(auto v=std::dynamic_pointer_cast<ast::Variable>(expr))return v->type_args.empty()&&names.contains(v->name);
+    if(auto b=std::dynamic_pointer_cast<ast::Binary>(expr))
+      return b->op!=TokenKind::And&&b->op!=TokenKind::Or&&supported(b->left)&&supported(b->right);
+    return false;
+  };
+  for(const auto& statement:*statements){
+    if(auto assign=std::dynamic_pointer_cast<ast::Assign>(statement)){
+      auto variable=std::dynamic_pointer_cast<ast::Variable>(assign->target);
+      if(!variable||!variable->type_args.empty()||!assign->init.empty()||!supported(assign->value))return std::nullopt;
+      names.insert(variable->name);
+    }else if(auto print=std::dynamic_pointer_cast<ast::Say>(statement)){
+      if(!supported(print->value))return std::nullopt;
+    }else return std::nullopt;
+  }
+  std::function<std::string(const ast::ExprPtr&)> emit=[&](const ast::ExprPtr& expr)->std::string{
+    if(auto literal=std::dynamic_pointer_cast<ast::Literal>(expr))
+      return std::visit([&](auto value)->std::string{
+        using T=decltype(value);
+        if constexpr(std::is_same_v<T,std::int64_t>)
+          return "s::Value(std::int64_t{"+std::to_string(value)+"})";
+        else if constexpr(std::is_same_v<T,std::string>)
+          return "s::Value(std::string{"+q(value)+"})";
+        else if constexpr(std::is_same_v<T,bool>)
+          return std::string("s::Value(")+(value?"true":"false")+")";
+        else{
+          std::ostringstream stream;stream<<std::setprecision(17)<<value;
+          auto number=stream.str();
+          if(number.find_first_of(".eE")==std::string::npos)number+=".0";
+          return "s::Value("+number+")";
+        }
+      },literal->value);
+    if(auto variable=std::dynamic_pointer_cast<ast::Variable>(expr))
+      return "variables.at("+q(variable->name)+")";
+    auto binary=std::dynamic_pointer_cast<ast::Binary>(expr);
+    return "s::binary(s::TokenKind::"+std::string(token_name(binary->op))+","+
+      emit(binary->left)+","+emit(binary->right)+","+pos(binary->pos)+")";
+  };
+  std::string code="#include \"s/value.hpp\"\n#include \"s/error.hpp\"\n"
+    "#include <iostream>\n#include <unordered_map>\nusing namespace s;\n"
+    "int main(){try{std::unordered_map<std::string,s::Value> variables;\n"
+    "// SE direct native straight-line backend\n";
+  for(const auto& statement:*statements){
+    if(auto assign=std::dynamic_pointer_cast<ast::Assign>(statement)){
+      auto name=std::dynamic_pointer_cast<ast::Variable>(assign->target)->name;
+      code+="variables["+q(name)+"]="+emit(assign->value)+";\n";
+    }else if(auto print=std::dynamic_pointer_cast<ast::Say>(statement)){
+      code+="std::cout<<("+emit(print->value)+").text()<<'\\n';\n";
+    }
+  }
+  code+="return 0;}catch(const s::Error&e){std::cerr<<e.what()<<'\\n';return 1;}"
+        "catch(const std::exception&e){std::cerr<<e.what()<<'\\n';return 1;}}\n";
+  return code;
+}
+
 std::string CppCompiler::expr(const ast::ExprPtr&e) const{
   if(auto x=std::dynamic_pointer_cast<ast::Literal>(e))return std::visit([&](auto v)->std::string{using T=decltype(v);if constexpr(std::is_same_v<T,std::string>)return "std::make_shared<ast::Literal>("+pos(x->pos)+",ast::Literal::Data{"+q(v)+"})";else if constexpr(std::is_same_v<T,bool>)return "std::make_shared<ast::Literal>("+pos(x->pos)+",ast::Literal::Data{"+std::string(v?"true":"false")+"})";else if constexpr(std::is_same_v<T,std::int64_t>)return "std::make_shared<ast::Literal>("+pos(x->pos)+",ast::Literal::Data{std::int64_t{"+std::to_string(v)+"}})";else return "std::make_shared<ast::Literal>("+pos(x->pos)+",ast::Literal::Data{double{"+std::to_string(v)+"}})";},x->value);
   if(auto x=std::dynamic_pointer_cast<ast::Duration>(e))return "std::make_shared<ast::Duration>("+pos(x->pos)+",std::int64_t{"+std::to_string(x->milliseconds)+"})";
   if(auto x=std::dynamic_pointer_cast<ast::Variable>(e))return "std::make_shared<ast::Variable>("+pos(x->pos)+","+q(x->name)+","+type_refs(x->type_args)+")";
   if(auto x=std::dynamic_pointer_cast<ast::Binary>(e))return "std::make_shared<ast::Binary>("+pos(x->pos)+","+expr(x->left)+",TokenKind::"+std::string(token_name(x->op))+","+expr(x->right)+")";
   if(auto x=std::dynamic_pointer_cast<ast::Unary>(e))return "std::make_shared<ast::Unary>("+pos(x->pos)+",TokenKind::"+std::string(token_name(x->op))+","+expr(x->value)+")";
+  if(auto x=std::dynamic_pointer_cast<ast::SizedList>(e)){
+    std::string rest="std::vector<ast::ExprPtr>{";
+    for(std::size_t i=0;i<x->other_counts.size();++i){if(i)rest+=",";rest+=expr(x->other_counts[i]);}
+    rest+="}";
+    return "std::make_shared<ast::SizedList>("+pos(x->pos)+","+expr(x->count)+","+rest+","+q(x->element_type)+")";
+  }
   if(auto x=std::dynamic_pointer_cast<ast::List>(e)){std::string r="std::make_shared<ast::List>("+pos(x->pos)+",std::vector<ast::ExprPtr>{";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+=expr(x->items[i]);}return r+"})";}
   if(auto x=std::dynamic_pointer_cast<ast::Set>(e)){std::string r="std::make_shared<ast::Set>("+pos(x->pos)+",std::vector<ast::ExprPtr>{";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+=expr(x->items[i]);}return r+"})";}
   if(auto x=std::dynamic_pointer_cast<ast::Map>(e)){std::string r="std::make_shared<ast::Map>("+pos(x->pos)+",std::vector<std::pair<ast::ExprPtr,ast::ExprPtr>>{";for(std::size_t i=0;i<x->items.size();++i){if(i)r+=",";r+="{"+expr(x->items[i].first)+","+expr(x->items[i].second)+"}";}return r+"})";}
@@ -49,6 +129,8 @@ std::string CppCompiler::function(const std::shared_ptr<ast::Function>&x) const{
 
 std::string CppCompiler::stmt(const ast::StmtPtr&s) const{
   if(auto x=std::dynamic_pointer_cast<ast::ExprStmt>(s))return "std::make_shared<ast::ExprStmt>("+pos(x->pos)+","+expr(x->value)+")";
+  if(auto x=std::dynamic_pointer_cast<ast::Read>(s))return "std::make_shared<ast::Read>("+pos(x->pos)+","+q(x->name)+","+q(x->type)+","+(x->count?expr(x->count):"nullptr")+")";
+  if(auto x=std::dynamic_pointer_cast<ast::MultiAsk>(s))return "std::make_shared<ast::MultiAsk>("+pos(x->pos)+","+strings(x->names)+","+strings(x->types)+")";
   if(auto x=std::dynamic_pointer_cast<ast::Assign>(s))return "std::make_shared<ast::Assign>("+pos(x->pos)+","+expr(x->target)+","+expr(x->value)+","+block(x->init)+")";
   if(auto x=std::dynamic_pointer_cast<ast::Say>(s))return "std::make_shared<ast::Say>("+pos(x->pos)+","+expr(x->value)+")";
   if(auto x=std::dynamic_pointer_cast<ast::If>(s))return "std::make_shared<ast::If>("+pos(x->pos)+","+expr(x->condition)+","+block(x->then_block)+","+block(x->else_block)+")";
@@ -79,6 +161,7 @@ std::string CppCompiler::module(const ast::Module&m) const{
 }
 
 std::string CppCompiler::generate(const ast::Program&p){
+  if(auto direct=direct_native(p))return *direct;
   std::string out="#include \"s/interpreter.hpp\"\n#include \"s/error.hpp\"\n#include <iostream>\nusing namespace s;\nint main(){ try { ast::Program p; p.entry="+q(p.entry)+"; p.statements="+block(p.statements)+"; p.modules=std::vector<ast::Module>{";
   for(std::size_t i=0;i<p.modules.size();++i){if(i)out+=",";out+=module(p.modules[i]);}
   out+="}; Interpreter vm(std::cin,std::cout); vm.run(p); return 0; } catch(const RuntimeFailure& e){ const auto& x=e.error(); std::cerr<<x.kind; if(!x.source.empty()) std::cerr<<\" in \"<<x.source; if(x.line) std::cerr<<\" on line \"<<x.line; std::cerr<<\": \"<<x.message<<'\\n'; return 1; } catch(const Error& e){ std::cerr<<\"S error on line \"<<e.pos().line<<\": \"<<e.what()<<'\\n'; return 1; } catch(const std::exception& e){ std::cerr<<\"Error: \"<<e.what()<<'\\n'; return 1; } }\n";return out;
