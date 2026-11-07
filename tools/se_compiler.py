@@ -29,6 +29,15 @@ def select_binary(value: str | None, fallback: Path, label: str) -> Path:
     return candidate
 
 
+def default_binary(name: str) -> Path:
+    executable = name + (".exe" if os.name == "nt" else "")
+    build = ROOT / "build" / executable
+    if build.is_file():
+        return build
+    # Downloaded packages place launchers in bin/, not build/.
+    return ROOT / "bin" / executable
+
+
 def run(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Choose CMake/C++ SE or independently bootstrapped SE compiler")
@@ -55,7 +64,7 @@ def run(argv: list[str] | None = None) -> int:
             parser.error("--target is only supported with --backend se")
         action = ["web", "build", str(source), str(source.parent / "dist")] if args.command == "web" else [args.command, str(source)]
         try:
-            binary = select_binary(args.cmake_bin, ROOT / "build" / "se", "CMake SE")
+            binary = select_binary(args.cmake_bin, default_binary("se"), "CMake SE")
         except ValueError as exc:
             parser.error(str(exc))
         return subprocess.run([str(binary), *action], check=False).returncode
@@ -66,7 +75,7 @@ def run(argv: list[str] | None = None) -> int:
     if target == "web" and args.command == "run":
         parser.error("Web target cannot be run as a native executable")
     try:
-        binary = select_binary(args.selfhost_bin, ROOT / "build" / "se-selfhost", "SE self-host")
+        binary = select_binary(args.selfhost_bin, default_binary("se-selfhost"), "SE self-host")
     except ValueError as exc:
         parser.error(str(exc))
     if args.output:
