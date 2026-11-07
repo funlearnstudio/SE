@@ -1,5 +1,8 @@
-#include "se_bootstrap_runtime.hpp"
+#ifdef NDEBUG
+#undef NDEBUG  // Keep runtime assertions active even in Release CI builds.
+#endif
 #include <cassert>
+#include "se_bootstrap_runtime.hpp"
 #include <stdexcept>
 #include <string>
 
