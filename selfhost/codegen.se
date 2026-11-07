@@ -319,12 +319,18 @@ make _emit_call encoded:Text -> Text
                 if method in ["match", "find"]
                     give try _apply_or_direct ("se_glob_" + method) generated node[2]
                 fail "Unknown glob function: " + method
+            if module == "crypto"
+                if method in ["sha256", "hmac_sha256"]
+                    give try _apply_or_direct ("se_crypto_" + method) generated node[2]
+                if method == "constant_time_equal"
+                    give try _apply_or_direct "se_hashlib_compare" generated node[2]
+                fail "Unsupported crypto function: " + method
             if module == "hash"
                 if method in ["sha256", "file_sha256"]
                     give try _apply_or_direct ("se_hash_" + method) generated node[2]
                 fail "Unsupported hash function: " + method
             if module == "hashlib"
-                if method in ["sha256", "file_sha256"]
+                if method in ["sha256", "file_sha256", "hmac_sha256"]
                     give try _apply_or_direct ("se_hashlib_" + method) generated node[2]
                 if method in ["compare", "to_hex"]
                     give try _apply_or_direct ("se_hashlib_" + method) generated node[2]
@@ -973,7 +979,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     if kind == "NativeLoad"
         give pad + "se_native_library(" + (json.stringify node[1]) + ", " + (json.stringify node[2]) + ");\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "url", "encoding", "cookie", "cors", "template", "tilemap", "static", "upload", "shutil", "typing", "dotenv", "config", "itertools", "glob", "hashlib", "datetime", "iter", "functools", "enum", "xml", "hash"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "url", "encoding", "cookie", "cors", "template", "tilemap", "static", "upload", "shutil", "typing", "dotenv", "config", "itertools", "glob", "hashlib", "datetime", "iter", "functools", "enum", "xml", "hash", "crypto"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"
