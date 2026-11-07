@@ -64,12 +64,21 @@ jobs:
         run: |
           set -eu
           bundle="${{ matrix.asset }}"
-          mkdir -p "package/$bundle/bin" "package/$bundle/include/se-selfhost"
+          mkdir -p "package/$bundle/bin" "package/$bundle/selfhost" "package/$bundle/tools"
           cp build/se-selfhost "package/$bundle/bin/se-selfhost"
-          cp selfhost/*.hpp "package/$bundle/include/se-selfhost/"
+          cp selfhost/*.hpp "package/$bundle/selfhost/"
+          cp tools/se_compiler.py "package/$bundle/tools/se_compiler.py"
           cp selfhost/COMPILER_SELECTION.md "package/$bundle/COMPILER_SELECTION.md"
           cp selfhost/README.md "package/$bundle/SELFHOST_README.md"
           cp LICENSE "package/$bundle/LICENSE"
+          cat > "package/$bundle/SELECT_BACKEND.txt" <<'HELP'
+          To compile using the downloaded independent SE compiler (Python 3):
+          python3 tools/se_compiler.py --backend se compile /path/to/app.se -o /tmp/app.cpp
+          To compile and run:
+          python3 tools/se_compiler.py --backend se run /path/to/app.se
+          The standalone header files are in selfhost/.
+          The separate stable CMake/C++ compiler is available in release v0.8.0.
+          HELP
           (cd package && tar -czf "$bundle.tar.gz" "$bundle")
           shasum -a 256 "package/$bundle.tar.gz" > "package/$bundle.tar.gz.sha256"
       - name: Upload selectable SE-written compiler (not CMake)
