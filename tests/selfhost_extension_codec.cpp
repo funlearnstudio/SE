@@ -33,6 +33,22 @@ int main() {
     catch (const std::runtime_error&) { return true; }
     return false;
   };
+  // SE 0.8 independent sized collection allocation and bounds.
+  auto zeros = se_sized_list<std::int64_t>(5);
+  assert(zeros.size() == 5 && zeros[0] == 0 && zeros[4] == 0);
+  auto blank_names = se_sized_list<std::string>(2);
+  assert(blank_names.size() == 2 && blank_names[0].empty());
+  auto boolean_values = se_sized_list<bool>(2);
+  assert(boolean_values.size() == 2 && !boolean_values[1]);
+  auto matrix = se_sized_matrix<std::int64_t>(2, 3);
+  assert(matrix.size() == 2 && matrix[0].size() == 3 && matrix[1][2] == 0);
+  matrix[1][2] = 42;
+  assert(matrix[0][2] == 0 && matrix[1][2] == 42);
+  assert(se_sized_list<std::int64_t>(0).empty());
+  assert(rejects([] { (void)se_sized_list<std::int64_t>(-1); }));
+  assert(rejects([] { (void)se_sized_list<std::int64_t>(1000001); }));
+  assert(rejects([] { (void)se_sized_matrix<std::int64_t>(1000, 1001); }));
+  assert(rejects([] { (void)se_sized_matrix<std::int64_t>(-1, 2); }));
   assert(rejects([] { (void)se_url_decode("%XZ"); }));
   assert(rejects([] { (void)se_url_parse_query("a=%ZZ"); }));
   assert(rejects([] { (void)se_encoding_unhex("0"); }));
