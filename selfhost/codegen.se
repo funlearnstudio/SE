@@ -253,6 +253,40 @@ make _emit_call encoded:Text -> Text
         method = target[2]
         if owner[0] == "Atom" and owner[1] == "Identifier"
             module = owner[2]
+            if module == "iter"
+                if method in ["range", "enumerate", "zip", "product", "permutations", "combinations"]
+                    give try _apply_or_direct ("se_iter_" + method) generated node[2]
+                fail "Unknown iter operation: " + method
+            if module == "itertools"
+                if method in ["chain", "flatten", "chunked", "take", "drop", "windows", "cycle", "pairs", "unique"]
+                    give try _apply_or_direct ("se_itertools_" + method) generated node[2]
+                fail "Unknown itertools operation: " + method
+            if module == "url"
+                if method in ["encode", "decode", "query", "parse_query"]
+                    give try _apply_or_direct ("se_url_" + method) generated node[2]
+                fail "Unknown URL operation: " + method
+            if module == "encoding"
+                if method in ["hex", "unhex", "utf8_valid"]
+                    give try _apply_or_direct ("se_encoding_" + method) generated node[2]
+                fail "Unknown encoding operation: " + method
+            if module == "config"
+                if method in ["parse", "get", "get_int", "get_bool", "section", "merge"]
+                    give try _apply_or_direct ("se_config_" + method) generated node[2]
+                fail "Unknown config operation: " + method
+            if module == "dotenv"
+                if method in ["parse", "get"]
+                    give try _apply_or_direct ("se_dotenv_" + method) generated node[2]
+                fail "Unknown dotenv operation: " + method
+            if module == "decimal"
+                if method in ["parse", "add", "sub", "mul", "div", "quantize"]
+                    give try _apply_or_direct ("se_decimal_" + method) generated node[2]
+                fail "Unknown decimal operation: " + method
+            if module == "datetime"
+                if method in ["timestamp", "from_timestamp", "format", "add_seconds"]
+                    give try _apply_or_direct ("se_datetime_" + method) generated node[2]
+                if method == "now"
+                    give "se_datetime_now()"
+                fail "Unknown datetime operation: " + method
             if module == "async" or module == "threading"
                 if method == "run"
                     callback_args = try _callback_arguments node[2]
@@ -436,7 +470,7 @@ make _emit_call encoded:Text -> Text
             give "se_remove_item(" + obj + ", " + generated + ")"
         # A user-defined object's method is a regular C++20 member call.
         cpp_method = _cpp_identifier method
-        give "([&](){ auto&& __se_object = " + obj + "; return std::apply([&](auto&&... __se_args) -> decltype(auto) { return __se_object." + cpp_method + "(std::forward<decltype(__se_args)>(__se_args)...); }, std::tuple{" + generated + "}); }())"
+        give "([&](){ auto&& __se_receiver = " + obj + "; return std::apply([&](auto&&... __se_args) -> decltype(auto) { return [&](auto&& __se_object)->decltype(auto){ if constexpr(std::is_same_v<std::decay_t<decltype(__se_object)>,SEAny>) return se_any_call(__se_object, " + (json.stringify method) + ", SEList<SEAny>{SEAny(__se_args)...}); else return __se_object." + cpp_method + "(std::forward<decltype(__se_args)>(__se_args)...); }(__se_receiver); }, std::tuple{" + generated + "}); }())"
     fail "Only named functions and supported module methods can be called."
 
 make _abi_type source:Text -> Text
@@ -522,7 +556,7 @@ make _emit_expr encoded:Text -> Text
             if op == "+"
                 give "se_add(" + left + ", " + right + ")"
             if op == "**"
-                give "std::pow(" + left + ", " + right + ")"
+                give "se_power(" + left + ", " + right + ")"
             if op != "/" and op != "%"
                 give "(" + left + " " + op + " " + right + ")"
         if op == "and"
@@ -536,11 +570,11 @@ make _emit_expr encoded:Text -> Text
         if op == "+"
             give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return se_add(__se_left, __se_right); }())"
         if op == "**"
-            give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return std::pow(__se_left, __se_right); }())"
+            give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return se_power(__se_left, __se_right); }())"
         if op == "%"
             give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return se_remainder(__se_left, __se_right); }())"
         if op == "/"
-            give "([&](){ const auto __se_left = se_num(" + left + "); const auto __se_right = se_num(" + right + "); if (__se_right == 0) throw std::runtime_error(\"Division by zero.\"); return __se_left / __se_right; }())"
+            give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return se_divide(__se_left, __se_right); }())"
         give "([&](){ const auto __se_left = " + left + "; const auto __se_right = " + right + "; return (__se_left " + op + " __se_right); }())"
     if kind == "List"
         items = try _emit_arguments node[1]
@@ -605,6 +639,10 @@ make _emit_expr encoded:Text -> Text
                     give "se_cwd()"
             if module == "time" and member == "now"
                 give "se_time_now()"
+            if module == "datetime" and member == "now"
+                give "se_datetime_now()"
+            if module == "datetime" and member == "timestamp"
+                give "se_datetime_timestamp()"
             if module == "uuid" and member == "v4"
                 give "se_uuid_v4()"
         base = try _emit_expr node[1]
@@ -618,7 +656,7 @@ make _emit_expr encoded:Text -> Text
         # A static C++20 property-or-zero-argument-method expression.
         # Requires-expressions discard the invalid branch at compilation time.
         cpp_member = _cpp_identifier member
-        give "([&](auto&& __se_object)->decltype(auto){if constexpr (requires { __se_object." + cpp_member + "(); }) return __se_object." + cpp_member + "(); else return (__se_object." + cpp_member + ");})(" + base + ")"
+        give "([&](auto&& __se_object)->decltype(auto){if constexpr (std::is_same_v<std::decay_t<decltype(__se_object)>,SEAny>) return se_any_member(__se_object, " + (json.stringify member) + "); else if constexpr (requires { __se_object." + cpp_member + "(); }) return __se_object." + cpp_member + "(); else return (__se_object." + cpp_member + ");})(" + base + ")"
     if kind == "Call"
         give try _emit_call encoded
     if kind == "Ask"
@@ -684,12 +722,48 @@ make _emit_type encoded:Text -> Text
                 prelude = prelude + "        auto& " + cpp_field + " = this->" + cpp_field + "();\n"
         return_type = try _ctype method[4]
         body = try _emit_block method[3] 2 local_names
+        if method[4] == "Any"
+            body = body + "        return SEAny{};\n"
         cpp_method = _cpp_identifier method[1]
         method_template = try _emit_template encoded_method
         if method_template != ""
             output = output + "    " + method_template
         output = output + "    " + return_type + " " + cpp_method + "(" + arguments + ") {\n"
         output = output + prelude + body + "    }\n"
+    output = output + "    std::string __se_type_name() const { return " + (json.stringify node[1]) + "; }\n"
+    output = output + "    SEAny __se_dynamic_get(const std::string& name) {\n"
+    for encoded_field in fields
+        field = _node encoded_field
+        cpp_field = _cpp_identifier field[0]
+        output = output + "        if(name == " + (json.stringify field[0]) + ") return se_box_value(this->" + cpp_field + "());\n"
+    output = output + "        return __se_dynamic_call(name, {});\n    }\n"
+    output = output + "    void __se_dynamic_set(const std::string& name,const SEAny& value) {\n"
+    for encoded_field in fields
+        field = _node encoded_field
+        cpp_field = _cpp_identifier field[0]
+        output = output + "        if(name == " + (json.stringify field[0]) + ") { this->" + cpp_field + "() = se_any_cast<std::decay_t<decltype(this->" + cpp_field + "())>>(value); return; }\n"
+    output = output + "        throw std::runtime_error(\"Unknown dynamic field.\");\n    }\n"
+    output = output + "    SEAny __se_dynamic_call(const std::string& name,const SEList<SEAny>& args) {\n"
+    for encoded_method in methods
+        method = _node encoded_method
+        parameters = _node method[2]
+        supported = true
+        if method.len > 5
+            variables = _node method[5]
+            if variables.len > 0
+                supported = false
+        values = []
+        index = 0
+        for encoded_parameter in parameters
+            parameter = _node encoded_parameter
+            if parameter[1] == "Unknown"
+                supported = false
+            values.add ("se_any_cast<" + (try _ctype parameter[1]) + ">(args[" + string(index) + "])")
+            index += 1
+        if supported
+            invoke = "this->" + (_cpp_identifier method[1]) + "(" + (text.join values ", ") + ")"
+            output = output + "        if(name == " + (json.stringify method[1]) + ") { if(args.size() != " + string(parameters.len) + ") throw std::runtime_error(\"Wrong dynamic method arity.\"); return se_box_call([&]()->decltype(auto){return " + invoke + ";}); }\n"
+    output = output + "        throw std::runtime_error(\"Unknown or unspecialized dynamic method.\");\n    }\n"
     cpp_type = _cpp_identifier node[1]
     output = output + "};\n"
     if generics.len == 0
@@ -804,7 +878,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         base = try _emit_expr node[1]
         value = try _emit_expr node[3]
         cpp_field = _cpp_identifier node[2]
-        give pad + "{ auto __se_rhs = " + value + "; auto&& __se_base = " + base + "; __se_base." + cpp_field + "() = std::move(__se_rhs); }\n"
+        give pad + "{ auto __se_rhs = " + value + "; auto&& __se_base = " + base + "; [&](auto&& __se_object){if constexpr(std::is_same_v<std::decay_t<decltype(__se_object)>,SEAny>) se_any_set_member(__se_object, " + (json.stringify node[2]) + ", __se_rhs); else __se_object." + cpp_field + "() = std::move(__se_rhs);}(__se_base); }\n"
     if kind == "MultiAsk"
         fields = _node node[1]
         suffix = string names.len
@@ -847,7 +921,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     if kind == "NativeLoad"
         give pad + "se_native_library(" + (json.stringify node[1]) + ", " + (json.stringify node[2]) + ");\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "iter", "itertools", "url", "encoding", "config", "dotenv", "decimal", "datetime"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"
@@ -921,7 +995,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         second_decl = _declare_local node[2] "__se_pair.second" (_indent (level + 1)) scope
         body = try _emit_block node[4] (level + 1) scope
         iterable = try _emit_expr node[3]
-        output = pad + "for (const auto& __se_pair : " + iterable + ".items) {\n"
+        output = pad + "for (const auto& __se_pair : se_pairs(" + iterable + ")) {\n"
         give output + first_decl + second_decl + body + pad + "}\n"
     if kind == "For"
         scope = _clone_names names
@@ -930,7 +1004,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
         declaration = _declare_local node[1] ("__se_loop_" + cpp_loop) (_indent (level + 1)) scope
         body = try _emit_block node[3] (level + 1) scope
         iterable = try _emit_expr node[2]
-        give pad + "for (auto __se_loop_" + cpp_loop + " : " + iterable + ") {\n" + declaration + body + pad + "}\n"
+        give pad + "for (auto __se_loop_" + cpp_loop + " : se_iterate(" + iterable + ")) {\n" + declaration + body + pad + "}\n"
     if kind == "Make"
         params = _node node[2]
         local_names = []
@@ -977,6 +1051,8 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
                     aliases = aliases + (_indent (level + 1)) + "auto& " + cpp_capture + " = *" + cell + ";\n"
             local_names.add node[1]
             body = try _emit_block node[3] (level + 1) local_names
+            if node[4] == "Any"
+                body = body + pad + "    return SEAny{};\n"
             generic_header = ""
             if node.len > 5
                 variables = _node node[5]
@@ -996,6 +1072,8 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
             names.add node[1]
             give _declare_local node[1] expression pad names
         body = try _emit_block node[3] 1 local_names
+        if node[4] == "Any"
+            body = body + "    return SEAny{};\n"
         header = try _emit_template encoded
         if header != ""
             give header + result_type + " SEGeneric_" + cpp_function + "::operator()(" + args + ") const {\n" + prelude + body + "}\n"
@@ -1014,8 +1092,6 @@ make _emit_prototype encoded:Text -> Text
     arguments = ""
     for item in params
         param = _node item
-        if param[1] == "Unknown" and header == ""
-            give ""
         if arguments != ""
             arguments = arguments + ", "
         cpp_param = _cpp_identifier param[0]

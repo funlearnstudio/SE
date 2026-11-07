@@ -1939,42 +1939,42 @@
           "name": "range",
           "kind": "function",
           "usage": "range stop | range start stop step?",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "enumerate",
           "kind": "function",
           "usage": "enumerate list",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "zip",
           "kind": "function",
           "usage": "zip list list",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "product",
           "kind": "function",
           "usage": "product list list",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "permutations",
           "kind": "function",
           "usage": "permutations list r?",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "combinations",
           "kind": "function",
           "usage": "combinations list r",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -1986,63 +1986,63 @@
           "name": "chain",
           "kind": "function",
           "usage": "itertools.chain",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "flatten",
           "kind": "function",
           "usage": "itertools.flatten",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "chunked",
           "kind": "function",
           "usage": "itertools.chunked",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "take",
           "kind": "function",
           "usage": "itertools.take",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "drop",
           "kind": "function",
           "usage": "itertools.drop",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "windows",
           "kind": "function",
           "usage": "itertools.windows",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "cycle",
           "kind": "function",
           "usage": "itertools.cycle",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "pairs",
           "kind": "function",
           "usage": "itertools.pairs",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "unique",
           "kind": "function",
           "usage": "itertools.unique",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2155,42 +2155,42 @@
           "name": "parse",
           "kind": "function",
           "usage": "parse text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "add",
           "kind": "function",
           "usage": "add a b",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "sub",
           "kind": "function",
           "usage": "sub a b",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "mul",
           "kind": "function",
           "usage": "mul a b",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "div",
           "kind": "function",
           "usage": "div a b precision?",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "quantize",
           "kind": "function",
           "usage": "quantize value precision",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2235,35 +2235,35 @@
           "name": "now",
           "kind": "function",
           "usage": "now",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "timestamp",
           "kind": "function",
           "usage": "timestamp",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "from_timestamp",
           "kind": "function",
           "usage": "from_timestamp timestamp",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "format",
           "kind": "function",
           "usage": "format timestamp format",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "add_seconds",
           "kind": "function",
           "usage": "add_seconds timestamp seconds",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2951,28 +2951,28 @@
           "name": "encode",
           "kind": "function",
           "usage": "encode text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "decode",
           "kind": "function",
           "usage": "decode text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "query",
           "kind": "function",
           "usage": "query map",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "parse_query",
           "kind": "function",
           "usage": "parse_query text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2984,21 +2984,21 @@
           "name": "hex",
           "kind": "function",
           "usage": "hex text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "unhex",
           "kind": "function",
           "usage": "unhex text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "utf8_valid",
           "kind": "function",
           "usage": "utf8_valid text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3010,14 +3010,14 @@
           "name": "parse",
           "kind": "function",
           "usage": "parse text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "get",
           "kind": "function",
           "usage": "get config key",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3029,42 +3029,42 @@
           "name": "parse",
           "kind": "function",
           "usage": "parse args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "get",
           "kind": "function",
           "usage": "get args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "get_int",
           "kind": "function",
           "usage": "get_int args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "get_bool",
           "kind": "function",
           "usage": "get_bool args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "section",
           "kind": "function",
           "usage": "section args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "merge",
           "kind": "function",
           "usage": "merge args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]

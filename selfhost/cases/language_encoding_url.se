@@ -1,0 +1,16 @@
+use encoding
+use url
+use test
+
+test.equal (encoding.hex "SE") "5345"
+test.equal (try encoding.unhex "5345") "SE"
+test.ok (encoding.utf8_valid "繁體中文")
+test.ok (not (encoding.utf8_valid (try encoding.unhex "eda080")))
+test.equal (url.encode "a b+c/中文") "a%20b%2Bc%2F%E4%B8%AD%E6%96%87"
+test.equal (try url.decode "a%20b%2Bc") "a b+c"
+params = ["name": "SE language", "value": "a+b"]
+test.equal (url.query params) "name=SE%20language&value=a%2Bb"
+parsed = try url.parse_query "?name=SE+language&value=a%2Bb"
+test.equal parsed["name"] "SE language"
+test.equal parsed["value"] "a b"
+say "encoding and URL passed"

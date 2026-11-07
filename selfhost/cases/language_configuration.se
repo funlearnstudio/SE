@@ -1,0 +1,19 @@
+use config
+use dotenv
+use test
+
+settings = try config.parse "name = 'SE'\n[server]\nport = 8080\nenabled = YES\n"
+test.equal (try config.get settings "name") "SE"
+test.equal (try config.get_int settings "server.port") 8080
+test.ok (try config.get_bool settings "server.enabled")
+server = config.section settings "server"
+test.equal (try config.get server "port") "8080"
+overrides = ["port": "9000"]
+merged = config.merge server overrides
+test.equal (try config.get merged "port") "9000"
+test.equal (try config.get server "port") "8080"
+env = try dotenv.parse "# comment\nexport NAME = \"SE\"\nEMPTY=\n_COUNT=42\n"
+test.equal (try dotenv.get env "NAME") "SE"
+test.equal (try dotenv.get env "EMPTY") ""
+test.equal (try dotenv.get env "_COUNT") "42"
+say "configuration passed"

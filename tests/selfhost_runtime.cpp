@@ -6,6 +6,31 @@
 #include <vector>
 
 int main() {
+    SEAny dynamic_numbers=SEList<std::int64_t>{1,2};
+    SEAny dynamic_alias=dynamic_numbers;
+    se_assign_index(dynamic_alias,SEAny(std::int64_t{0}),SEAny(std::int64_t{9}));
+    assert(se_int(se_index(dynamic_numbers,SEAny(std::int64_t{0})))==9);
+    assert(dynamic_numbers.size()==2);
+    assert(se_dynamic_type(dynamic_numbers)=="List");
+    assert(se_dynamic_type(SEList<std::int64_t>{1})=="List");
+    assert(se_int(SEAny(std::int64_t{7})+SEAny(std::int64_t{2}))==9);
+    assert(se_num(se_operator_div(SEAny(std::int64_t{7}),SEAny(std::int64_t{2})))==3.5);
+    assert(se_num(se_operator_mod(7.5,SEAny(std::int64_t{2})))==1.5);
+    bool dynamic_bool_rejected=false;
+    try{(void)se_divide(SEAny(true),SEAny(std::int64_t{2}));}
+    catch(const std::runtime_error&){dynamic_bool_rejected=true;}
+    assert(dynamic_bool_rejected);
+    assert(se_string(SEAny{})=="none");
+    SEAny mixed_values=SEList<SEAny>{SEAny(std::int64_t{1}),SEAny(std::string("SE"))};
+    se_add_item(mixed_values,SEAny(true));
+    assert(mixed_values.size()==3);
+    assert(se_any_cast<bool>(se_index(mixed_values,SEAny(std::int64_t{2}))));
+    SEAny nested_map=SEMap<SEList<std::int64_t>>{};
+    se_assign_index(nested_map,SEAny(std::string("list")),dynamic_numbers);
+    auto nested_alias=se_index(nested_map,SEAny(std::string("list")));
+    se_assign_index(nested_alias,SEAny(std::int64_t{1}),SEAny(std::int64_t{8}));
+    assert(se_int(se_index(dynamic_numbers,SEAny(std::int64_t{1})))==8);
+
     assert(se_remainder(std::int64_t{17}, std::int64_t{5}) == 2);
     assert(se_remainder(std::int64_t{-17}, std::int64_t{5}) == -2);
     assert(se_remainder(7.5, std::int64_t{2}) == 1.5);

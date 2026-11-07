@@ -79,7 +79,50 @@ struct SEError {
   std::string message;
   std::string kind = "Error";
 };
-using SEAny = std::variant<std::monostate,std::int64_t,double,bool,std::string,SEBytes>;
+struct SEDynamic;
+template<class T> struct SECategory;
+template<class T> struct SEDynamicModel;
+struct SEAny : std::variant<std::monostate,std::int64_t,double,bool,std::string,SEBytes,std::shared_ptr<SEDynamic>> {
+  using Base=std::variant<std::monostate,std::int64_t,double,bool,std::string,SEBytes,std::shared_ptr<SEDynamic>>;
+  using Base::Base;
+  using Base::operator=;
+  SEAny()=default;
+  template<class T> requires (!std::is_constructible_v<Base,T> && !std::is_same_v<std::decay_t<T>,SEAny>)
+  SEAny(T value);
+  std::size_t size() const;
+  explicit operator bool() const;
+};
+struct SEDynamic {
+  virtual ~SEDynamic()=default;
+  virtual std::string type() const=0;
+  virtual std::string render() const=0;
+  virtual std::size_t size() const {throw std::runtime_error("This dynamic value has no len.");}
+  virtual SEAny index(const SEAny&) const {throw std::runtime_error("This dynamic value cannot be indexed.");}
+  virtual void assign(const SEAny&,const SEAny&) {throw std::runtime_error("This dynamic value cannot be indexed.");}
+  virtual void add(const SEAny&) {throw std::runtime_error("This dynamic value cannot add items.");}
+  virtual bool remove(const SEAny&) {throw std::runtime_error("This dynamic value cannot remove items.");}
+  virtual SEAny member(const std::string&) {throw std::runtime_error("Unknown dynamic field.");}
+  virtual void set_member(const std::string&,const SEAny&) {throw std::runtime_error("Unknown dynamic field.");}
+  virtual SEAny call(const std::string&,const SEList<SEAny>&) {throw std::runtime_error("Unknown dynamic method.");}
+  virtual SEList<SEAny> iterate()const {throw std::runtime_error("This dynamic value cannot be iterated.");}
+  virtual SEList<std::pair<std::string,SEAny>> pairs()const {throw std::runtime_error("Two-variable for expects a Map.");}
+  virtual bool equal(const SEDynamic&) const=0;
+};
+template<class T> T se_any_cast(const SEAny& value);
+SEAny se_any_member(SEAny value,const std::string& name);
+void se_any_set_member(SEAny value,const std::string& name,const SEAny& field);
+SEAny se_any_call(SEAny value,const std::string& name,const SEList<SEAny>& args);
+bool operator==(const SEAny&,const SEAny&);
+SEAny operator+(const SEAny&,const SEAny&);
+SEAny operator-(const SEAny&,const SEAny&);
+SEAny operator*(const SEAny&,const SEAny&);
+SEAny operator%(const SEAny&,const SEAny&);
+SEAny operator-(const SEAny&);
+bool operator<(const SEAny&,const SEAny&);
+bool operator<=(const SEAny&,const SEAny&);
+bool operator>(const SEAny&,const SEAny&);
+bool operator>=(const SEAny&,const SEAny&);
+
 inline std::ostream& operator<<(std::ostream& out,const SEError& error){
   return out<<error.message;
 }
@@ -224,7 +267,7 @@ template<class N> inline std::string se_string(N value) {
   return out.str();
 }
 inline std::string se_string(const SEAny& value){
-  return std::visit([](const auto& item)->std::string{using T=std::decay_t<decltype(item)>;if constexpr(std::is_same_v<T,std::monostate>)return "None";else if constexpr(std::is_same_v<T,SEBytes>)return "<bytes "+std::to_string(item.size())+">";else return se_string(item);},value);
+  return std::visit([](const auto& item)->std::string{using T=std::decay_t<decltype(item)>;if constexpr(std::is_same_v<T,std::monostate>)return "none";else if constexpr(std::is_same_v<T,std::shared_ptr<SEDynamic>>)return item->render();else if constexpr(std::is_same_v<T,SEBytes>)return "<bytes "+std::to_string(item.size())+">";else return se_string(item);},value);
 }
 template<class T> inline void se_print_value(std::ostream& stream, const T& value) {
   stream << std::boolalpha << value;
@@ -244,12 +287,12 @@ template<class T> inline void se_print_value(std::ostream& stream, const SEList<
 }
 inline void se_print_value(std::ostream& stream,const SEBytes& values){stream<<"<bytes "<<values.size()<<">";}
 inline void se_print_value(std::ostream& stream,const SEAny& value){
-  std::visit([&](const auto& item){using T=std::decay_t<decltype(item)>;if constexpr(std::is_same_v<T,std::monostate>)stream<<"None";else se_print_value(stream,item);},value);
+  std::visit([&](const auto& item){using T=std::decay_t<decltype(item)>;if constexpr(std::is_same_v<T,std::monostate>)stream<<"none";else if constexpr(std::is_same_v<T,std::shared_ptr<SEDynamic>>)stream<<item->render();else se_print_value(stream,item);},value);
 }
 inline std::string se_dynamic_type(const SEAny& value){
-  return std::visit([](const auto& item)->std::string{using T=std::decay_t<decltype(item)>;if constexpr(std::is_same_v<T,std::monostate>)return "None";else if constexpr(std::is_same_v<T,std::int64_t>)return "Int";else if constexpr(std::is_same_v<T,double>)return "Num";else if constexpr(std::is_same_v<T,bool>)return "Bool";else if constexpr(std::is_same_v<T,std::string>)return "Text";else return "Bytes";},value);
+  return std::visit([](const auto& item)->std::string{using T=std::decay_t<decltype(item)>;if constexpr(std::is_same_v<T,std::shared_ptr<SEDynamic>>)return item->type();else if constexpr(std::is_same_v<T,std::monostate>)return "None";else if constexpr(std::is_same_v<T,std::int64_t>)return "Int";else if constexpr(std::is_same_v<T,double>)return "Num";else if constexpr(std::is_same_v<T,bool>)return "Bool";else if constexpr(std::is_same_v<T,std::string>)return "Text";else return "Bytes";},value);
 }
-template<class T> inline std::string se_dynamic_type(const T&){using V=std::decay_t<T>;if constexpr(std::is_same_v<V,bool>)return "Bool";else if constexpr(std::is_integral_v<V>)return "Int";else if constexpr(std::is_floating_point_v<V>)return "Num";else if constexpr(std::is_same_v<V,std::string>||std::is_convertible_v<V,const char*>)return "Text";else if constexpr(std::is_same_v<V,SEBytes>)return "Bytes";else return "Unknown";}
+template<class T> inline std::string se_dynamic_type(const T& value){using V=std::decay_t<T>;if constexpr(std::is_same_v<V,bool>)return "Bool";else if constexpr(std::is_integral_v<V>)return "Int";else if constexpr(std::is_floating_point_v<V>)return "Num";else if constexpr(std::is_same_v<V,std::string>||std::is_convertible_v<V,const char*>)return "Text";else if constexpr(std::is_same_v<V,SEBytes>)return "Bytes";else if constexpr(requires {value.__se_type_name();})return value.__se_type_name();else if constexpr(SECategory<V>::kind==1)return "List";else if constexpr(SECategory<V>::kind==2)return "Map";else if constexpr(SECategory<V>::kind==3)return "Set";else return "Unknown";}
 inline bool se_dynamic_is(const SEAny& value,const std::string& type){return se_dynamic_type(value)==type;}
 template<class T> inline bool se_dynamic_is(const T& value,const std::string& type){return se_dynamic_type(value)==type;}
 template<class T> inline void se_say(const T& value) {
@@ -264,10 +307,13 @@ template<class A,class B> auto se_add(const A& a,const B& b) {
 template<class A,class B> auto se_operator_add(const A& a,const B& b){return se_add(a,b);}
 template<class A,class B> auto se_operator_sub(const A& a,const B& b){return a-b;}
 template<class A,class B> auto se_operator_mul(const A& a,const B& b){return a*b;}
-template<class A,class B> auto se_operator_div(const A& a,const B& b){if(b==B{})throw std::runtime_error("Division by zero.");return static_cast<double>(a)/static_cast<double>(b);}
+template<class A,class B> double se_divide(const A& a,const B& b);
+template<class A,class B> auto se_operator_div(const A& a,const B& b){return se_divide(a,b);}
 // Integer min % -1 is mathematically zero but undefined as a C++ remainder.
 // Preserve integer results and use fmod for mixed/floating operands.
 template<class A,class B> auto se_remainder(const A& a,const B& b){
+  if constexpr(std::is_same_v<std::decay_t<A>,SEAny> || std::is_same_v<std::decay_t<B>,SEAny>) return SEAny(a)%SEAny(b);
+  else {
   if(b==B{})throw std::runtime_error("Division by zero.");
   if constexpr(std::is_floating_point_v<A>||std::is_floating_point_v<B>)
     return std::fmod(static_cast<double>(a),static_cast<double>(b));
@@ -276,6 +322,7 @@ template<class A,class B> auto se_remainder(const A& a,const B& b){
     if constexpr(std::is_signed_v<A> && std::is_signed_v<B>)
       if(a==std::numeric_limits<A>::min() && b==B{-1}) return R{0};
     return static_cast<R>(a%b);
+  }
   }
 }
 template<class A,class B> auto se_operator_mod(const A& a,const B& b){return se_remainder(a,b);}
@@ -1048,3 +1095,10 @@ template<class F, class T> auto se_function_reduce(F function, const SEList<T>& 
 
 template<class T> auto se_function_pipe(T value){return value;}
 template<class T,class F,class... Rest> auto se_function_pipe(T value,F first,Rest... rest){return se_function_pipe(first(std::move(value)),std::move(rest)...);}
+
+#include "se_dynamic_runtime.hpp"
+#include "se_iter_runtime.hpp"
+#include "se_encoding_runtime.hpp"
+#include "se_config_runtime.hpp"
+#include "se_decimal_runtime.hpp"
+#include "se_datetime_runtime.hpp"

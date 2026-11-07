@@ -11,7 +11,10 @@ make clone_symbols entries:List[List[Text]] -> List[List[Text]]
     cloned = [["", "", "", ""]]
     cloned = collections.take cloned 0
     for entry in entries
-        cloned.add entry
+        copied = []
+        for field in entry
+            copied.add field
+        cloned.add copied
     give cloned
 
 make lookup_symbol entries:List[List[Text]] name:Text -> List[Text]

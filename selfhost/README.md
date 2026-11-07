@@ -91,6 +91,16 @@ This bounded runtime variant does not erase arbitrary user objects or nested
 containers. The `operator` module lowers its arithmetic and comparison helpers
 with arity and operand-category checks.
 
+### Additional extension API subset
+
+The standalone runtime also implements the tested APIs in `iter` and
+`itertools` (eager Lists), `url`, `encoding`, `config`, `dotenv`, `decimal`,
+and `datetime`. Their conformance cases are in `selfhost/cases/` and run through
+the generated C++ backend. The extension inventory is generated from the VS
+Code API catalog; an API name with a code-generation branch is not proof that
+the whole production API has compatible types, arity, errors, or runtime
+behavior. See `completion_report.json` for the modules still missing lowering.
+
 ## Added language coverage
 
 - **Escaping closures**: shared lexical scalar bindings, mutation across repeated calls, independent factory instances, three nested scopes, loop captures and returned recursive functions. Untyped dynamic callback signatures still have less static checking than concrete signatures.

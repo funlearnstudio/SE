@@ -92,7 +92,7 @@ def main() -> None:
     for filename in ("lexer.se", "parser.se", "symbol_table.se", "typechecker.se", "codegen.se", "compile.se", "compiler.se"):
         result = run(str(SE), "check", str(ROOT / "selfhost" / filename))
         assert result.returncode == 0, (filename, result.stdout, result.stderr)
-    for filename in ("parser_test.se", "parser_extended_test.se", "parser_match_test.se", "typechecker_test.se", "typechecker_extended_test.se", "codegen_test.se"):
+    for filename in ("parser_test.se", "parser_extended_test.se", "parser_match_test.se", "symbol_table_test.se", "typechecker_test.se", "typechecker_extended_test.se", "codegen_test.se"):
         result = run(str(SE), "run", str(ROOT / "selfhost" / filename))
         assert result.returncode == 0, (filename, result.stdout, result.stderr)
         print(f"PASS unit: {filename}")
@@ -106,6 +106,12 @@ def main() -> None:
         verify_positive("language_regex_uuid.se", "", tmp)
         verify_positive("language_operator_module.se", "", tmp)
         verify_positive("language_csv.se", "", tmp, expected_output="CSV roundtrip passed\n")
+        verify_positive("language_dynamic_containers.se", "", tmp, expected_output="List\n2\n[9, 2, 3]\n9\nMap\n[9, 8, 3]\nCounter\n10\n15\n15\ntrue\nSet\n3\nset [1, 3]\n9\n5\n14\n1\n3.5\ntrue\nvalue=7\ndynamic true\n9\n8\n3\nkey\n3\ntrue\ntrue\n[1, SE, true]\n42\nSE\n[1, SE, true, 99]\n")
+        verify_positive("language_dynamic_errors.se", "", tmp, expected_output="Dynamic value has the wrong type.\nList index out of bounds\nDynamic value has the wrong type.\nDynamic value has the wrong type.\nDivision by zero.\nHELLO\n8\n")
+        verify_positive("language_iter_helpers.se", "", tmp)
+        verify_positive("language_encoding_url.se", "", tmp, expected_output="encoding and URL passed\n")
+        verify_positive("language_configuration.se", "", tmp, expected_output="configuration passed\n")
+        verify_positive("language_decimal_datetime.se", "", tmp, expected_output="decimal and datetime passed\n")
         verify_positive("language_dynamic_any.se", "", tmp, expected_output="Int\nText\nBool\ndynamic Any ok\n")
         verify_positive("language_evaluation_order.se", "one\ntwo\nthree\nfour\n", tmp, expected_output="first: second: [one, two]\nthird: fourth: threefour\n")
         verify_positive("language_copy.se", "", tmp, expected_output="9\n9\n7\n1\n")
@@ -134,6 +140,7 @@ def main() -> None:
         verify_positive("language_recursion.se", "", tmp)
         verify_positive("language_forward_functions.se", "", tmp)
         verify_positive("language_inferred_forward.se", "", tmp)
+        verify_positive("language_inferred_control.se", "", tmp)
         verify_positive("language_match.se", "", tmp)
         verify_positive("language_char_collections.se", "", tmp)
         verify_positive("language_json_ast.se", "", tmp)

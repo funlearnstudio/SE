@@ -1,0 +1,27 @@
+make identity value:Any -> Any
+    give value
+values = [1, 2]
+boxed = identity values
+try
+    say boxed["wrong"]
+else error
+    say error.message
+try
+    say boxed[5]
+else error
+    say error.message
+try
+    boxed.add "wrong"
+else error
+    say error.message
+try
+    if identity 3
+        say "unreachable"
+else error
+    say error.message
+try
+    say (identity 1) % (identity 0)
+else error
+    say error.message
+say (identity "Hello").upper
+say (identity 2) ** (identity 3)

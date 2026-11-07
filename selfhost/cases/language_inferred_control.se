@@ -1,0 +1,48 @@
+make even n:Int
+    if n == 0
+        give true
+    give odd (n - 1)
+make odd n:Int
+    if n == 0
+        give false
+    give even (n - 1)
+
+make pick values:List[Int]
+    for value in values
+        if value > 3
+            give value
+    give -1
+
+make mapped values:Map[Text,Int]
+    for key value in values
+        if key == "chosen"
+            give value
+    give 0
+
+make widened flag:Bool
+    if flag
+        give 1
+    give 2.5
+
+make partial flag:Bool
+    if flag
+        give 42
+
+make forward n -> Int
+    give later n
+make later n -> Int
+    give n + 2
+
+say even 20
+say odd 21
+values = [1, 2, 8]
+one = [1]
+record = ["chosen": 9]
+say pick values
+say pick one
+say mapped record
+say widened true
+say widened false
+say partial true
+say partial false
+say forward 40

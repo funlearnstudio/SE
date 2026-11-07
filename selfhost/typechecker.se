@@ -87,7 +87,7 @@ make _numeric kind:Text -> Bool
     # Generic type parameters may use operators when the concrete call-site
     # type supplies that operator. The generated C++ template remains the
     # final constraint check for unsupported instantiations.
-    give kind == "Int" or kind == "Num" or kind == "Unknown" or kind == "TypeParameter"
+    give kind == "Int" or kind == "Num" or kind == "Unknown" or kind == "TypeParameter" or kind == "Any"
 
 make _generic_type kind:Text symbols:List[List[Text]] -> Bool
     shape = lookup_symbol symbols kind
@@ -163,6 +163,8 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             fail "Arithmetic requires numbers, got " + left + " and " + right
         if left == right and _generic_type left symbols and op != "/"
             give left
+        if left == "Any" or right == "Any"
+            give "Any"
         if op == "/" or op == "**" or left == "Num" or right == "Num"
             give "Num"
         give "Int"
@@ -225,6 +227,8 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
             if index_type != "Int" and index_type != "Unknown"
                 fail "Bytes index must be Int."
             give "Int"
+        if container == "Any"
+            give "Any"
         if container == "Unknown"
             give "Unknown"
         fail "Only List and Map indexing supported, got " + container
@@ -267,6 +271,10 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 give "Function"
             if member == "remove" and parts[0] == "Map"
                 give "Function"
+        if object_type == "Any"
+            if member == "len"
+                give "Int"
+            give "Any"
         if object_type == "Module"
             give "Function"
         user_type = _user_shape object_type symbols
@@ -311,8 +319,10 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                     give "Bool"
                 if left_type == "Text" and right_type == "Text" and method == "add"
                     give "Text"
-                if not (left_type in ["Int", "Num", "Unknown"]) or not (right_type in ["Int", "Num", "Unknown"])
+                if not (left_type in ["Int", "Num", "Unknown", "Any"]) or not (right_type in ["Int", "Num", "Unknown", "Any"])
                     fail "operator." + method + " expects compatible operands."
+                if left_type == "Any" or right_type == "Any"
+                    give "Any"
                 if method == "div" or left_type == "Num" or right_type == "Num"
                     give "Num"
                 give "Int"
@@ -458,6 +468,8 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                     if callee[2] in ["write", "append", "copy", "move", "copytree", "remove", "mkdir"]
                         give "Unknown"
                 give "Unknown"
+            if owner_type == "Any"
+                give "Any"
             if owner_type == "File"
                 if callee[2] == "write"
                     if args.len != 1
@@ -606,13 +618,16 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             if value_type != "Int" and value_type != "Unknown"
                 fail "Bytes assignments require an Int from 0 to 255."
             give "OK"
-        else if target_type != "Unknown"
+        else if target_type != "Unknown" and target_type != "Any"
             fail "Assignment index target must be a List or Map."
         if not _compatible element value_type
             fail "Collection assignment expects " + element + ", got " + value_type
         give "OK"
     if kind == "AssignMember"
         type_name = try _infer node[1] symbols
+        if type_name == "Any"
+            try _infer node[3] symbols
+            give "OK"
         user_type = _user_shape type_name symbols
         if user_type[1] != "UserType"
             fail "Field assignment requires an object."
@@ -694,9 +709,11 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
     if kind == "ForPairs"
         iterable = try _infer node[3] symbols
         parts = decompose_type iterable
-        if iterable != "Unknown" and not (parts[0] == "Map" and parts.len == 3)
+        if iterable != "Unknown" and iterable != "Any" and not (parts[0] == "Map" and parts.len == 3)
             fail "Two-variable for expects a Map, got " + iterable
         element = "Unknown"
+        if iterable == "Any"
+            element = "Any"
         key_type = "Text"
         if parts[0] == "Map" and parts.len == 3
             key_type = parts[1]
@@ -714,7 +731,9 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             element_type = parts[1]
         if parts[0] == "Map" and parts.len == 3
             element_type = parts[1]
-        recognized = parts[0] in ["List", "Set"] and parts.len == 2
+        if iterable == "Any"
+            element_type = "Any"
+        recognized = (parts[0] in ["List", "Set"] and parts.len == 2) or iterable == "Any"
         if parts[0] == "Map" and parts.len == 3
             recognized = true
         if iterable != "Unknown" and not recognized
@@ -752,7 +771,7 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
                 try define_symbol inner parameter[0] parameter[1] "0" ""
             body = try unpack_block method[3]
             try _check_block body inner method[4]
-            if method[4] != "Unknown" and method[4] != "None" and not (try _guarantees_return body)
+            if method[4] != "Unknown" and method[4] != "None" and method[4] != "Any" and not (try _guarantees_return body)
                 fail "Method " + method[1] + " requires a return on all paths."
         give "OK"
     if kind == "Make"
@@ -777,7 +796,7 @@ make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> 
             try define_symbol local pair[0] pair[1] "0" ""
         body = try unpack_block node[3]
         try _check_block body local node[4]
-        if node[4] != "Unknown" and node[4] != "None" and not (try _guarantees_return body)
+        if node[4] != "Unknown" and node[4] != "None" and node[4] != "Any" and not (try _guarantees_return body)
             fail "Function " + node[1] + " is missing a return on some code paths."
         give "OK"
     fail "Unsupported AST statement in self-hosted checker: " + kind
@@ -835,10 +854,27 @@ make _collect_return_types statements:List[Text] symbols:List[List[Text]] found:
                 choice = _node encoded_case
                 try _collect_return_types (try unpack_block choice[1]) (clone_symbols symbols) found
             try _collect_return_types (try unpack_block node[3]) (clone_symbols symbols) found
-        else if kind in ["repeat", "while", "For", "ForPairs"]
-            # Loop-bound names and conditional fallthrough need a separate
-            # control-flow analysis. Keep C++ deduction for these signatures.
-            found.add "Unknown"
+        else if kind in ["repeat", "while"]
+            try _collect_return_types (try unpack_block node[2]) (clone_symbols symbols) found
+        else if kind == "For"
+            local = clone_symbols symbols
+            iterable = try _infer node[2] symbols
+            parts = decompose_type iterable
+            element = "Unknown"
+            if parts[0] in ["List", "Set", "Map"] and parts.len > 1
+                element = parts[1]
+            try define_symbol local node[1] element "0" ""
+            try _collect_return_types (try unpack_block node[3]) local found
+        else if kind == "ForPairs"
+            local = clone_symbols symbols
+            iterable = try _infer node[3] symbols
+            parts = decompose_type iterable
+            if parts[0] == "Map" and parts.len == 3
+                try define_symbol local node[1] parts[1] "0" ""
+                try define_symbol local node[2] parts[2] "0" ""
+                try _collect_return_types (try unpack_block node[4]) local found
+            else
+                found.add "Unknown"
         else
             if kind in ["Assign", "AssignInit"]
                 if not (try _return_expression_ready node[2] symbols)
@@ -846,39 +882,77 @@ make _collect_return_types statements:List[Text] symbols:List[List[Text]] found:
             try _check_statement item symbols "Unknown"
     give "OK"
 
+# Join return constraints monotonically. Num widens Int, and scalar unions
+# use Any. Unknown is an unresolved constraint rather than a guessed number.
+make _join_return left:Text right:Text -> Text
+    if left == right or right == "Unknown"
+        give left
+    if left == "Unknown"
+        give right
+    if left in ["Int", "Num"] and right in ["Int", "Num"]
+        give "Num"
+    scalars = ["Int", "Num", "Bool", "Text", "Bytes", "Any", "None"]
+    if left in scalars and right in scalars
+        give "Any"
+    give "Unknown"
+
 make _infer_forward_returns statements:List[Text] symbols:List[List[Text]] -> Text
     changed = true
+    blocked = []
     while changed
         changed = false
         for item in statements
             node = _node item
-            if node[0] == "Make"
+            if node[0] == "Make" and node[4] == "Unknown" and not (node[1] in blocked)
                 entry = lookup_symbol symbols node[1]
-                if entry[3] == "Unknown"
-                    # A global binding may only become available during the
-                    # normal source-order pass. Failed inference is deferred.
-                    try
-                        local = clone_symbols symbols
-                        if node.len > 5
-                            try _add_generics node[5] local
-                        for encoded_param in (_node node[2])
-                            param = _node encoded_param
-                            try define_symbol local param[0] param[1] "0" ""
-                        returns = []
-                        body = try unpack_block node[3]
-                        try _collect_return_types body local returns
-                        if returns.len > 0 and try _guarantees_return body
-                            result = returns[0]
-                            for candidate in returns
-                                if candidate != result
-                                    result = "Unknown"
-                            if not (text.contains result "Unknown") and result != "Function" and result != "Module"
-                                entry[3] = result
-                                try replace_symbol symbols entry
-                                changed = true
-                    else inference_error
-                        # The ordinary checker still reports real source errors.
-                        changed = changed
+                try
+                    local = clone_symbols symbols
+                    if node.len > 5
+                        try _add_generics node[5] local
+                    unknown_parameter = false
+                    for encoded_param in (_node node[2])
+                        param = _node encoded_param
+                        if text.contains param[1] "Unknown"
+                            unknown_parameter = true
+                        try define_symbol local param[0] param[1] "0" ""
+                    returns = []
+                    body = try unpack_block node[3]
+                    try _collect_return_types body local returns
+                    result = "Unknown"
+                    unresolved = false
+                    conflict = false
+                    for candidate in returns
+                        if text.contains candidate "Unknown"
+                            unresolved = true
+                        else
+                            combined = _join_return result candidate
+                            if combined == "Unknown" and result != "Unknown"
+                                conflict = true
+                            result = combined
+                    if returns.len == 0
+                        result = "None"
+                    else if not (try _guarantees_return body)
+                        if result in ["Int", "Num", "Bool", "Text", "Bytes", "Any"]
+                            result = "Any"
+                        else
+                            result = "Unknown"
+                    # Recursive cycles may be seeded by concrete base returns,
+                    # but unknown parameters must not freeze a dependent type.
+                    if unknown_parameter and unresolved
+                        result = "Unknown"
+                    if conflict
+                        blocked.add node[1]
+                        entry[3] = "Unknown"
+                        try replace_symbol symbols entry
+                    else if not (text.contains result "Unknown") and result != "Function" and result != "Module"
+                        result = _join_return entry[3] result
+                        if result != "Unknown" and result != entry[3]
+                            entry[3] = result
+                            try replace_symbol symbols entry
+                            changed = true
+                else inference_error
+                    # The ordinary checker still reports actual source errors.
+                    changed = changed
     give "OK"
 
 make check_program statements:List[Text] -> List[List[Text]]

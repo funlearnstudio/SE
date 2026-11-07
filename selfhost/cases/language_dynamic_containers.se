@@ -1,0 +1,81 @@
+use dynamic
+use test
+make identity value:Any -> Any
+    give value
+make add value:Any item:Any -> None
+    value.add item
+make replace value:Any key:Any item:Any -> None
+    value[key] = item
+
+type Counter
+    value = 1
+    make increase amount:Int -> Int
+        value += amount
+        give value
+
+numbers = [1, 2]
+boxed = identity numbers
+alias = boxed
+say dynamic.type_of boxed
+say boxed.len
+add alias 3
+replace boxed 0 9
+say numbers
+say int boxed[0]
+
+record = ["key": numbers]
+dynamic_record = identity record
+say dynamic.type_of dynamic_record
+inner = dynamic_record["key"]
+replace inner 1 8
+say numbers
+
+counter = Counter
+object = identity counter
+say dynamic.type_of object
+object.value = 10
+say int object.value
+say object.increase 5
+say counter.value
+say object == (identity counter)
+
+set_values = set [1, 2]
+boxed_set = identity set_values
+add boxed_set 3
+say dynamic.type_of boxed_set
+say boxed_set.len
+boxed_set.remove 2
+say set_values
+
+a = identity 7
+b = identity 2
+say a + b
+say a - b
+say a * b
+say a % b
+say a / b
+say a > b
+say (identity "value=") + a
+if identity true
+    say "dynamic true"
+for item in boxed
+    say int item
+for key value in dynamic_record
+    say key
+    say value.len
+say 9 in boxed
+say "key" in dynamic_record
+mixed = [identity 1, identity "SE"]
+boxed_mixed = identity mixed
+add boxed_mixed true
+say boxed_mixed
+make choice flag:Bool
+    if flag
+        give 42
+    give "SE"
+say choice true
+say choice false
+make append_mixed values:List[Any] -> None
+    values.add 99
+append_mixed mixed
+say mixed
