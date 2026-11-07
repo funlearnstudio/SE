@@ -670,7 +670,7 @@
           "name": "pretty",
           "kind": "function",
           "usage": "pretty value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
