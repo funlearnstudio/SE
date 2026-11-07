@@ -98,6 +98,7 @@ def main() -> None:
         print(f"PASS unit: {filename}")
     with tempfile.TemporaryDirectory(prefix="se-selfhost-") as folder:
         tmp = Path(folder)
+        verify_positive("language_sized_arrays.se", "", tmp, expected_output="5\n0\n7\n2\n\nSE\nfalse\n2\n3\n42\n3\n")
         verify_positive("language_object_aliases.se", "", tmp)
         verify_positive("language_collection_aliases.se", "", tmp)
         verify_positive("language_series.se", "", tmp)
@@ -169,6 +170,8 @@ def main() -> None:
         # Exercise the actual generated C++ against a fixed output oracle.
         verify_positive("language_zero_arg_functions.se", "", tmp, expected_output="42\n43\nready\ntrue\n84\n")
         for case, message in (
+            ("negative_sized_array_type.se", "Sized arrays support Int, Num, Bool or Text"),
+            ("negative_sized_array_dimension.se", "Sized array dimensions must be Int."),
             ("negative_unknown_annotation.se", "Unknown type annotation"),
             ("negative_private_import.se", "Undefined function"),
             ("negative_tilemap_arity.se", "tilemap.at expects 3 arguments"),
