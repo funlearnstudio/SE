@@ -3893,7 +3893,7 @@
           "name": "escape",
           "kind": "function",
           "usage": "escape text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
