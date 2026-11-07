@@ -1152,7 +1152,7 @@ make emit_checked_program ast:List[Text] symbols:List[List[Text]] -> Text
     # top-level bindings visible to functions. SEGlobal has no eager side effects.
     for statement in ast
         global_node = _node statement
-        if global_node[0] == "Assign" or global_node[0] == "AssignInit"
+        if global_node[0] in ["Assign", "AssignInit", "SizedAssign"]
             global_name = global_node[1]
             if not (("@global:" + global_name) in names)
                 entry = lookup_symbol symbols global_name
