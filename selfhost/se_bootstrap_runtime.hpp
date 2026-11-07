@@ -35,6 +35,27 @@
 #include <vector>
 #include "se_list.hpp"
 
+// Sized collection allocation mirrors the production SE 0.8 bounded-memory
+// rule. Check both dimensions and the product before allocating storage.
+inline std::size_t se_sized_extent(std::int64_t size) {
+  if (size < 0 || size > 1000000)
+    throw std::runtime_error("Sized array length must be from 0 to 1000000.");
+  return static_cast<std::size_t>(size);
+}
+template<class T> SEList<T> se_sized_list(std::int64_t size) {
+  return SEList<T>(se_sized_extent(size));
+}
+template<class T> SEList<SEList<T>> se_sized_matrix(std::int64_t rows,
+                                                      std::int64_t columns) {
+  const auto r = se_sized_extent(rows);
+  const auto c = se_sized_extent(columns);
+  if (r != 0 && c > 1000000 / r)
+    throw std::runtime_error("Sized array exceeds 1000000 elements.");
+  SEList<SEList<T>> result(r);
+  for (auto& row : result) row = SEList<T>(c);
+  return result;
+}
+
 // Global binding storage defers initialization until its original statement.
 // Functions can read and mutate existing top-level bindings without changing
 // startup ordering (input and I/O still execute inside main's error handler).
