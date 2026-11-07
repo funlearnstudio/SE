@@ -70,7 +70,7 @@ class SESha256 {
 public:
   void update(std::string_view bytes) {
     if(finished_) throw std::runtime_error("SHA-256 digest is already finalized.");
-    constexpr std::uint64_t max_bytes=std::numeric_limits<std::uint64_t>::max()/8;
+    constexpr std::uint64_t max_bytes=(std::numeric_limits<std::uint64_t>::max)()/8;
     if(bytes.size()>max_bytes-bytes_)
       throw std::runtime_error("SHA-256 message length exceeds the standard's bound.");
     bytes_+=static_cast<std::uint64_t>(bytes.size());
