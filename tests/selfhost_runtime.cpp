@@ -199,6 +199,25 @@ int main() {
     se_file_remove(temp_root.string());
     assert(!se_path_exists(temp_root.string()));
 
+    const auto safe_root=std::filesystem::temp_directory_path()/"se-bootstrap-safe-root";
+    const auto outside_root=std::filesystem::temp_directory_path()/"se-bootstrap-safe-outside";
+    std::filesystem::remove_all(safe_root);
+    std::filesystem::remove_all(outside_root);
+    std::filesystem::create_directories(safe_root);
+    std::filesystem::create_directories(outside_root);
+    se_write((outside_root/"secret.txt").string(),"secret");
+    std::filesystem::create_directory_symlink(outside_root,safe_root/"linked");
+    bool path_escape_rejected=false;
+    try{(void)se_static_read(safe_root.string(),"linked/secret.txt");}
+    catch(const std::runtime_error&){path_escape_rejected=true;}
+    assert(path_escape_rejected);
+    path_escape_rejected=false;
+    try{(void)se_upload_save(safe_root.string(),"linked/upload.txt","payload");}
+    catch(const std::runtime_error&){path_escape_rejected=true;}
+    assert(path_escape_rejected);
+    std::filesystem::remove_all(safe_root);
+    std::filesystem::remove_all(outside_root);
+
     assert((se_range(3, 1) == SEList<std::int64_t>{3, 2, 1}));
     auto rejects=[](auto operation){bool failed=false;try{operation();}catch(const std::exception&){failed=true;}assert(failed);};
     rejects([]{se_math_sqrt(-1);});

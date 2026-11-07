@@ -362,6 +362,47 @@ make _emit_call encoded:Text -> Text
                 if method in ["match", "find"]
                     give try _apply_or_direct ("se_glob_" + method) generated node[2]
                 fail "Unknown glob operation: " + method
+            if module == "net"
+                if method in ["get", "post", "post_json", "request", "download"]
+                    target_name = "se_net_" + method
+                    if method == "request"
+                        target_name = "se_net_request_api"
+                    give try _apply_or_direct target_name generated node[2]
+                fail "Unknown network operation: " + method
+            if module == "http"
+                if method in ["get", "post", "post_json", "request"]
+                    give try _apply_or_direct ("se_http_" + method) generated node[2]
+                fail "Unknown HTTP operation: " + method
+            if module == "https"
+                if method in ["get", "post", "post_json"]
+                    give try _apply_or_direct ("se_https_" + method) generated node[2]
+                fail "Unknown HTTPS operation: " + method
+            if module == "cookie"
+                if method in ["parse", "set"]
+                    give try _apply_or_direct ("se_cookie_" + method) generated node[2]
+                fail "Unknown cookie operation: " + method
+            if module == "cors"
+                if method in ["allow_origin", "preflight"]
+                    give try _apply_or_direct ("se_cors_" + method) generated node[2]
+                fail "Unknown CORS operation: " + method
+            if module == "template"
+                if method == "escape"
+                    give try _apply_or_direct "se_template_escape" generated node[2]
+                if method == "render"
+                    give try _apply_or_direct "se_template_render" generated node[2]
+                fail "Unknown template operation: " + method
+            if module == "static"
+                if method in ["mime", "read"]
+                    give try _apply_or_direct ("se_static_" + method) generated node[2]
+                fail "Unknown static operation: " + method
+            if module == "upload"
+                if method == "save"
+                    give try _apply_or_direct "se_upload_save" generated node[2]
+                fail "Unknown upload operation: " + method
+            if module == "tilemap"
+                if method in ["parse", "at", "size"]
+                    give try _apply_or_direct ("se_tilemap_" + method) generated node[2]
+                fail "Unknown tilemap operation: " + method
             if module == "async" or module == "threading"
                 if method == "run"
                     callback_args = try _callback_arguments node[2]
@@ -1000,7 +1041,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     if kind == "NativeLoad"
         give pad + "se_native_library(" + (json.stringify node[1]) + ", " + (json.stringify node[2]) + ");\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "functools", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "iter", "itertools", "url", "encoding", "config", "dotenv", "decimal", "datetime", "process", "subprocess", "shutil", "data", "enum", "typing", "option", "result", "match", "queue", "db", "log", "logging", "glob"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "functools", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "iter", "itertools", "url", "encoding", "config", "dotenv", "decimal", "datetime", "process", "subprocess", "shutil", "data", "enum", "typing", "option", "result", "match", "queue", "db", "log", "logging", "glob", "net", "http", "https", "cookie", "cors", "template", "static", "upload", "tilemap"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"

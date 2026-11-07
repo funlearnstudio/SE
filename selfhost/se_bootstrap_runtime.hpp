@@ -839,6 +839,9 @@ inline std::string se_module_help(const std::string& module){
   if(module=="db")return "members: help, open, set, get, has, remove, keys, save";
   if(module=="log"||module=="logging")return "members: help, level, debug, info, warn, error";
   if(module=="glob")return "members: help, match, find";
+  if(module=="net")return "members: help, get, post, post_json, request, download";
+  if(module=="http")return "members: help, get, post, post_json, request";
+  if(module=="https")return "members: help, get, post, post_json";
   return "members: help";
 }
 inline std::string se_help_text(const std::string&){return "members: help, len, upper, lower";}
@@ -1140,3 +1143,5 @@ template<class T,class F,class... Rest> auto se_function_pipe(T value,F first,Re
 #include "se_database_runtime.hpp"
 #include "se_logging_runtime.hpp"
 #include "se_glob_runtime.hpp"
+#include "se_net_runtime.hpp"
+#include "se_web_runtime.hpp"

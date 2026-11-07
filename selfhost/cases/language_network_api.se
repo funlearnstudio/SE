@@ -1,0 +1,22 @@
+use http
+use https
+use net
+use test
+
+try
+    net.get "file:///etc/passwd"
+else error
+    test.equal error.message "Network URL must use http:// or https://."
+try
+    http.post_json "https://example.invalid" "{}"
+else error
+    test.equal error.message "URL must use http://."
+try
+    https.get "http://example.invalid"
+else error
+    test.equal error.message "URL must use https://."
+try
+    net.request "GET" "file:///etc/passwd" ""
+else error
+    test.equal error.message "Network URL must use http:// or https://."
+say "network API validation passed"

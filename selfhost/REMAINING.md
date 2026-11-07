@@ -1,14 +1,15 @@
 # Remaining compatibility work
 
-Checkpoint: 24cc925, 2026-11-06. Completion is not yet certified.
+Checkpoint: experimental self-hosting branch, 2026-11-07. Completion is not certified.
 
 - Return inference: unannotated mutual recursion, loop-dependent returns,
   numeric promotion across branches, and unknown-parameter forward signatures.
 - Generic callable combinations and inference constraints.
 - Dynamic Any containers/user objects with shared mutation and aliasing.
 - First-class source-module values.
-- Extension parity: completion_report.json lists 367 missing member lowerings;
-  source scanning is an inventory, not a conformance test.
+- Extension parity: `completion_report.json` inventories 230 advertised members
+  without a detected lowering. Source scanning is not a conformance test; APIs
+  with a lowering still need full arity, type, error, and runtime comparisons.
 - Native callbacks, by-value C structs and macOS/Windows ABI validation.
 - Comprehensive source-position diagnostics and portable AST serialization.
 

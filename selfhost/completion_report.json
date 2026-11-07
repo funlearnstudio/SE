@@ -2,16 +2,10 @@
   "complete": false,
   "advertised_modules": 117,
   "advertised_members": 586,
-  "missing_lowering_count": 254,
+  "missing_lowering_count": 230,
   "missing_lowerings": {
     "json": [
       "pretty"
-    ],
-    "http": [
-      "get",
-      "post",
-      "post_json",
-      "request"
     ],
     "web": [
       "get",
@@ -42,18 +36,6 @@
       "run",
       "compile",
       "output"
-    ],
-    "https": [
-      "get",
-      "post",
-      "post_json"
-    ],
-    "net": [
-      "get",
-      "post",
-      "post_json",
-      "request",
-      "download"
     ],
     "node": [
       "version",
@@ -160,30 +142,6 @@
       "train_test_split",
       "filter_eq",
       "unique"
-    ],
-    "cookie": [
-      "parse",
-      "set"
-    ],
-    "cors": [
-      "allow_origin",
-      "preflight"
-    ],
-    "template": [
-      "escape",
-      "render"
-    ],
-    "static": [
-      "mime",
-      "read"
-    ],
-    "upload": [
-      "save"
-    ],
-    "tilemap": [
-      "parse",
-      "at",
-      "size"
     ],
     "http_server": [
       "get",
@@ -401,17 +359,26 @@
     "date": "2026-11-07",
     "strict_stage2_stage3_stage4": true,
     "direct_multifile_selfhosting": true,
-    "positive_execution_cases": 81,
+    "positive_execution_cases": 83,
     "negative_rejection_cases": 25,
     "eager_native_load_failure": true,
     "se_unit_groups": 6,
     "web_corpus": true,
     "standalone_runtime_ubsan": true,
-    "strict_cpp_sha256": "fd5af7dc83599fd2f78edaee62f9bec55afb8e13ed50d1e370841b1536dedbe8",
-    "direct_multifile_cpp_sha256": "5a4348fdac4505a2a2e507551aabb8fa08adefb18fc32f5d375d3c560490d25b",
+    "strict_cpp_sha256": "d9ab56f17893c6e1b05e79ed9ea8507ca9bbba000f39cf7bce72e51227bb55e0",
+    "direct_multifile_cpp_sha256": "44dfa4bcf227d8ec1976a94b3ae3db9f82e19ed90003feaf9ec44abd0964db3b",
     "statement_record_bytes_before": 542009153,
     "statement_record_bytes_after": 522018
   },
-  "current_batch": "dynamic collections, Option/Result/match, queue, db, logging, glob, and result-name shadowing regression",
-  "current_batch_committed": true
+  "current_batch": "network and Web extension APIs, with symlink-safe static and upload paths",
+  "current_batch_committed": false,
+  "current_batch_verification": {
+    "network_api_case": "passed",
+    "web_extension_api_case": "passed",
+    "full_differential_suite": "passed (83 positive, 25 negative; production and generated native compiler)",
+    "strict_stage2_stage3_stage4": "passed; Stage2, Stage3 and Stage4 source hashes match",
+    "direct_multifile_selfhosting": "passed; source hashes match",
+    "web_corpus": "passed",
+    "standalone_runtime_ubsan": "passed, including symlink path-containment cases"
+  }
 }

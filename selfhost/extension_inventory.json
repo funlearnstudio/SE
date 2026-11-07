@@ -919,28 +919,28 @@
           "name": "get",
           "kind": "function",
           "usage": "get url",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "post",
           "kind": "function",
           "usage": "post url body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "post_json",
           "kind": "function",
           "usage": "post_json url json",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "request",
           "kind": "function",
           "usage": "request method url body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -1422,21 +1422,21 @@
           "name": "get",
           "kind": "function",
           "usage": "get url",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "post",
           "kind": "function",
           "usage": "post url body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "post_json",
           "kind": "function",
           "usage": "post_json url json",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -1551,35 +1551,35 @@
           "name": "get",
           "kind": "function",
           "usage": "get url",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "post",
           "kind": "function",
           "usage": "post url body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "post_json",
           "kind": "function",
           "usage": "post_json url json",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "request",
           "kind": "function",
           "usage": "request method url body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "download",
           "kind": "function",
           "usage": "download url path",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3495,14 +3495,14 @@
           "name": "parse",
           "kind": "function",
           "usage": "parse header",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "set",
           "kind": "function",
           "usage": "set name value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3514,14 +3514,14 @@
           "name": "allow_origin",
           "kind": "function",
           "usage": "allow_origin origin",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "preflight",
           "kind": "function",
           "usage": "preflight origin methods",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3533,14 +3533,14 @@
           "name": "escape",
           "kind": "function",
           "usage": "escape text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "render",
           "kind": "function",
           "usage": "render source values",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3552,14 +3552,14 @@
           "name": "mime",
           "kind": "function",
           "usage": "mime filename",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "read",
           "kind": "function",
           "usage": "read root filename",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3571,7 +3571,7 @@
           "name": "save",
           "kind": "function",
           "usage": "save root filename body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3583,21 +3583,21 @@
           "name": "parse",
           "kind": "function",
           "usage": "parse text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "at",
           "kind": "function",
           "usage": "at map x y",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "size",
           "kind": "function",
           "usage": "size map",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]

@@ -123,6 +123,8 @@ def main() -> None:
         verify_positive("language_database.se", "", tmp, expected_output="database API passed\n")
         verify_positive("language_logging_glob.se", "", tmp, expected_output="logging and glob APIs passed\n")
         verify_positive("language_result_name_shadowing.se", "", tmp, expected_output="result variable shadowing passed\n")
+        verify_positive("language_network_api.se", "", tmp, expected_output="network API validation passed\n")
+        verify_positive("language_web_extension_api.se", "", tmp, expected_output="web extension API passed\n")
         verify_positive("language_dynamic_any.se", "", tmp, expected_output="Int\nText\nBool\ndynamic Any ok\n")
         verify_positive("language_evaluation_order.se", "one\ntwo\nthree\nfour\n", tmp, expected_output="first: second: [one, two]\nthird: fourth: threefour\n")
         verify_positive("language_copy.se", "", tmp, expected_output="9\n9\n7\n1\n")
