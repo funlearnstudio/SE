@@ -1,0 +1,21 @@
+# SE 0.8 sized-array syntax must work in the independent compiler.
+numbers[5] = []
+say numbers.len
+say numbers[0]
+numbers[2] = 7
+say numbers[2]
+names[2]:Text = []
+say names.len
+say names[0]
+names[1] = "SE"
+say names[1]
+flags[2]:Bool = []
+say flags[0]
+matrix[2][3]:Int = []
+say matrix.len
+say matrix[0].len
+matrix[1][2] = 42
+say matrix[1][2]
+n = 3
+dynamic_array[n]:Int = []
+say dynamic_array.len
