@@ -853,6 +853,22 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     node = _node encoded
     kind = node[0]
     pad = _indent level
+    if kind == "SizedAssign"
+        name = node[1]
+        dims = _node node[2]
+        element_type = try _ctype node[3]
+        first_size = try _emit_expr dims[0]
+        expr = "se_sized_list<" + element_type + ">(" + first_size + ")"
+        if dims.len == 2
+            second_size = try _emit_expr dims[1]
+            expr = "se_sized_matrix<" + element_type + ">(" + first_size + ", " + second_size + ")"
+        cpp_name = _cpp_identifier name
+        if name in names or ("@global:" + name) in names
+            if not (name in names)
+                names.add name
+            give pad + cpp_name + " = " + expr + ";\n"
+        names.add name
+        give _declare_local name expr pad names
     if kind == "Assign"
         name = node[1]
         expr = try _emit_expr node[2]
