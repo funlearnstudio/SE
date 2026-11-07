@@ -1,0 +1,8 @@
+use crypto
+use hashlib
+
+say hashlib.hmac_sha256 "key" "The quick brown fox jumps over the lazy dog"
+say crypto.sha256 "abc"
+say crypto.hmac_sha256 "key" "The quick brown fox jumps over the lazy dog"
+say crypto.constant_time_equal "same" "same"
+say crypto.constant_time_equal "same" "different"
