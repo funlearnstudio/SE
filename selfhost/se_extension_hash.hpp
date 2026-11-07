@@ -128,3 +128,42 @@ inline std::string se_hashlib_sha256(const std::string& text) {
 inline std::string se_hashlib_file_sha256(const std::string& name) {
   return se_hash_file_sha256(name);
 }
+
+// RFC 2104 HMAC construction using the SHA-256 implementation above.
+inline std::string se_sha256_unhex_digest(std::string_view hex) {
+  if(hex.size()!=64)throw std::runtime_error("Unexpected SHA-256 digest size.");
+  std::string raw;
+  raw.reserve(32);
+  for(std::size_t i=0;i<hex.size();i+=2) {
+    auto nibble=[](char ch)->unsigned {
+      if(ch>='0'&&ch<='9')return unsigned(ch-'0');
+      if(ch>='a'&&ch<='f')return unsigned(ch-'a'+10);
+      throw std::runtime_error("Invalid SHA-256 internal digest.");
+    };
+    raw.push_back(static_cast<char>((nibble(hex[i])<<4)|nibble(hex[i+1])));
+  }
+  return raw;
+}
+inline std::string se_hashlib_hmac_sha256(std::string key,const std::string& text) {
+  if(key.size()>64)key=se_sha256_unhex_digest(se_hash_sha256(key));
+  key.resize(64,'\0');
+  auto inner_pad=key,outer_pad=key;
+  for(std::size_t i=0;i<64;++i) {
+    inner_pad[i]=static_cast<char>(static_cast<unsigned char>(key[i])^0x36u);
+    outer_pad[i]=static_cast<char>(static_cast<unsigned char>(key[i])^0x5cu);
+  }
+  SESha256 inner;
+  inner.update(inner_pad);
+  inner.update(text);
+  const auto inner_bytes=se_sha256_unhex_digest(inner.hex_digest());
+  SESha256 outer;
+  outer.update(outer_pad);
+  outer.update(inner_bytes);
+  return outer.hex_digest();
+}
+inline std::string se_crypto_sha256(const std::string& text) {
+  return se_hash_sha256(text);
+}
+inline std::string se_crypto_hmac_sha256(const std::string& key,const std::string& text) {
+  return se_hashlib_hmac_sha256(key,text);
+}
