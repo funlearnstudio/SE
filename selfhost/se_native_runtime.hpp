@@ -13,6 +13,10 @@
 #ifndef _WIN32
 #include <dlfcn.h>
 #else
+// Windows SDK min/max macros break numeric_limits<T>::min/max calls.
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
 #endif
 struct SENativeError : std::runtime_error { using std::runtime_error::runtime_error; };
@@ -56,7 +60,7 @@ inline void* se_native_symbol(const std::shared_ptr<void>& lib,const std::string
   if(!result)throw SENativeError("Native symbol '"+name+"' was not found.");return result;
 }
 inline int se_native_argument(std::int64_t value){
-  if(value<std::numeric_limits<int>::min()||value>std::numeric_limits<int>::max())
+  if(value<(std::numeric_limits<int>::min)()||value>(std::numeric_limits<int>::max)())
     throw SENativeError("Native Int argument is outside the C int range.");
   return static_cast<int>(value);
 }
