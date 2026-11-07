@@ -41,3 +41,29 @@ python3 -m unittest discover -s tests -p test_se_compiler_selector.py -v
 
 Main and the experimental branch have diverged. Do not merge without reconciling
 upstream changes and passing native, selfhost, Web, and cross-platform CI tests.
+
+## API lowering and runtime parity audit / API 完整度
+
+The independent compiler now includes standalone, test-fixtured lowerings for
+`xml.escape`, `json.pretty` (basic homogeneous JSON values),
+`hash.sha256`, `hash.file_sha256`,
+`hashlib.sha256`, `hashlib.file_sha256`,
+`hashlib.hmac_sha256`,
+`crypto.sha256`, `crypto.hmac_sha256`, and
+`crypto.constant_time_equal`. The SHA-256/HMAC code is native C++20,
+self-contained and includes reference test vectors. Extended API and
+input-type parity has not been certified; implementation does not imply full
+production behavior.
+
+Inspect the exhaustive 117-module, 586-member inventory with:
+
+```sh
+python3 tools/selfhost_api_audit.py
+python3 tools/selfhost_api_audit.py --json
+python3 tools/selfhost_api_audit.py --require-complete
+```
+
+`--require-complete` deliberately returns nonzero until **every** API has
+a lowering **and** independently certified runtime parity. Do not label this
+experimental compiler as full SE or produce a stable combined release
+until these checks, the bootstrap proof, and cross-platform tests pass.
