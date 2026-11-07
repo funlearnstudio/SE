@@ -2336,7 +2336,7 @@
           "name": "hmac_sha256",
           "kind": "function",
           "usage": "hmac_sha256 args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
@@ -3917,14 +3917,14 @@
           "name": "sha256",
           "kind": "function",
           "usage": "sha256 text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "hmac_sha256",
           "kind": "function",
           "usage": "hmac_sha256 key text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
@@ -3938,7 +3938,7 @@
           "name": "constant_time_equal",
           "kind": "function",
           "usage": "constant_time_equal left right",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
