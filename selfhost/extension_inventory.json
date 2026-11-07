@@ -2275,14 +2275,14 @@
           "name": "sha256",
           "kind": "function",
           "usage": "sha256 text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "file_sha256",
           "kind": "function",
           "usage": "file_sha256 path",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2294,14 +2294,14 @@
           "name": "sha256",
           "kind": "function",
           "usage": "sha256 args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "file_sha256",
           "kind": "function",
           "usage": "file_sha256 args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
