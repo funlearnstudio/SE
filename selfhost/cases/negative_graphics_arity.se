@@ -1,0 +1,3 @@
+use canvas
+stage = canvas.new 100 80 "wrong arity"
+canvas.line stage 0 0 10 10 "red"

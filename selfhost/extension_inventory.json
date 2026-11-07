@@ -670,7 +670,7 @@
           "name": "pretty",
           "kind": "function",
           "usage": "pretty value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -952,126 +952,126 @@
           "name": "get",
           "kind": "function",
           "usage": "get path handler",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "post",
           "kind": "function",
           "usage": "post path handler",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "put",
           "kind": "function",
           "usage": "put path handler",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "patch",
           "kind": "function",
           "usage": "patch path handler",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "delete",
           "kind": "function",
           "usage": "delete path handler",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "listen",
           "kind": "function",
           "usage": "listen port",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "text",
           "kind": "function",
           "usage": "text body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "json",
           "kind": "function",
           "usage": "json body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "response",
           "kind": "function",
           "usage": "response status body type",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "method",
           "kind": "function",
           "usage": "method",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "path",
           "kind": "function",
           "usage": "path",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "query",
           "kind": "function",
           "usage": "query",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "body",
           "kind": "function",
           "usage": "body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "header",
           "kind": "function",
           "usage": "header name",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "param",
           "kind": "function",
           "usage": "param name",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "handle",
           "kind": "function",
           "usage": "handle method path body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "handle_status",
           "kind": "function",
           "usage": "handle_status method path body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "route_count",
           "kind": "function",
           "usage": "route_count",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -1083,21 +1083,21 @@
           "name": "run",
           "kind": "function",
           "usage": "run file",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "output",
           "kind": "function",
           "usage": "output file",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "eval",
           "kind": "function",
           "usage": "eval code",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -1109,21 +1109,21 @@
           "name": "run",
           "kind": "function",
           "usage": "run file",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "compile",
           "kind": "function",
           "usage": "compile file",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "output",
           "kind": "function",
           "usage": "output file",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -1591,42 +1591,42 @@
           "name": "version",
           "kind": "function",
           "usage": "version",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "run",
           "kind": "function",
           "usage": "run file",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "output",
           "kind": "function",
           "usage": "output file",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "eval",
           "kind": "function",
           "usage": "eval code",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "npm",
           "kind": "function",
           "usage": "npm args",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "npx",
           "kind": "function",
           "usage": "npx args",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -1638,35 +1638,35 @@
           "name": "create",
           "kind": "function",
           "usage": "create project",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "dev",
           "kind": "function",
           "usage": "dev project",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "build",
           "kind": "function",
           "usage": "build project",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "start",
           "kind": "function",
           "usage": "start project",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "lint",
           "kind": "function",
           "usage": "lint project",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -1678,77 +1678,77 @@
           "name": "new",
           "kind": "function",
           "usage": "new width height title",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "background",
           "kind": "function",
           "usage": "background scene color",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "clear",
           "kind": "function",
           "usage": "clear scene",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "rect",
           "kind": "function",
           "usage": "rect scene x y width height color fill",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "circle",
           "kind": "function",
           "usage": "circle scene x y radius color fill",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "line",
           "kind": "function",
           "usage": "line scene x1 y1 x2 y2 color width",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "text",
           "kind": "function",
           "usage": "text scene text x y size color",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "script",
           "kind": "function",
           "usage": "script scene javascript",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "html",
           "kind": "function",
           "usage": "html scene",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "save",
           "kind": "function",
           "usage": "save scene path",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "show",
           "kind": "function",
           "usage": "show scene",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2275,14 +2275,14 @@
           "name": "sha256",
           "kind": "function",
           "usage": "sha256 text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "file_sha256",
           "kind": "function",
           "usage": "file_sha256 path",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2294,63 +2294,63 @@
           "name": "sha256",
           "kind": "function",
           "usage": "sha256 args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "file_sha256",
           "kind": "function",
           "usage": "file_sha256 args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "sha512",
           "kind": "function",
           "usage": "sha512 args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "file_sha512",
           "kind": "function",
           "usage": "file_sha512 args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "digest",
           "kind": "function",
           "usage": "digest args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "file_digest",
           "kind": "function",
           "usage": "file_digest args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "hmac_sha256",
           "kind": "function",
           "usage": "hmac_sha256 args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "compare",
           "kind": "function",
           "usage": "compare args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "to_hex",
           "kind": "function",
           "usage": "to_hex args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2362,14 +2362,14 @@
           "name": "dumps",
           "kind": "function",
           "usage": "dumps value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "loads",
           "kind": "function",
           "usage": "loads text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2381,21 +2381,21 @@
           "name": "parse",
           "kind": "function",
           "usage": "parse argv",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "get",
           "kind": "function",
           "usage": "get parsed name default?",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "flag",
           "kind": "function",
           "usage": "flag parsed name",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2407,56 +2407,56 @@
           "name": "parse_args",
           "kind": "function",
           "usage": "parse_args args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "get",
           "kind": "function",
           "usage": "get args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "flag",
           "kind": "function",
           "usage": "flag args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "help",
           "kind": "function",
           "usage": "help args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "has",
           "kind": "function",
           "usage": "has args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "positionals",
           "kind": "function",
           "usage": "positionals args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "get_int",
           "kind": "function",
           "usage": "get_int args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "require",
           "kind": "function",
           "usage": "require args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2508,7 +2508,7 @@
           "name": "set_level",
           "kind": "function",
           "usage": "set_level args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
@@ -2529,7 +2529,7 @@
           "name": "warning",
           "kind": "function",
           "usage": "warning args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
@@ -2543,14 +2543,14 @@
           "name": "critical",
           "kind": "function",
           "usage": "critical args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "records",
           "kind": "function",
           "usage": "records args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2621,21 +2621,21 @@
           "name": "create",
           "kind": "function",
           "usage": "create archive files",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "extract",
           "kind": "function",
           "usage": "extract archive directory",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "list",
           "kind": "function",
           "usage": "list archive",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2647,42 +2647,42 @@
           "name": "create",
           "kind": "function",
           "usage": "create args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "extract",
           "kind": "function",
           "usage": "extract args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "is_zip",
           "kind": "function",
           "usage": "is_zip args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "entries",
           "kind": "function",
           "usage": "entries args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "read",
           "kind": "function",
           "usage": "read args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "test",
           "kind": "function",
           "usage": "test args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2713,14 +2713,14 @@
           "name": "resolve",
           "kind": "function",
           "usage": "resolve host",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "tcp",
           "kind": "function",
           "usage": "tcp host port payload",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2772,21 +2772,21 @@
           "name": "open",
           "kind": "function",
           "usage": "open path",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "exec",
           "kind": "function",
           "usage": "exec database sql",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "query",
           "kind": "function",
           "usage": "query database sql",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -2798,56 +2798,56 @@
           "name": "open",
           "kind": "function",
           "usage": "open args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "exec",
           "kind": "function",
           "usage": "exec args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "query",
           "kind": "function",
           "usage": "query args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "query_one",
           "kind": "function",
           "usage": "query_one args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "tables",
           "kind": "function",
           "usage": "tables args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "table_info",
           "kind": "function",
           "usage": "table_info args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "execute_many",
           "kind": "function",
           "usage": "execute_many args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "backup",
           "kind": "function",
           "usage": "backup args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3448,14 +3448,14 @@
           "name": "describe",
           "kind": "function",
           "usage": "describe args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "train_test_split",
           "kind": "function",
           "usage": "train_test_split args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
@@ -3469,14 +3469,14 @@
           "name": "filter_eq",
           "kind": "function",
           "usage": "filter_eq args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "unique",
           "kind": "function",
           "usage": "unique args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
@@ -3609,119 +3609,119 @@
           "name": "get",
           "kind": "function",
           "usage": "get args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "post",
           "kind": "function",
           "usage": "post args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "put",
           "kind": "function",
           "usage": "put args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "patch",
           "kind": "function",
           "usage": "patch args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "delete",
           "kind": "function",
           "usage": "delete args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "listen",
           "kind": "function",
           "usage": "listen args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "text",
           "kind": "function",
           "usage": "text args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "json",
           "kind": "function",
           "usage": "json args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "response",
           "kind": "function",
           "usage": "response args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "method",
           "kind": "function",
           "usage": "method args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "path",
           "kind": "function",
           "usage": "path args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "query",
           "kind": "function",
           "usage": "query args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "body",
           "kind": "function",
           "usage": "body args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "header",
           "kind": "function",
           "usage": "header args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "param",
           "kind": "function",
           "usage": "param args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "handle",
           "kind": "function",
           "usage": "handle args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "route_count",
           "kind": "function",
           "usage": "route_count args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3733,63 +3733,63 @@
           "name": "get",
           "kind": "function",
           "usage": "get args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "post",
           "kind": "function",
           "usage": "post args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "put",
           "kind": "function",
           "usage": "put args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "delete",
           "kind": "function",
           "usage": "delete args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "path",
           "kind": "function",
           "usage": "path args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "param",
           "kind": "function",
           "usage": "param args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "handle",
           "kind": "function",
           "usage": "handle args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "handle_status",
           "kind": "function",
           "usage": "handle_status args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "route_count",
           "kind": "function",
           "usage": "route_count args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3801,49 +3801,49 @@
           "name": "resolve",
           "kind": "function",
           "usage": "resolve args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "resolve4",
           "kind": "function",
           "usage": "resolve4 args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "resolve6",
           "kind": "function",
           "usage": "resolve6 args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "reverse",
           "kind": "function",
           "usage": "reverse args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "is_ip",
           "kind": "function",
           "usage": "is_ip args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "lookup_mx",
           "kind": "function",
           "usage": "lookup_mx args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "lookup_txt",
           "kind": "function",
           "usage": "lookup_txt args...",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3855,7 +3855,7 @@
           "name": "parse",
           "kind": "function",
           "usage": "parse text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3867,14 +3867,14 @@
           "name": "parse",
           "kind": "function",
           "usage": "parse text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "stringify",
           "kind": "function",
           "usage": "stringify value",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3886,14 +3886,14 @@
           "name": "parse",
           "kind": "function",
           "usage": "parse text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "escape",
           "kind": "function",
           "usage": "escape text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3905,7 +3905,7 @@
           "name": "render",
           "kind": "function",
           "usage": "render text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3917,28 +3917,28 @@
           "name": "sha256",
           "kind": "function",
           "usage": "sha256 text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "hmac_sha256",
           "kind": "function",
           "usage": "hmac_sha256 key text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "random_hex",
           "kind": "function",
           "usage": "random_hex byte_count",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "constant_time_equal",
           "kind": "function",
           "usage": "constant_time_equal left right",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3950,14 +3950,14 @@
           "name": "sign",
           "kind": "function",
           "usage": "sign claims secret",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "verify",
           "kind": "function",
           "usage": "verify token secret",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3969,14 +3969,14 @@
           "name": "encode",
           "kind": "function",
           "usage": "encode claims secret",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "decode",
           "kind": "function",
           "usage": "decode token secret",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -3988,14 +3988,14 @@
           "name": "hash_password",
           "kind": "function",
           "usage": "hash_password password",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "verify_password",
           "kind": "function",
           "usage": "verify_password password encoded_hash",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4007,14 +4007,14 @@
           "name": "compose",
           "kind": "function",
           "usage": "compose sender recipient subject body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "parse",
           "kind": "function",
           "usage": "parse message",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4026,7 +4026,7 @@
           "name": "send",
           "kind": "function",
           "usage": "send host port username password recipient message",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4038,7 +4038,7 @@
           "name": "subjects",
           "kind": "function",
           "usage": "subjects host username password mailbox limit",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4050,21 +4050,21 @@
           "name": "list",
           "kind": "function",
           "usage": "list host username password directory",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "download",
           "kind": "function",
           "usage": "download host username password filename",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "upload",
           "kind": "function",
           "usage": "upload host username password filename body",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4076,7 +4076,7 @@
           "name": "run",
           "kind": "function",
           "usage": "run host username command",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4088,7 +4088,7 @@
           "name": "exchange",
           "kind": "function",
           "usage": "exchange url message",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4100,7 +4100,7 @@
           "name": "chat",
           "kind": "function",
           "usage": "chat endpoint api_key model prompt",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4112,7 +4112,7 @@
           "name": "create",
           "kind": "function",
           "usage": "create endpoint api_key model text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4124,14 +4124,14 @@
           "name": "linear_regression",
           "kind": "function",
           "usage": "linear_regression xs ys",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "predict",
           "kind": "function",
           "usage": "predict model x",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4143,21 +4143,21 @@
           "name": "shape",
           "kind": "function",
           "usage": "shape values",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "add",
           "kind": "function",
           "usage": "add left right",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "matmul",
           "kind": "function",
           "usage": "matmul left right",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4169,14 +4169,14 @@
           "name": "add",
           "kind": "function",
           "usage": "add scene url x y width height",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "stop",
           "kind": "function",
           "usage": "stop scene",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4188,14 +4188,14 @@
           "name": "start",
           "kind": "function",
           "usage": "start scene x y width height",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "stop",
           "kind": "function",
           "usage": "stop scene",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4207,49 +4207,49 @@
           "name": "new",
           "kind": "function",
           "usage": "gui.new",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "rect",
           "kind": "function",
           "usage": "gui.rect",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "circle",
           "kind": "function",
           "usage": "gui.circle",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "text",
           "kind": "function",
           "usage": "gui.text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "show",
           "kind": "function",
           "usage": "gui.show",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "save",
           "kind": "function",
           "usage": "gui.save",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "html",
           "kind": "function",
           "usage": "gui.html",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4261,21 +4261,21 @@
           "name": "new",
           "kind": "function",
           "usage": "window.new",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "fullscreen",
           "kind": "function",
           "usage": "window.fullscreen",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "show",
           "kind": "function",
           "usage": "window.show",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4287,70 +4287,70 @@
           "name": "new",
           "kind": "function",
           "usage": "canvas.new",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "background",
           "kind": "function",
           "usage": "canvas.background",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "clear",
           "kind": "function",
           "usage": "canvas.clear",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "rect",
           "kind": "function",
           "usage": "canvas.rect",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "circle",
           "kind": "function",
           "usage": "canvas.circle",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "line",
           "kind": "function",
           "usage": "canvas.line",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "text",
           "kind": "function",
           "usage": "canvas.text",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "show",
           "kind": "function",
           "usage": "canvas.show",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "save",
           "kind": "function",
           "usage": "canvas.save",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "html",
           "kind": "function",
           "usage": "canvas.html",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4362,14 +4362,14 @@
           "name": "key_move",
           "kind": "function",
           "usage": "input.key_move",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "follow_mouse",
           "kind": "function",
           "usage": "input.follow_mouse",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4381,49 +4381,49 @@
           "name": "image",
           "kind": "function",
           "usage": "sprite.image",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "sprite",
           "kind": "function",
           "usage": "sprite.sprite",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "sprite_color",
           "kind": "function",
           "usage": "sprite.sprite_color",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "position",
           "kind": "function",
           "usage": "sprite.position",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "move",
           "kind": "function",
           "usage": "sprite.move",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "velocity",
           "kind": "function",
           "usage": "sprite.velocity",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "animate",
           "kind": "function",
           "usage": "sprite.animate",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4435,49 +4435,49 @@
           "name": "velocity",
           "kind": "function",
           "usage": "physics.velocity",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "rect_hit",
           "kind": "function",
           "usage": "physics.rect_hit",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "circle_hit",
           "kind": "function",
           "usage": "physics.circle_hit",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "distance",
           "kind": "function",
           "usage": "physics.distance",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "vector",
           "kind": "function",
           "usage": "physics.vector",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "particles",
           "kind": "function",
           "usage": "physics.particles",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "camera",
           "kind": "function",
           "usage": "physics.camera",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4489,21 +4489,21 @@
           "name": "sound",
           "kind": "function",
           "usage": "sound.sound",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "play",
           "kind": "function",
           "usage": "sound.play",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "stop",
           "kind": "function",
           "usage": "sound.stop",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4515,7 +4515,7 @@
           "name": "key_move",
           "kind": "function",
           "usage": "keyboard.key_move",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4527,14 +4527,14 @@
           "name": "follow_mouse",
           "kind": "function",
           "usage": "mouse.follow_mouse",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "camera",
           "kind": "function",
           "usage": "mouse.camera",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4546,21 +4546,21 @@
           "name": "animate",
           "kind": "function",
           "usage": "animation.animate",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "move",
           "kind": "function",
           "usage": "animation.move",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "velocity",
           "kind": "function",
           "usage": "animation.velocity",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4572,42 +4572,42 @@
           "name": "new",
           "kind": "function",
           "usage": "scene.new",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "background",
           "kind": "function",
           "usage": "scene.background",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "clear",
           "kind": "function",
           "usage": "scene.clear",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "html",
           "kind": "function",
           "usage": "scene.html",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "save",
           "kind": "function",
           "usage": "scene.save",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "show",
           "kind": "function",
           "usage": "scene.show",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4619,28 +4619,28 @@
           "name": "rect_hit",
           "kind": "function",
           "usage": "collision.rect_hit",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "circle_hit",
           "kind": "function",
           "usage": "collision.circle_hit",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "distance",
           "kind": "function",
           "usage": "collision.distance",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "vector",
           "kind": "function",
           "usage": "collision.vector",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4652,14 +4652,14 @@
           "name": "image",
           "kind": "function",
           "usage": "image.image",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "sprite",
           "kind": "function",
           "usage": "image.sprite",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]
@@ -4671,21 +4671,21 @@
           "name": "sound",
           "kind": "function",
           "usage": "audio.sound",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "play",
           "kind": "function",
           "usage": "audio.play",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         },
         {
           "name": "stop",
           "kind": "function",
           "usage": "audio.stop",
-          "lowering_present": false,
+          "lowering_present": true,
           "conformance": "not_certified_by_inventory"
         }
       ]

@@ -14,22 +14,29 @@ def inventory():
     source=(ROOT/'selfhost/codegen.se').read_text()
     section=source[source.index('make _emit_call '):source.index('make _abi_type ')]
     lowered={}
+    generic_modules=set()
     active=[]
     for line in section.splitlines():
         indent=len(line)-len(line.lstrip())
         if indent==12 and line.strip().startswith('if module '):
             active=re.findall(r'module == "([^"]+)"',line)
+            if 'module in [' in line:
+                generic_modules.update(re.findall(r'"([^"]+)"',line.split('module in [',1)[1]))
         elif indent<12 and line.strip():
             active=[]
         if indent>=16 and line.strip().startswith('if method '):
             names=re.findall(r'"([^"]+)"',line)
             for module in active:lowered.setdefault(module,set()).update(names)
+        if indent==12 and 'and method ' in line:
+            module_match=re.search(r'module == "([^"]+)"',line)
+            if module_match:
+                lowered.setdefault(module_match.group(1),set()).update(re.findall(r'"([^"]+)"',line.split('and method ',1)[1]))
     properties={'math':{'pi','e','tau','inf'},'time':{'now'},'os':{'cwd','platform'},'random':{'num'}}
     result=[]
     for module in catalog['modules']:
         members=[]
         for name,usage,description,kind in catalog['members'].get(module,[]):
-            present=name in lowered.get(module,set()) or name in properties.get(module,set())
+            present=name in lowered.get(module,set()) or module in generic_modules or name in properties.get(module,set())
             members.append(dict(name=name,kind=kind,usage=usage,lowering_present=present,
                                 conformance='not_certified_by_inventory'))
         result.append(dict(module=module,members=members))

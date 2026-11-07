@@ -19,6 +19,11 @@ namespace {
 const char* script=R"SEPY(import datetime
 import base64
 import email
+import base64
+import ipaddress
+import pickle
+import socket
+import sqlite3
 import email.policy
 from email.message import EmailMessage
 from email import message_from_string, message_from_bytes
@@ -31,11 +36,14 @@ import json
 import secrets
 import smtplib
 import ssl
+import stat
 import sys
 import time
 import urllib.request
 import traceback
 import xml.etree.ElementTree as ET
+import zipfile
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 with open(sys.argv[1], encoding='utf-8') as f:
     request = json.load(f)
@@ -77,6 +85,38 @@ try:
         except ImportError as exc:
             raise RuntimeError('markdown.render requires markdown-it-py installed for the selected Python') from exc
         value = markdown_it.MarkdownIt('commonmark', {'html': False}).render(args[0])
+    elif name in ('hash', 'hashlib'):
+        if op in ('sha256', 'sha512'):
+            value = getattr(hashlib, op)(args[0].encode('utf-8')).hexdigest()
+        elif op in ('file_sha256', 'file_sha512'):
+            algorithm = 'sha256' if op.endswith('sha256') else 'sha512'
+            digest = hashlib.new(algorithm)
+            with open(args[0], 'rb') as source:
+                for chunk in iter(lambda: source.read(1024 * 1024), b''):
+                    digest.update(chunk)
+            value = digest.hexdigest()
+        elif op == 'digest':
+            algorithm = args[0].lower()
+            if algorithm not in hashlib.algorithms_available:
+                raise ValueError('Unsupported digest algorithm')
+            value = hashlib.new(algorithm, args[1].encode('utf-8')).hexdigest()
+        elif op == 'file_digest':
+            algorithm = args[0].lower()
+            if algorithm not in hashlib.algorithms_available:
+                raise ValueError('Unsupported digest algorithm')
+            digest = hashlib.new(algorithm)
+            with open(args[1], 'rb') as source:
+                for chunk in iter(lambda: source.read(1024 * 1024), b''):
+                    digest.update(chunk)
+            value = digest.hexdigest()
+        elif op == 'hmac_sha256':
+            value = hmac.new(args[0].encode('utf-8'), args[1].encode('utf-8'), hashlib.sha256).hexdigest()
+        elif op == 'compare':
+            value = hmac.compare_digest(args[0].encode('utf-8'), args[1].encode('utf-8'))
+        elif op == 'to_hex':
+            value = args[0].encode('utf-8').hex()
+        else:
+            raise ValueError('Unknown hash operation')
     elif name == 'crypto':
         if op == 'sha256':
             value = hashlib.sha256(args[0].encode('utf-8')).hexdigest()
@@ -90,6 +130,72 @@ try:
             value = hmac.compare_digest(args[0].encode('utf-8'), args[1].encode('utf-8'))
         else:
             raise ValueError('Unknown crypto operation')
+    elif name == 'socket':
+        if op == 'resolve':
+            value = socket.getaddrinfo(args[0], None, type=socket.SOCK_STREAM)[0][4][0]
+        elif op == 'tcp':
+            with socket.create_connection((args[0], int(args[1])), timeout=15) as connection:
+                connection.sendall(args[2].encode('utf-8'))
+                connection.shutdown(socket.SHUT_WR)
+                value = connection.recv(16 * 1024 * 1024).decode('utf-8', errors='replace')
+        else:
+            raise ValueError('Unknown socket operation')
+    elif name == 'dns':
+        host = args[0] if args else ''
+        if op == 'resolve':
+            value = sorted({item[4][0] for item in socket.getaddrinfo(host, None)})
+        elif op == 'resolve4':
+            value = sorted({item[4][0] for item in socket.getaddrinfo(host, None, socket.AF_INET)})
+        elif op == 'resolve6':
+            value = sorted({item[4][0] for item in socket.getaddrinfo(host, None, socket.AF_INET6)})
+        elif op == 'reverse':
+            value = socket.gethostbyaddr(host)[0]
+        elif op == 'is_ip':
+            try:
+                ipaddress.ip_address(host); value = True
+            except ValueError:
+                value = False
+        elif op == 'lookup_mx':
+            import dns.resolver
+            value = sorted(str(record.exchange).rstrip('.') for record in dns.resolver.resolve(host, 'MX'))
+        elif op == 'lookup_txt':
+            import dns.resolver
+            value = sorted(b''.join(record.strings).decode('utf-8', errors='replace') for record in dns.resolver.resolve(host, 'TXT'))
+        else:
+            raise ValueError('Unknown DNS operation')
+    elif name in ('sqlite', 'sqlite3'):
+        if op == 'open':
+            path = args[0]
+            connection = sqlite3.connect(path); connection.close(); value = path
+        elif op in ('exec', 'query', 'query_one', 'tables', 'table_info', 'execute_many', 'backup'):
+            path = args[0]
+            with sqlite3.connect(path) as connection:
+                if op == 'exec':
+                    connection.executescript(args[1]); value = 0
+                elif op == 'query':
+                    value = [list(row) for row in connection.execute(args[1]).fetchall()]
+                elif op == 'query_one':
+                    row = connection.execute(args[1]).fetchone(); value = list(row) if row is not None else None
+                elif op == 'tables':
+                    value = [row[0] for row in connection.execute("select name from sqlite_master where type='table' order by name")]
+                elif op == 'table_info':
+                    name = args[1]
+                    if not name.replace('_', 'a').isalnum(): raise ValueError('Invalid table name')
+                    value = [list(row) for row in connection.execute('pragma table_info("' + name + '")').fetchall()]
+                elif op == 'execute_many':
+                    connection.executescript('\n'.join(args[1])); value = 0
+                else:
+                    import shutil
+                    shutil.copyfile(path, args[1]); value = None
+        else:
+            raise ValueError('Unknown SQLite operation')
+    elif name == 'pickle':
+        if op == 'dumps':
+            value = base64.b64encode(pickle.dumps(args[0], protocol=4)).decode('ascii')
+        elif op == 'loads':
+            value = pickle.loads(base64.b64decode(args[0], validate=True))
+        else:
+            raise ValueError('Unknown pickle operation')
     elif name in ('jwt', 'session'):
         def encoded(data):
             raw = json.dumps(data, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
@@ -296,6 +402,66 @@ try:
             value = [[sum(a[row][k] * b[k][col] for k in range(ashape[1])) for col in range(bshape[1])] for row in range(ashape[0])]
         else:
             raise ValueError('Unknown tensor operation')
+    elif name in ('zip', 'zipfile'):
+        def safe_member(name):
+            posix = PurePosixPath(name)
+            windows = PureWindowsPath(name)
+            if posix.is_absolute() or windows.is_absolute() or windows.drive or any(part == '..' for part in posix.parts):
+                raise ValueError('ZIP member path escapes the extraction root')
+            return posix
+        if op == 'create':
+            archive, files = args
+            with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED) as output:
+                for filename in files:
+                    path = Path(filename)
+                    if not path.is_file():
+                        raise ValueError('ZIP source is not a file: ' + filename)
+                    output.write(path, arcname=path.name)
+            value = None
+        elif op == 'extract':
+            archive, directory = args
+            root = Path(directory).resolve()
+            root.mkdir(parents=True, exist_ok=True)
+            total = 0
+            with zipfile.ZipFile(archive) as source:
+                infos = source.infolist()
+                if len(infos) > 10000:
+                    raise ValueError('ZIP contains too many entries')
+                for info in infos:
+                    member = safe_member(info.filename)
+                    if stat.S_ISLNK(info.external_attr >> 16):
+                        raise ValueError('ZIP symbolic links are not extracted')
+                    total += info.file_size
+                    if total > 1024 * 1024 * 1024:
+                        raise ValueError('ZIP uncompressed size exceeds 1 GiB')
+                    target = (root / Path(*member.parts)).resolve()
+                    if not target.is_relative_to(root):
+                        raise ValueError('ZIP member path escapes the extraction root')
+                    if info.is_dir():
+                        target.mkdir(parents=True, exist_ok=True)
+                    else:
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        with source.open(info) as src, target.open('wb') as dst:
+                            while True:
+                                block = src.read(1024 * 1024)
+                                if not block:
+                                    break
+                                dst.write(block)
+            value = None
+        elif op in ('entries', 'list'):
+            with zipfile.ZipFile(args[0]) as archive:
+                value = [item.filename for item in archive.infolist()]
+        elif op == 'read':
+            with zipfile.ZipFile(args[0]) as archive:
+                safe_member(args[1])
+                value = archive.read(args[1]).decode('utf-8')
+        elif op == 'is_zip':
+            value = zipfile.is_zipfile(args[0])
+        elif op == 'test':
+            with zipfile.ZipFile(args[0]) as archive:
+                value = archive.testzip() is None
+        else:
+            raise ValueError('Unknown ZIP operation')
     else:
         raise ValueError('Unknown format module')
     result = {'ok': True, 'value': value}

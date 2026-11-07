@@ -251,6 +251,10 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                 give "Text"
             if owner[2] == "time" and member == "now"
                 give "Time"
+            if owner[2] == "logging" and member == "records"
+                give "Any"
+            if owner[2] == "node" and member == "version"
+                give "Text"
         if member == "message" and object_type == "Error"
             give "Text"
         if member == "kind" and object_type == "Error"
@@ -467,6 +471,199 @@ make _infer encoded:Text symbols:List[List[Text]] -> Text
                         give "Text"
                     if callee[2] in ["write", "append", "copy", "move", "copytree", "remove", "mkdir"]
                         give "Unknown"
+                if owner[0] == "Atom" and owner[2] == "args"
+                    if callee[2] == "parse"
+                        if args.len != 1
+                            fail "args.parse expects one List[Text]."
+                        give "Map[Text,Any]"
+                    if callee[2] == "get"
+                        if args.len != 2 and args.len != 3
+                            fail "args.get expects a parsed Map, name, and optional default."
+                        give "Any"
+                    if callee[2] == "flag"
+                        if args.len != 2
+                            fail "args.flag expects a parsed Map and name."
+                        give "Bool"
+                if owner[0] == "Atom" and owner[2] == "argparse"
+                    if callee[2] == "parse_args"
+                        if args.len != 1
+                            fail "argparse.parse_args expects one List[Text]."
+                        give "Map[Text,Any]"
+                    if callee[2] == "get"
+                        if args.len != 2 and args.len != 3
+                            fail "argparse.get expects a parsed Map, name, and optional default."
+                        give "Any"
+                    if callee[2] == "flag" or callee[2] == "has"
+                        if args.len != 2
+                            fail "argparse flag/has expects a parsed Map and name."
+                        give "Bool"
+                    if callee[2] == "help"
+                        if args.len != 2
+                            fail "argparse.help expects a title and option List[Text]."
+                        give "Text"
+                    if callee[2] == "positionals"
+                        if args.len != 1
+                            fail "argparse.positionals expects a parsed Map."
+                        give "Any"
+                    if callee[2] == "get_int" or callee[2] == "require"
+                        if args.len != 2
+                            fail "argparse.get_int/require expects a parsed Map and name."
+                        if callee[2] == "get_int"
+                            give "Int"
+                        give "Any"
+                if owner[0] == "Atom" and owner[2] == "dataset"
+                    if callee[2] == "describe"
+                        if args.len != 1
+                            fail "dataset.describe expects one List of row Maps."
+                        give "Any"
+                    if callee[2] == "train_test_split"
+                        if args.len != 2
+                            fail "dataset.train_test_split expects rows and a ratio."
+                        give "Any"
+                    if callee[2] == "filter_eq" or callee[2] == "unique"
+                        if args.len != 3 and callee[2] == "filter_eq"
+                            fail "dataset.filter_eq expects rows, column, and value."
+                        if args.len != 2 and callee[2] == "unique"
+                            fail "dataset.unique expects rows and a column."
+                        give "Any"
+                if owner[0] == "Atom" and owner[2] == "ml"
+                    if callee[2] == "linear_regression"
+                        if args.len != 2
+                            fail "ml.linear_regression expects two numeric Lists."
+                        give "Any"
+                    if callee[2] == "predict"
+                        if args.len != 2
+                            fail "ml.predict expects a model and a number."
+                        give "Num"
+                if owner[0] == "Atom" and owner[2] == "tensor"
+                    if callee[2] == "shape"
+                        if args.len != 1
+                            fail "tensor.shape expects one tensor."
+                        give "Any"
+                    if callee[2] == "add" or callee[2] == "matmul"
+                        if args.len != 2
+                            fail "tensor.add/matmul expects two tensors."
+                        give "Any"
+                if owner[0] == "Atom" and owner[2] == "logging"
+                    if callee[2] in ["debug", "info", "warning", "error", "critical", "set_level"]
+                        if args.len != 1
+                            fail "logging operation expects one Text argument."
+                        give "None"
+                    if callee[2] == "records"
+                        if args.len != 0
+                            fail "logging.records expects no arguments."
+                        give "Any"
+                if owner[0] == "Atom" and owner[2] in ["hash", "hashlib"]
+                    expected = 1
+                    if callee[2] in ["hmac_sha256", "compare", "digest", "file_digest"]
+                        expected = 2
+                    if args.len != expected
+                        fail "Hash operation has the wrong number of arguments."
+                    if callee[2] == "compare"
+                        give "Bool"
+                    give "Text"
+                if owner[0] == "Atom" and owner[2] == "pickle"
+                    if args.len != 1
+                        fail "pickle operation expects one argument."
+                    give "Any"
+                if owner[0] == "Atom" and owner[2] == "socket"
+                    if callee[2] == "resolve"
+                        if args.len != 1
+                            fail "socket.resolve expects one host."
+                        give "Text"
+                    if callee[2] == "tcp"
+                        if args.len != 3
+                            fail "socket.tcp expects host, port, and payload."
+                        give "Text"
+                if owner[0] == "Atom" and owner[2] == "dns"
+                    if args.len != 1
+                        fail "DNS operation expects one name or address."
+                    if callee[2] == "is_ip"
+                        give "Bool"
+                    if callee[2] in ["resolve", "resolve4", "resolve6", "lookup_mx", "lookup_txt"]
+                        give "Any"
+                    give "Text"
+                if owner[0] == "Atom" and owner[2] in ["sqlite", "sqlite3"]
+                    expected = 1
+                    if callee[2] in ["exec", "query", "query_one", "table_info", "backup", "execute_many"]
+                        expected = 2
+                    if args.len != expected
+                        fail "SQLite operation has the wrong number of arguments."
+                    if callee[2] in ["query", "query_one", "tables", "table_info"]
+                        give "Any"
+                    if callee[2] == "open"
+                        give "Any"
+                    give "Int"
+                if owner[0] == "Atom" and owner[2] in ["http_server", "router", "web"]
+                    expected = 0
+                    if callee[2] in ["get", "post", "put", "patch", "delete", "header", "param", "listen", "text", "json"]
+                        expected = 1
+                    if callee[2] in ["handle", "handle_status", "response"]
+                        expected = 3
+                    if callee[2] in ["get", "post", "put", "patch", "delete"]
+                        expected = 2
+                    if args.len != expected
+                        fail "Web server operation has the wrong number of arguments."
+                    if callee[2] == "route_count" or callee[2] == "handle_status"
+                        give "Int"
+                    if callee[2] in ["method", "path", "query", "body"]
+                        give "Text"
+                    if callee[2] == "handle" or callee[2] == "text"
+                        give "Text"
+                    give "Any"
+                if owner[0] == "Atom" and owner[2] in ["game", "gui", "window", "canvas", "scene", "input", "sprite", "physics", "sound", "keyboard", "mouse", "animation", "collision", "image", "audio", "video", "camera"]
+                    expected = 1
+                    if callee[2] in ["new", "background", "script", "position", "move", "velocity", "camera", "sound", "stop", "image", "key_move", "follow_mouse", "animate", "particles", "rect_hit", "circle_hit", "distance", "vector", "text", "line", "rect", "circle", "sprite", "sprite_color", "add", "start", "response"]
+                        expected = 2
+                    if callee[2] == "new"
+                        expected = 3
+                    if callee[2] in ["position", "move", "velocity"]
+                        expected = 4
+                    if callee[2] == "sound"
+                        expected = 3
+                    if callee[2] in ["rect"]
+                        expected = 7
+                    if callee[2] in ["circle"]
+                        expected = 6
+                    if callee[2] in ["line"]
+                        expected = 7
+                    if callee[2] in ["text"]
+                        expected = 6
+                    if callee[2] == "sprite_color"
+                        expected = 7
+                    if callee[2] == "particles"
+                        expected = 6
+                    if callee[2] in ["image", "add"]
+                        expected = 6
+                    if callee[2] == "sprite"
+                        expected = 7
+                    if callee[2] == "key_move"
+                        expected = 5
+                    if callee[2] in ["fullscreen", "clear", "html", "show"]
+                        expected = 1
+                    if callee[2] == "save"
+                        expected = 2
+                    if callee[2] == "play"
+                        expected = 4
+                    if callee[2] in ["camera", "start"]
+                        expected = 3
+                    if callee[2] == "start"
+                        expected = 5
+                    if callee[2] == "stop"
+                        expected = 2
+                        if owner[2] == "camera" or owner[2] == "video"
+                            expected = 1
+                    if callee[2] == "rect_hit"
+                        expected = 8
+                    if callee[2] == "circle_hit"
+                        expected = 6
+                    if callee[2] == "distance"
+                        expected = 4
+                    if args.len != expected
+                        fail "Graphics operation has the wrong number of arguments."
+                    if callee[2] in ["rect_hit", "circle_hit", "distance", "vector", "new", "html", "show"]
+                        give "Any"
+                    give "None"
                 give "Unknown"
             if owner_type == "Any"
                 give "Any"

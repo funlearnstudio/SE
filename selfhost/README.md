@@ -100,9 +100,10 @@ The standalone runtime also implements the tested APIs in `iter` and
 `glob`. `data` handles both statically typed collections and the tested dynamic
 List/Map forms. Their conformance cases are in `selfhost/cases/` and run through
 the generated C++ backend. The extension inventory is generated from the VS
-Code API catalog; an API name with a code-generation branch is not proof that
-the whole production API has compatible types, arity, errors, or runtime
-behavior. See `completion_report.json` for the modules still missing lowering.
+Code API catalog. The current 2026-11-07 inventory detects lowerings for all 586
+advertised members across 117 modules. The report keeps conformance separate:
+the source scan does not prove complete production type, error, or runtime
+parity, and the per-API executable cases remain authoritative.
 
 ## Added language coverage
 

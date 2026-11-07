@@ -1,0 +1,14 @@
+use js
+use node
+use test
+
+version = try node.version
+test.ok (version.len > 0)
+test.equal (try node.eval "process.stdout.write('node eval\\n')") "node eval\n"
+test.equal (try js.eval "process.stdout.write('js eval\\n')") "js eval\n"
+file_output = try node.output "selfhost/cases/node_output.js"
+test.equal file_output "node file output\n"
+test.equal (try js.output "selfhost/cases/node_output.js") "node file output\n"
+test.equal (try node.run "selfhost/cases/node_empty.js") 0
+test.equal (try js.run "selfhost/cases/node_empty.js") 0
+say "Node and JavaScript APIs passed"

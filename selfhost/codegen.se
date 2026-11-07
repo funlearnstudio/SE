@@ -267,6 +267,25 @@ make _emit_call encoded:Text -> Text
         method = target[2]
         if owner[0] == "Atom" and owner[1] == "Identifier"
             module = owner[2]
+            if module == "http_server" or module == "router" or module == "web"
+                if method in ["get", "post", "put", "patch", "delete"]
+                    if args.len != 2
+                        fail "Web route registration expects a path and handler."
+                    route = try _emit_expr args[0]
+                    handler_node = _node args[1]
+                    if handler_node[0] == "Atom" and handler_node[1] == "Identifier"
+                        handler = _cpp_identifier handler_node[2]
+                        give "se_web_" + method + "(" + route + ", [=](const std::string& __se_body)->SEAny{return " + handler + "(__se_body);})"
+                    fail "Web route handler must be a named SE function."
+                if method == "listen"
+                    give try _apply_or_direct "se_web_listen" generated node[2]
+                if method in ["text", "json", "response", "header", "param", "handle", "handle_status"]
+                    give try _apply_or_direct ("se_web_" + method) generated node[2]
+                if method == "route_count"
+                    give "se_web_route_count()"
+                fail "Unknown web server operation: " + method
+            if module in ["game", "gui", "window", "canvas", "scene", "input", "sprite", "physics", "sound", "keyboard", "mouse", "animation", "collision", "image", "audio", "video", "camera"]
+                give "se_game_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
             if module == "iter"
                 if method in ["range", "enumerate", "zip", "product", "permutations", "combinations"]
                     give try _apply_or_direct ("se_iter_" + method) generated node[2]
@@ -353,15 +372,166 @@ make _emit_call encoded:Text -> Text
                     give try _apply_or_direct ("se_db_" + method) generated node[2]
                 fail "Unknown database operation: " + method
             if module == "log" or module == "logging"
-                if method == "level"
+                if method == "level" or method == "set_level"
                     give try _apply_or_direct "se_log_level" generated node[2]
-                if method in ["debug", "info", "warn", "error"]
-                    give try _apply_or_direct ("se_log_" + method) generated node[2]
+                if method in ["debug", "info", "warn", "warning", "error", "critical"]
+                    target_name = method
+                    if method == "warning"
+                        target_name = "warn"
+                    if method == "critical"
+                        target_name = "error"
+                    give try _apply_or_direct ("se_log_" + target_name) generated node[2]
+                if method == "records"
+                    give try _apply_or_direct "se_log_records" generated node[2]
                 fail "Unknown logging operation: " + method
+            if module == "args"
+                if method == "parse"
+                    give try _apply_or_direct "se_args_parse" generated node[2]
+                if method == "get"
+                    give try _apply_or_direct "se_args_get" generated node[2]
+                if method == "flag"
+                    give try _apply_or_direct "se_args_flag" generated node[2]
+            if module == "argparse"
+                if method == "parse_args"
+                    give try _apply_or_direct "se_argparse_parse_args" generated node[2]
+                if method == "get"
+                    give try _apply_or_direct "se_args_get" generated node[2]
+                if method == "flag"
+                    give try _apply_or_direct "se_args_flag" generated node[2]
+                if method == "help"
+                    give try _apply_or_direct "se_argparse_help" generated node[2]
+                if method == "has"
+                    give try _apply_or_direct "se_argparse_has" generated node[2]
+                if method == "positionals"
+                    give try _apply_or_direct "se_argparse_positionals" generated node[2]
+                if method == "get_int"
+                    give try _apply_or_direct "se_argparse_get_int" generated node[2]
+                if method == "require"
+                    give try _apply_or_direct "se_argparse_require" generated node[2]
+                fail "Unknown argparse operation: " + method
+            if module == "dataset"
+                if method in ["column", "row_count", "select", "columns", "split"]
+                    give try _apply_or_direct ("se_dataset_" + method) generated node[2]
+                if method == "describe"
+                    give try _apply_or_direct "se_dataset_describe" generated node[2]
+                if method == "train_test_split"
+                    give try _apply_or_direct "se_dataset_train_test_split" generated node[2]
+                if method == "filter_eq"
+                    give try _apply_or_direct "se_dataset_filter_eq" generated node[2]
+                if method == "unique"
+                    give try _apply_or_direct "se_dataset_unique" generated node[2]
+                fail "Unknown dataset operation: " + method
+            if module == "http_server" or module == "router" or module == "web"
+                if method in ["get", "post", "put", "patch", "delete"]
+                    give try _apply_or_direct ("se_web_" + method) generated node[2]
+                if method == "listen"
+                    give try _apply_or_direct "se_web_listen" generated node[2]
+                if method in ["text", "json", "response", "method", "path", "query", "body", "header", "param", "handle", "handle_status", "route_count"]
+                    give try _apply_or_direct ("se_web_" + method) generated node[2]
+                fail "Unknown web server operation: " + method
+            if module == "ml"
+                if method == "linear_regression"
+                    give try _apply_or_direct "se_ml_linear_regression" generated node[2]
+                if method == "predict"
+                    give try _apply_or_direct "se_ml_predict" generated node[2]
+                fail "Unknown machine-learning operation: " + method
+            if module == "tensor"
+                if method == "shape"
+                    give try _apply_or_direct "se_tensor_shape" generated node[2]
+                if method == "add"
+                    give try _apply_or_direct "se_tensor_add" generated node[2]
+                if method == "matmul"
+                    give try _apply_or_direct "se_tensor_matmul" generated node[2]
+                fail "Unknown tensor operation: " + method
+            if module == "toml" and method == "parse"
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "yaml" and method in ["parse", "stringify"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "xml" and method in ["parse", "escape"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "markdown" and method == "render"
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "crypto" and method in ["sha256", "hmac_sha256", "random_hex", "constant_time_equal"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "hash" and method in ["sha256", "file_sha256"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "hashlib" and method in ["sha256", "file_sha256", "sha512", "file_sha512", "digest", "file_digest", "hmac_sha256", "compare", "to_hex"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "pickle" and method in ["dumps", "loads"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "socket" and method in ["resolve", "tcp"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "dns" and method in ["resolve", "resolve4", "resolve6", "reverse", "is_ip", "lookup_mx", "lookup_txt"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "sqlite" or module == "sqlite3"
+                if method in ["open", "exec", "query", "query_one", "tables", "table_info", "execute_many", "backup"]
+                    give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "jwt" and method in ["sign", "verify"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "session" and method in ["encode", "decode"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "auth" and method in ["hash_password", "verify_password"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "email" and method in ["compose", "parse"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "smtp" and method == "send"
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "imap" and method == "subjects"
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "ftp" and method in ["list", "download", "upload"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "ssh" and method == "run"
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "websocket" and method == "exchange"
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "ai" and method == "chat"
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "embedding" and method == "create"
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "zip" and method in ["create", "extract", "list"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
+            if module == "zipfile" and method in ["create", "extract", "is_zip", "entries", "read", "test"]
+                give "se_format_op(" + (json.stringify module) + ", " + (json.stringify method) + ", " + generated + ")"
             if module == "glob"
                 if method in ["match", "find"]
                     give try _apply_or_direct ("se_glob_" + method) generated node[2]
                 fail "Unknown glob operation: " + method
+            if module == "node"
+                if method == "version"
+                    give "se_node_version()"
+                if method == "run"
+                    give try _apply_or_direct "se_node_run" generated node[2]
+                if method == "output"
+                    give try _apply_or_direct "se_node_output" generated node[2]
+                if method == "eval"
+                    give try _apply_or_direct "se_node_eval" generated node[2]
+                if method == "npm"
+                    give try _apply_or_direct "se_node_npm" generated node[2]
+                if method == "npx"
+                    give try _apply_or_direct "se_node_npx" generated node[2]
+                fail "Unknown Node operation: " + method
+            if module == "js"
+                if method == "run"
+                    give try _apply_or_direct "se_js_run" generated node[2]
+                if method == "output"
+                    give try _apply_or_direct "se_js_output" generated node[2]
+                if method == "eval"
+                    give try _apply_or_direct "se_js_eval" generated node[2]
+                fail "Unknown JavaScript operation: " + method
+            if module == "ts"
+                if method == "run"
+                    give try _apply_or_direct "se_ts_run" generated node[2]
+                if method == "output"
+                    give try _apply_or_direct "se_ts_output" generated node[2]
+                if method == "compile"
+                    give try _apply_or_direct "se_ts_compile" generated node[2]
+                fail "Unknown TypeScript operation: " + method
+            if module == "next"
+                if method == "create"
+                    give try _apply_or_direct "se_next_create" generated node[2]
+                if method in ["dev", "build", "start", "lint"]
+                    give try _apply_or_direct "se_next_command" (generated + ", " + (json.stringify method)) node[2]
+                fail "Unknown Next.js operation: " + method
             if module == "net"
                 if method in ["get", "post", "post_json", "request", "download"]
                     target_name = "se_net_" + method
@@ -429,6 +599,8 @@ make _emit_call encoded:Text -> Text
             if module == "json"
                 if method == "stringify"
                     give try _apply_or_direct "se_json_stringify" generated node[2]
+                if method == "pretty"
+                    give try _apply_or_direct "se_json_pretty" generated node[2]
                 if method == "parse"
                     give try _apply_or_direct "se_json_parse" generated node[2]
                 fail "JSON module function not yet supported: " + method
@@ -759,6 +931,13 @@ make _emit_expr encoded:Text -> Text
                 give "se_datetime_now()"
             if module == "datetime" and member == "timestamp"
                 give "se_datetime_timestamp()"
+            if module == "node" and member == "version"
+                give "se_node_version()"
+            if module == "logging" and member == "records"
+                give "se_log_records()"
+            if module == "http_server" or module == "router"
+                if member in ["method", "path", "query", "body", "route_count"]
+                    give "se_web_" + member + "()"
             if module == "option" and member == "none"
                 give "se_option_none()"
             if module == "queue" and member == "new"
@@ -1041,7 +1220,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     if kind == "NativeLoad"
         give pad + "se_native_library(" + (json.stringify node[1]) + ", " + (json.stringify node[2]) + ");\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "functools", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "iter", "itertools", "url", "encoding", "config", "dotenv", "decimal", "datetime", "process", "subprocess", "shutil", "data", "enum", "typing", "option", "result", "match", "queue", "db", "log", "logging", "glob", "net", "http", "https", "cookie", "cors", "template", "static", "upload", "tilemap"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "functools", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "iter", "itertools", "url", "encoding", "config", "dotenv", "decimal", "datetime", "process", "subprocess", "shutil", "data", "enum", "typing", "option", "result", "match", "queue", "db", "log", "logging", "glob", "net", "http", "https", "cookie", "cors", "template", "static", "upload", "tilemap", "args", "argparse", "ml", "tensor", "web", "js", "ts", "node", "next", "game", "hash", "hashlib", "pickle", "zip", "zipfile", "socket", "sqlite", "sqlite3", "http_server", "router", "dns", "toml", "yaml", "xml", "markdown", "crypto", "jwt", "session", "auth", "email", "smtp", "imap", "ftp", "ssh", "websocket", "ai", "embedding", "video", "camera", "gui", "window", "canvas", "input", "sprite", "physics", "sound", "keyboard", "mouse", "animation", "scene", "collision", "image", "audio"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"

@@ -1,0 +1,78 @@
+use argparse
+use dataset
+use dynamic
+use logging
+use test
+use ml
+use json
+use tensor
+
+make as_any value:Any -> Any
+    give value
+
+tokens = ["train.csv", "--epochs", "3", "--verbose", "--name=SE"]
+parsed = argparse.parse_args tokens
+test.equal (argparse.get parsed "epochs") "3"
+test.equal (argparse.flag parsed "verbose") true
+test.equal (try argparse.get_int parsed "epochs") 3
+test.equal (argparse.has parsed "name") true
+positionals = argparse.positionals parsed
+test.equal positionals[0] "train.csv"
+test.equal (try argparse.require parsed "name") "SE"
+options = ["epochs", "verbose"]
+test.equal (argparse.help "train" options) "train\nOptions:\n  --epochs\n  --verbose\n"
+object = ["name": "SE", "mode": "selfhost"]
+test.equal (json.pretty object) "{\n  \"name\": \"SE\",\n  \"mode\": \"selfhost\"\n}"
+
+logging.set_level "debug"
+logging.debug "start"
+logging.warning "careful"
+logging.critical "stop"
+records = logging.records
+first_record = records[0]
+test.equal first_record["level"] 0
+test.equal first_record["message"] "start"
+
+rows = [["name": "A", "score": "8"], ["name": "B", "score": "10"], ["name": "A", "score": "12"]]
+summary = as_any (dataset.describe rows)
+test.equal summary["row_count"] 3
+selected = as_any (dataset.filter_eq rows "name" "A")
+test.equal selected.len 2
+unique_rows = as_any (dataset.unique rows "name")
+test.equal unique_rows.len 2
+split = as_any (try dataset.train_test_split rows 0.67)
+training = split[0]
+validation = split[1]
+test.equal training.len 2
+test.equal validation.len 1
+
+xs = [1, 2, 3]
+ys = [3, 5, 7]
+model = as_any (try ml.linear_regression xs ys)
+test.equal model["slope"] 2.0
+test.equal model["intercept"] 1.0
+test.equal (ml.predict model 4) 9.0
+
+matrix = [[1, 2], [3, 4]]
+shape = as_any (try tensor.shape matrix)
+test.equal shape[0] 2
+test.equal shape[1] 2
+matrix2 = [[10, 20], [30, 40]]
+sum = as_any (try tensor.add matrix matrix2)
+sum_row = sum[1]
+test.equal sum_row[0] 33.0
+matrix3 = [[5, 6], [7, 8]]
+product = as_any (try tensor.matmul matrix matrix3)
+product_row0 = product[0]
+product_row1 = product[1]
+test.equal product_row0[0] 19.0
+test.equal product_row1[1] 50.0
+bad_shape = [1, 2]
+try
+    as_any (try tensor.add matrix bad_shape)
+else error
+    test.equal error.message "Tensor dimensions do not match."
+args = ["program"]
+args.add "--flag"
+test.equal args.len 2
+say "ML, tensor, CLI and logging APIs passed"

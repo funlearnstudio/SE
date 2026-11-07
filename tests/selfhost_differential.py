@@ -9,9 +9,12 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import re
+import socket
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
 CASE_DIR = ROOT / "selfhost" / "cases"
@@ -88,6 +91,44 @@ def verify_negative(case: str, part: str, tmp: Path) -> None:
     print(f"PASS rejected: {case}")
 
 
+def verify_http_listener(tmp: Path) -> None:
+    src = CASE_DIR / "language_http_listener.se"
+    cpp = tmp / "language_http_listener.cpp"
+    exe = tmp / ("language_http_listener.exe" if os.name == "nt" else "language_http_listener")
+    env = dict(os.environ, SE_SELFHOST_SOURCE=str(src), SE_SELFHOST_OUTPUT=str(cpp))
+    produced = run(*([str(NATIVE)] if NATIVE else [str(SE), "run", "selfhost/compiler.se"]), env=env)
+    assert produced.returncode == 0, ("HTTP listener", "self-host compiler", produced.stderr)
+    compiled = run(CXX, "-std=c++20", "-O0", "-g0", "-I", str(ROOT / "selfhost"), str(cpp), "-o", str(exe))
+    assert compiled.returncode == 0, ("HTTP listener", "C++ compile", compiled.stderr)
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    process = subprocess.Popen([str(exe)], cwd=ROOT, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        assert process.stdin is not None
+        process.stdin.write(f"{port}\n"); process.stdin.flush()
+        last_error = None
+        for _ in range(50):
+            try:
+                request = urllib.request.Request(f"http://127.0.0.1:{port}/echo", data=b"ping", method="POST")
+                with urllib.request.urlopen(request, timeout=1) as response:
+                    body = response.read().decode()
+                    assert response.status == 200 and body == "heard:ping", (response.status, body)
+                    break
+            except Exception as error:
+                last_error = error
+                if process.poll() is not None:
+                    raise AssertionError(("HTTP listener exited", process.stderr.read())) from error
+                time.sleep(0.05)
+        else:
+            raise AssertionError(("HTTP listener did not respond", repr(last_error)))
+        print("PASS HTTP listener end-to-end")
+    finally:
+        process.terminate()
+        try: process.wait(timeout=3)
+        except subprocess.TimeoutExpired: process.kill(); process.wait()
+
+
 def main() -> None:
     for filename in ("lexer.se", "parser.se", "symbol_table.se", "typechecker.se", "codegen.se", "compile.se", "compiler.se"):
         result = run(str(SE), "check", str(ROOT / "selfhost" / filename))
@@ -125,6 +166,15 @@ def main() -> None:
         verify_positive("language_result_name_shadowing.se", "", tmp, expected_output="result variable shadowing passed\n")
         verify_positive("language_network_api.se", "", tmp, expected_output="network API validation passed\n")
         verify_positive("language_web_extension_api.se", "", tmp, expected_output="web extension API passed\n")
+        verify_positive("language_ml_tensor_cli.se", "", tmp, expected_output="ML, tensor, CLI and logging APIs passed\n")
+        verify_positive("language_format_bridge.se", "", tmp, expected_output="format bridge APIs passed\n")
+        verify_positive("language_node_tools.se", "", tmp, expected_output="Node and JavaScript APIs passed\n")
+        verify_positive("language_zip_apis.se", "", tmp, expected_output="ZIP APIs passed\n")
+        verify_positive("language_hash_apis.se", "", tmp, expected_output="Hash APIs passed\n")
+        verify_positive("language_storage_network_apis.se", "", tmp, expected_output="Storage and DNS APIs passed\n")
+        verify_positive("language_router_apis.se", "", tmp, expected_output="Router APIs passed\n")
+        verify_positive("language_graphics_apis.se", "", tmp, expected_output="Graphics APIs passed\n")
+        verify_http_listener(tmp)
         verify_positive("language_dynamic_any.se", "", tmp, expected_output="Int\nText\nBool\ndynamic Any ok\n")
         verify_positive("language_evaluation_order.se", "one\ntwo\nthree\nfour\n", tmp, expected_output="first: second: [one, two]\nthird: fourth: threefour\n")
         verify_positive("language_copy.se", "", tmp, expected_output="9\n9\n7\n1\n")
@@ -199,6 +249,9 @@ def main() -> None:
             ("negative_wrong_type.se", "Arithmetic requires numbers"),
             ("negative_undefined.se", "Undefined identifier"),
             ("negative_wrong_arity.se", "Wrong arity"),
+            ("negative_hash_arity.se", "Hash operation has the wrong number of arguments"),
+            ("negative_graphics_arity.se", "Graphics operation has the wrong number of arguments"),
+            ("negative_http_server_arity.se", "Web server operation has the wrong number of arguments"),
             ("negative_zero_arg_wrong_arity.se", "Wrong arity"),
             ("negative_wrong_return.se", "Function return type"),
             ("negative_hetero_list.se", "List element type mismatch"),

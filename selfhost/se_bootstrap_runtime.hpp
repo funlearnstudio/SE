@@ -1145,3 +1145,17 @@ template<class T,class F,class... Rest> auto se_function_pipe(T value,F first,Re
 #include "se_glob_runtime.hpp"
 #include "se_net_runtime.hpp"
 #include "se_web_runtime.hpp"
+#include "se_model_runtime.hpp"
+#include "se_json_value_runtime.hpp"
+#include "se_format_runtime.hpp"
+#include "se_tooling_runtime.hpp"
+#include "se_router_runtime.hpp"
+#include "se_game_runtime.hpp"
+inline bool se_contains(const SEAny& value,const std::string& needle){
+  if(auto text=std::get_if<std::string>(&value))return text->find(needle)!=std::string::npos;
+  return se_contains(value,SEAny(needle));
+}
+inline void se_test_ok(const SEAny& value){
+  if(auto boolean=std::get_if<bool>(&value)){se_test_ok(*boolean);return;}
+  throw std::runtime_error("test.ok expects Bool, got a dynamic value.");
+}

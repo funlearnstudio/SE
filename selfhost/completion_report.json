@@ -2,358 +2,21 @@
   "complete": false,
   "advertised_modules": 117,
   "advertised_members": 586,
-  "missing_lowering_count": 230,
-  "missing_lowerings": {
-    "json": [
-      "pretty"
-    ],
-    "web": [
-      "get",
-      "post",
-      "put",
-      "patch",
-      "delete",
-      "listen",
-      "text",
-      "json",
-      "response",
-      "method",
-      "path",
-      "query",
-      "body",
-      "header",
-      "param",
-      "handle",
-      "handle_status",
-      "route_count"
-    ],
-    "js": [
-      "run",
-      "output",
-      "eval"
-    ],
-    "ts": [
-      "run",
-      "compile",
-      "output"
-    ],
-    "node": [
-      "version",
-      "run",
-      "output",
-      "eval",
-      "npm",
-      "npx"
-    ],
-    "next": [
-      "create",
-      "dev",
-      "build",
-      "start",
-      "lint"
-    ],
-    "game": [
-      "new",
-      "background",
-      "clear",
-      "rect",
-      "circle",
-      "line",
-      "text",
-      "script",
-      "html",
-      "save",
-      "show"
-    ],
-    "hash": [
-      "sha256",
-      "file_sha256"
-    ],
-    "hashlib": [
-      "sha256",
-      "file_sha256",
-      "sha512",
-      "file_sha512",
-      "digest",
-      "file_digest",
-      "hmac_sha256",
-      "compare",
-      "to_hex"
-    ],
-    "pickle": [
-      "dumps",
-      "loads"
-    ],
-    "args": [
-      "parse",
-      "get",
-      "flag"
-    ],
-    "argparse": [
-      "parse_args",
-      "get",
-      "flag",
-      "help",
-      "has",
-      "positionals",
-      "get_int",
-      "require"
-    ],
-    "logging": [
-      "set_level",
-      "warning",
-      "critical",
-      "records"
-    ],
-    "zip": [
-      "create",
-      "extract",
-      "list"
-    ],
-    "zipfile": [
-      "create",
-      "extract",
-      "is_zip",
-      "entries",
-      "read",
-      "test"
-    ],
-    "socket": [
-      "resolve",
-      "tcp"
-    ],
-    "sqlite": [
-      "open",
-      "exec",
-      "query"
-    ],
-    "sqlite3": [
-      "open",
-      "exec",
-      "query",
-      "query_one",
-      "tables",
-      "table_info",
-      "execute_many",
-      "backup"
-    ],
-    "dataset": [
-      "describe",
-      "train_test_split",
-      "filter_eq",
-      "unique"
-    ],
-    "http_server": [
-      "get",
-      "post",
-      "put",
-      "patch",
-      "delete",
-      "listen",
-      "text",
-      "json",
-      "response",
-      "method",
-      "path",
-      "query",
-      "body",
-      "header",
-      "param",
-      "handle",
-      "route_count"
-    ],
-    "router": [
-      "get",
-      "post",
-      "put",
-      "delete",
-      "path",
-      "param",
-      "handle",
-      "handle_status",
-      "route_count"
-    ],
-    "dns": [
-      "resolve",
-      "resolve4",
-      "resolve6",
-      "reverse",
-      "is_ip",
-      "lookup_mx",
-      "lookup_txt"
-    ],
-    "toml": [
-      "parse"
-    ],
-    "yaml": [
-      "parse",
-      "stringify"
-    ],
-    "xml": [
-      "parse",
-      "escape"
-    ],
-    "markdown": [
-      "render"
-    ],
-    "crypto": [
-      "sha256",
-      "hmac_sha256",
-      "random_hex",
-      "constant_time_equal"
-    ],
-    "jwt": [
-      "sign",
-      "verify"
-    ],
-    "session": [
-      "encode",
-      "decode"
-    ],
-    "auth": [
-      "hash_password",
-      "verify_password"
-    ],
-    "email": [
-      "compose",
-      "parse"
-    ],
-    "smtp": [
-      "send"
-    ],
-    "imap": [
-      "subjects"
-    ],
-    "ftp": [
-      "list",
-      "download",
-      "upload"
-    ],
-    "ssh": [
-      "run"
-    ],
-    "websocket": [
-      "exchange"
-    ],
-    "ai": [
-      "chat"
-    ],
-    "embedding": [
-      "create"
-    ],
-    "ml": [
-      "linear_regression",
-      "predict"
-    ],
-    "tensor": [
-      "shape",
-      "add",
-      "matmul"
-    ],
-    "video": [
-      "add",
-      "stop"
-    ],
-    "camera": [
-      "start",
-      "stop"
-    ],
-    "gui": [
-      "new",
-      "rect",
-      "circle",
-      "text",
-      "show",
-      "save",
-      "html"
-    ],
-    "window": [
-      "new",
-      "fullscreen",
-      "show"
-    ],
-    "canvas": [
-      "new",
-      "background",
-      "clear",
-      "rect",
-      "circle",
-      "line",
-      "text",
-      "show",
-      "save",
-      "html"
-    ],
-    "input": [
-      "key_move",
-      "follow_mouse"
-    ],
-    "sprite": [
-      "image",
-      "sprite",
-      "sprite_color",
-      "position",
-      "move",
-      "velocity",
-      "animate"
-    ],
-    "physics": [
-      "velocity",
-      "rect_hit",
-      "circle_hit",
-      "distance",
-      "vector",
-      "particles",
-      "camera"
-    ],
-    "sound": [
-      "sound",
-      "play",
-      "stop"
-    ],
-    "keyboard": [
-      "key_move"
-    ],
-    "mouse": [
-      "follow_mouse",
-      "camera"
-    ],
-    "animation": [
-      "animate",
-      "move",
-      "velocity"
-    ],
-    "scene": [
-      "new",
-      "background",
-      "clear",
-      "html",
-      "save",
-      "show"
-    ],
-    "collision": [
-      "rect_hit",
-      "circle_hit",
-      "distance",
-      "vector"
-    ],
-    "image": [
-      "image",
-      "sprite"
-    ],
-    "audio": [
-      "sound",
-      "play",
-      "stop"
-    ]
-  },
+  "missing_lowering_count": 0,
+  "missing_lowerings": {},
   "limitations": [
     "Lowering detection is a source scan, not conformance certification.",
     "CSV parser rejects malformed quoted input more strictly than the production parser.",
     "Any supports scalar values only; arbitrary dynamic objects and full generic inference remain incomplete.",
     "Native callbacks, by-value structs and full cross-platform ABI verification remain incomplete.",
     "Unannotated mutually recursive, loop-dependent and heterogeneous return signatures are not inferred.",
-    "Expression AST child handles are process-local, not a portable serialized graph."
+    "Expression AST child handles are process-local, not a portable serialized graph.",
+    "All advertised members have a lowering, but inventory detection does not certify full production type/error/runtime parity.",
+    "Graphics show operations depend on the host browser opener; HTTP listener is synchronous and serves requests sequentially.",
+    "External format/network features can require Python packages, installed host tools, credentials or reachable services.",
+    "All catalog members have a lowering, but inventory detection does not prove every production overload, error path, and external-service behavior is identical.",
+    "Graphics show operations require a host browser opener; HTTP listen is synchronous and serves requests sequentially.",
+    "External format and network APIs can depend on Python packages, host tools, credentials, and reachable services."
   ],
   "verification": {
     "date": "2026-11-07",
@@ -365,21 +28,26 @@
     "se_unit_groups": 6,
     "web_corpus": true,
     "standalone_runtime_ubsan": true,
-    "strict_cpp_sha256": "d9ab56f17893c6e1b05e79ed9ea8507ca9bbba000f39cf7bce72e51227bb55e0",
-    "direct_multifile_cpp_sha256": "44dfa4bcf227d8ec1976a94b3ae3db9f82e19ed90003feaf9ec44abd0964db3b",
+    "strict_cpp_sha256": "1208ae691925f810f2a0352b13d0ca25edfea6a41f398659b1800c5d09af09b1",
+    "direct_multifile_cpp_sha256": "4ef479181d898d5ebce6eb76444dc57fb9fc9801393f6d269e2e0c508dd32dfe",
     "statement_record_bytes_before": 542009153,
-    "statement_record_bytes_after": 522018
+    "statement_record_bytes_after": 522018,
+    "api_inventory": "117 modules, 586 members, 0 missing lowerings",
+    "full_differential_suite": "passed on the Stage3 multi-file self-hosted compiler, including API and arity cases"
   },
-  "current_batch": "network and Web extension APIs, with symlink-safe static and upload paths",
-  "current_batch_committed": true,
+  "current_batch": "all 586 advertised API members lowered; added dynamic, format, storage, network/server, Node, and graphics/media runtimes",
+  "current_batch_committed": false,
   "current_batch_verification": {
-    "network_api_case": "passed",
-    "web_extension_api_case": "passed",
-    "full_differential_suite": "passed (83 positive, 25 negative; production and generated native compiler)",
-    "strict_stage2_stage3_stage4": "passed; Stage2, Stage3 and Stage4 source hashes match",
-    "direct_multifile_selfhosting": "passed; source hashes match",
-    "web_corpus": "passed",
-    "standalone_runtime_ubsan": "passed, including symlink path-containment cases"
+    "api_inventory": "586 advertised members; 0 missing lowerings",
+    "differential_suite": "passed under the Stage3 self-hosted compiler",
+    "new_runtime_cases": "passed hash/file digest, pickle, SQLite/DNS, format/archive, Node, ML/tensor/CLI/logging, router, graphics/media",
+    "http_listener": "passed localhost end-to-end request/response",
+    "negative_arity": "hash, graphics, and HTTP server wrong-arity diagnostics passed",
+    "stage_hashes": "Stage2, Stage3, and Stage4 sources match; direct multi-file outputs match",
+    "production_runtime_source": "src/runtime/formats.cpp compiled with project C++20 -Wall -Wextra -Wpedantic -Werror flags",
+    "full_project_build": "unavailable because cmake executable is missing; generated Makefile also requires that executable"
   },
-  "integration": "origin/main merged into experiment/se-self-hosting-bootstrap; not merged into main"
+  "integration": "origin/main merged into experiment/se-self-hosting-bootstrap; not merged into main",
+  "api_lowerings_complete": true,
+  "conformance_certified": false
 }

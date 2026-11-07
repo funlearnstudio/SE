@@ -1,0 +1,14 @@
+use test
+use http_server
+
+make inspect body
+    result = http_server.method + " " + http_server.path + "?" + http_server.query
+    id = http_server.param "id"
+    result = result + " id=" + id + " body=" + body
+    give http_server.response 201 result "text/plain; charset=utf-8"
+
+http_server.post "/items/:id" inspect
+test.equal http_server.route_count 1
+test.equal (try http_server.handle "POST" "/items/42?q=1" "payload") "POST /items/42?q=1 id=42 body=payload"
+test.equal (try http_server.handle_status "POST" "/items/42" "again") 201
+say "Router APIs passed"
