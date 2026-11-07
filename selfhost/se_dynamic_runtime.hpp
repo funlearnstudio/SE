@@ -34,6 +34,24 @@ template<class T> struct SEDynamicModel final : SEDynamic {
     else if constexpr(SECategory<T>::kind==2)value.put(se_any_cast<std::string>(key),se_any_cast<typename SECategory<T>::element>(item));
     else SEDynamic::assign(key,item);
   }
+  void insert(const SEAny& key,const SEAny& item)override {
+    if constexpr(SECategory<T>::kind==1){auto index=se_any_cast<std::int64_t>(key);if(index<0)index+=static_cast<std::int64_t>(value.size());index=std::clamp<std::int64_t>(index,0,static_cast<std::int64_t>(value.size()));auto converted=se_any_cast<typename SECategory<T>::element>(item);value.emplace_back();for(std::size_t i=value.size()-1;i>static_cast<std::size_t>(index);--i)value[i]=std::move(value[i-1]);value[static_cast<std::size_t>(index)]=std::move(converted);}
+    else SEDynamic::insert(key,item);
+  }
+  SEAny pop(const SEAny& key)override {
+    if constexpr(SECategory<T>::kind==1){if(value.empty())throw std::runtime_error("data.pop cannot pop an empty List.");auto index=se_any_cast<std::int64_t>(key);if(index<0)index+=static_cast<std::int64_t>(value.size());if(index<0||static_cast<std::uint64_t>(index)>=value.size())throw std::runtime_error("data.pop index is out of bounds.");auto pos=static_cast<std::size_t>(index);SEAny out(value[pos]);value.erase(value.begin()+static_cast<std::ptrdiff_t>(pos));return out;}
+    else return SEDynamic::pop(key);
+  }
+  void clear()override {
+    if constexpr(SECategory<T>::kind==1)value.clear();
+    else if constexpr(SECategory<T>::kind==2 || SECategory<T>::kind==3)value.items.clear();
+    else SEDynamic::clear();
+  }
+  SEAny shallow_copy()const override {
+    if constexpr(SECategory<T>::kind==1 || SECategory<T>::kind==2 || SECategory<T>::kind==3)return SEAny(value.clone());
+    else if constexpr(std::is_copy_constructible_v<T>)return SEAny(value);
+    else return SEDynamic::shallow_copy();
+  }
   void add(const SEAny& item)override {
     if constexpr(SECategory<T>::kind==1 && std::is_same_v<typename SECategory<T>::element,SEAny>)value.push_back(item);
     else if constexpr(SECategory<T>::kind==3 && std::is_same_v<typename SECategory<T>::element,SEAny>)value.add(item);

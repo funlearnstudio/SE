@@ -2,7 +2,7 @@
   "complete": false,
   "advertised_modules": 117,
   "advertised_members": 586,
-  "missing_lowering_count": 292,
+  "missing_lowering_count": 254,
   "missing_lowerings": {
     "json": [
       "pretty"
@@ -42,37 +42,6 @@
       "run",
       "compile",
       "output"
-    ],
-    "option": [
-      "some",
-      "none",
-      "is_some",
-      "is_none",
-      "value",
-      "or"
-    ],
-    "result": [
-      "ok",
-      "err",
-      "is_ok",
-      "is_err",
-      "value",
-      "error",
-      "or"
-    ],
-    "match": [
-      "value",
-      "option",
-      "result"
-    ],
-    "db": [
-      "open",
-      "set",
-      "get",
-      "has",
-      "remove",
-      "keys",
-      "save"
     ],
     "https": [
       "get",
@@ -148,25 +117,11 @@
       "get_int",
       "require"
     ],
-    "log": [
-      "level",
-      "debug",
-      "info",
-      "warn",
-      "error"
-    ],
     "logging": [
       "set_level",
-      "debug",
-      "info",
       "warning",
-      "error",
       "critical",
       "records"
-    ],
-    "glob": [
-      "match",
-      "find"
     ],
     "zip": [
       "create",
@@ -184,13 +139,6 @@
     "socket": [
       "resolve",
       "tcp"
-    ],
-    "queue": [
-      "new",
-      "put",
-      "get",
-      "empty",
-      "size"
     ],
     "sqlite": [
       "open",
@@ -453,18 +401,17 @@
     "date": "2026-11-07",
     "strict_stage2_stage3_stage4": true,
     "direct_multifile_selfhosting": true,
-    "positive_execution_cases": 72,
+    "positive_execution_cases": 81,
     "negative_rejection_cases": 25,
     "eager_native_load_failure": true,
     "se_unit_groups": 6,
     "web_corpus": true,
     "standalone_runtime_ubsan": true,
-    "strict_cpp_sha256": "4532638889120a01d3451d50f865947d41015edf03239edaa7b07dc10977fe61",
-    "direct_multifile_cpp_sha256": "645c79407ebeb88efedd914b0eb65b0d19d4f9fbc1b79e9d4e6fc7115e60675f",
+    "strict_cpp_sha256": "fd5af7dc83599fd2f78edaee62f9bec55afb8e13ed50d1e370841b1536dedbe8",
+    "direct_multifile_cpp_sha256": "5a4348fdac4505a2a2e507551aabb8fa08adefb18fc32f5d375d3c560490d25b",
     "statement_record_bytes_before": 542009153,
-    "statement_record_bytes_after": 522018,
-    "verified_source_commit": "d0b5845"
+    "statement_record_bytes_after": 522018
   },
-  "current_batch": "data, enum/typing, functools alias, shutil, process/subprocess API lowering and standalone runtimes",
-  "current_batch_committed": false
+  "current_batch": "dynamic collections, Option/Result/match, queue, db, logging, glob, and result-name shadowing regression",
+  "current_batch_committed": true
 }

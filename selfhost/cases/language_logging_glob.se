@@ -1,0 +1,12 @@
+use glob
+use logging
+use test
+
+test.ok (glob.match "*.se" "codegen.se")
+test.ok (glob.match "selfhost/**/*.se" "selfhost/cases/language_glob.se")
+found = glob.find "selfhost/cases/language_logging_glob.se"
+test.equal found.len 1
+logging.level "error"
+logging.debug "hidden"
+logging.error "visible"
+say "logging and glob APIs passed"

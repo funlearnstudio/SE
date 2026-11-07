@@ -20,7 +20,7 @@ struct SENativeError : std::runtime_error { using std::runtime_error::runtime_er
 struct SENativeBytesView {const std::uint8_t* data;std::size_t size;};
 struct SENativeHandle {std::shared_ptr<void> resource;std::string tag;};
 inline SEBytes se_bytes(const std::string& text){return {text.begin(),text.end()};}
-inline std::string se_error_kind(const std::exception& error){return dynamic_cast<const SENativeError*>(&error)?"NativeError":"Error";}
+inline std::string se_error_kind(const std::exception& error){if(auto native=dynamic_cast<const SENativeError*>(&error))return "NativeError";if(auto typed=dynamic_cast<const SEKindError*>(&error))return typed->kind;return "Error";}
 inline std::shared_ptr<void> se_native_library(const std::string& metadata,const std::string& name){
   static std::mutex mutex;
   static std::unordered_map<std::string,std::shared_ptr<void>> cache;

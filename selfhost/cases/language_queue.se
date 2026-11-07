@@ -1,0 +1,13 @@
+use queue
+use test
+
+items = queue.new
+test.ok (queue.empty items)
+test.equal (queue.size items) 0
+queue.put items 42
+queue.put items "SE"
+test.equal (queue.size items) 2
+test.equal (int (queue.get items)) 42
+test.equal (text (queue.get items)) "SE"
+test.ok (queue.empty items)
+say "queue API passed"

@@ -5,14 +5,14 @@ use collections
 
 make decompose_type source:Text -> List[Text]
     chars = text.split source ""
-    result = [""]
+    parts = [""]
     current = ""
     depth = 0
     started = false
     for c in chars
         if c == "["
             if not started
-                result[0] = current
+                parts[0] = current
                 current = ""
                 started = true
             else
@@ -21,18 +21,18 @@ make decompose_type source:Text -> List[Text]
         else if c == "]"
             depth -= 1
             if depth == 0
-                result.add current
+                parts.add current
                 current = ""
             else
                 current = current + c
         else if c == "," and depth == 1
-            result.add current
+            parts.add current
             current = ""
         else if c != " "
             current = current + c
     if not started
-        result[0] = current
-    give result
+        parts[0] = current
+    give parts
 
 make type_matches expected:Text actual:Text -> Bool
     if expected == actual or expected == "Unknown" or actual == "Unknown"

@@ -96,7 +96,9 @@ with arity and operand-category checks.
 The standalone runtime also implements the tested APIs in `iter` and
 `itertools` (eager Lists), `url`, `encoding`, `config`, `dotenv`, `decimal`,
 `datetime`, `data`, `enum`, `typing`, `functools`, `shutil`, `process`, and
-`subprocess`. Their conformance cases are in `selfhost/cases/` and run through
+`subprocess`, `option`, `result`, `match`, `queue`, `db`, `log`/`logging`, and
+`glob`. `data` handles both statically typed collections and the tested dynamic
+List/Map forms. Their conformance cases are in `selfhost/cases/` and run through
 the generated C++ backend. The extension inventory is generated from the VS
 Code API catalog; an API name with a code-generation branch is not proof that
 the whole production API has compatible types, arity, errors, or runtime

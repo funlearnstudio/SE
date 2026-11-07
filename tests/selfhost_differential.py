@@ -116,6 +116,13 @@ def main() -> None:
         verify_positive("language_standard_helpers.se", "", tmp, expected_output="standard helpers passed\n")
         if os.name != "nt":
             verify_positive("language_process_helpers.se", "", tmp, expected_output="process helpers passed\n")
+        verify_positive("language_option_result.se", "", tmp, expected_output="OptionError\nResultError\noption and result passed\n")
+        verify_positive("language_match_module.se", "", tmp, expected_output="match module passed\n")
+        verify_positive("language_queue.se", "", tmp, expected_output="queue API passed\n")
+        verify_positive("language_dynamic_data.se", "", tmp, expected_output="dynamic data API passed\n")
+        verify_positive("language_database.se", "", tmp, expected_output="database API passed\n")
+        verify_positive("language_logging_glob.se", "", tmp, expected_output="logging and glob APIs passed\n")
+        verify_positive("language_result_name_shadowing.se", "", tmp, expected_output="result variable shadowing passed\n")
         verify_positive("language_dynamic_any.se", "", tmp, expected_output="Int\nText\nBool\ndynamic Any ok\n")
         verify_positive("language_evaluation_order.se", "one\ntwo\nthree\nfour\n", tmp, expected_output="first: second: [one, two]\nthird: fourth: threefour\n")
         verify_positive("language_copy.se", "", tmp, expected_output="9\n9\n7\n1\n")

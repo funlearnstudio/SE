@@ -179,6 +179,20 @@ make _pipe_arguments encoded:Text -> Text
         first = false
     give text.join parts ", "
 
+make _match_arguments encoded:Text -> Text
+    args = _node encoded
+    parts = []
+    index = 0
+    for item in args
+        node = _node item
+        callback = index > 0 and (index % 2 == 0 or index == args.len - 1)
+        if callback and node[0] == "Atom" and node[1] == "Identifier"
+            parts.add ("std::ref(" + (_cpp_identifier node[2]) + ")")
+        else
+            parts.add (try _emit_expr item)
+        index += 1
+    give text.join parts ", "
+
 # C++ does not order ordinary function arguments. Build a braced tuple first;
 # its elements are evaluated left-to-right, then invoke SE's callable.
 make _ordered_apply function:Text arguments:Text -> Text
@@ -315,6 +329,39 @@ make _emit_call encoded:Text -> Text
                 if method in ["type_of", "is", "cast"]
                     give try _apply_or_direct ("se_typing_" + method) generated node[2]
                 fail "Unknown typing operation: " + method
+            if module == "option"
+                if method in ["none", "some", "is_some", "is_none", "value", "or"]
+                    give try _apply_or_direct ("se_option_" + method) generated node[2]
+                fail "Unknown option operation: " + method
+            if module == "result"
+                if method in ["ok", "err", "is_ok", "is_err", "value", "error", "or"]
+                    give try _apply_or_direct ("se_result_" + method) generated node[2]
+            if module == "match"
+                if method in ["option", "result"]
+                    callback_args = try _pipe_arguments node[2]
+                    give try _apply_or_direct ("se_match_" + method) callback_args node[2]
+                if method == "value"
+                    callback_args = try _match_arguments node[2]
+                    give try _apply_or_direct "se_match_value" callback_args node[2]
+                fail "Unknown match operation: " + method
+            if module == "queue"
+                if method in ["new", "put", "get", "empty", "size"]
+                    give try _apply_or_direct ("se_queue_" + method) generated node[2]
+                fail "Unknown queue operation: " + method
+            if module == "db"
+                if method in ["open", "set", "get", "has", "remove", "keys", "save"]
+                    give try _apply_or_direct ("se_db_" + method) generated node[2]
+                fail "Unknown database operation: " + method
+            if module == "log" or module == "logging"
+                if method == "level"
+                    give try _apply_or_direct "se_log_level" generated node[2]
+                if method in ["debug", "info", "warn", "error"]
+                    give try _apply_or_direct ("se_log_" + method) generated node[2]
+                fail "Unknown logging operation: " + method
+            if module == "glob"
+                if method in ["match", "find"]
+                    give try _apply_or_direct ("se_glob_" + method) generated node[2]
+                fail "Unknown glob operation: " + method
             if module == "async" or module == "threading"
                 if method == "run"
                     callback_args = try _callback_arguments node[2]
@@ -671,6 +718,10 @@ make _emit_expr encoded:Text -> Text
                 give "se_datetime_now()"
             if module == "datetime" and member == "timestamp"
                 give "se_datetime_timestamp()"
+            if module == "option" and member == "none"
+                give "se_option_none()"
+            if module == "queue" and member == "new"
+                give "se_queue_new()"
             if module == "uuid" and member == "v4"
                 give "se_uuid_v4()"
         base = try _emit_expr node[1]
@@ -949,7 +1000,7 @@ make _emit_stmt encoded:Text level:Int names:List[Text] -> Text
     if kind == "NativeLoad"
         give pad + "se_native_library(" + (json.stringify node[1]) + ", " + (json.stringify node[2]) + ");\n"
     if kind == "Use"
-        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "functools", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "iter", "itertools", "url", "encoding", "config", "dotenv", "decimal", "datetime", "process", "subprocess", "shutil", "data", "enum", "typing"]
+        if node[1] in ["math", "text", "collections", "file", "json", "os", "random", "path", "time", "base64", "test", "statistics", "regex", "re", "uuid", "copy", "function", "functools", "async", "threading", "array", "series", "matrix", "linear", "probability", "fraction", "complex", "calculus", "units", "table", "dataset", "operator", "dynamic", "csv", "iter", "itertools", "url", "encoding", "config", "dotenv", "decimal", "datetime", "process", "subprocess", "shutil", "data", "enum", "typing", "option", "result", "match", "queue", "db", "log", "logging", "glob"]
             give ""
         fail "C++ bootstrap backend cannot yet import module: " + node[1]
     if kind == "TryStmt"

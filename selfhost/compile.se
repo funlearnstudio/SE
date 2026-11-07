@@ -17,7 +17,7 @@ make _node encoded:Text -> List[Text]
     give unpack_node encoded
 
 make _builtin_module name:Text -> Bool
-    give name in ["math","text","collections","file","json","os","random","path","time","base64","test","statistics","regex","re","uuid","copy","function","functools","async","threading","array","series","matrix","linear","probability","fraction","complex","calculus","units","table","dataset","operator","dynamic","csv","iter","itertools","url","encoding","config","dotenv","decimal","datetime","process","subprocess","shutil","data","enum","typing"]
+    give name in ["math","text","collections","file","json","os","random","path","time","base64","test","statistics","regex","re","uuid","copy","function","functools","async","threading","array","series","matrix","linear","probability","fraction","complex","calculus","units","table","dataset","operator","dynamic","csv","iter","itertools","url","encoding","config","dotenv","decimal","datetime","process","subprocess","shutil","data","enum","typing","option","result","match","queue","db","log","logging","glob"]
 
 # Port of the source candidates and environment precedence in ModuleLoader::resolve.
 make _resolve_source name:Text importer:Text root:Text -> Text
@@ -197,17 +197,17 @@ make _load_source source_path:Text root:Text loaded:List[Text] active:List[Text]
     give combined
 
 make _deduplicate_uses statements:List[Text] -> List[Text]
-    result = []
+    deduplicated = []
     imported = []
     for encoded in statements
         node = _node encoded
         if node[0] == "Use"
             if not (node[1] in imported)
                 imported.add node[1]
-                result.add encoded
+                deduplicated.add encoded
         else
-            result.add encoded
-    give result
+            deduplicated.add encoded
+    give deduplicated
 
 make compile_file source_path:Text output_path:Text -> Text
     seen = [""]

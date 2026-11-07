@@ -79,6 +79,11 @@ struct SEError {
   std::string message;
   std::string kind = "Error";
 };
+struct SEKindError : std::runtime_error {
+  std::string kind;
+  SEKindError(std::string error_kind, const std::string& message)
+      : std::runtime_error(message), kind(std::move(error_kind)) {}
+};
 struct SEDynamic;
 template<class T> struct SECategory;
 template<class T> struct SEDynamicModel;
@@ -100,6 +105,10 @@ struct SEDynamic {
   virtual SEAny index(const SEAny&) const {throw std::runtime_error("This dynamic value cannot be indexed.");}
   virtual void assign(const SEAny&,const SEAny&) {throw std::runtime_error("This dynamic value cannot be indexed.");}
   virtual void add(const SEAny&) {throw std::runtime_error("This dynamic value cannot add items.");}
+  virtual void insert(const SEAny&,const SEAny&) {throw std::runtime_error("This dynamic value cannot insert items.");}
+  virtual SEAny pop(const SEAny&) {throw std::runtime_error("This dynamic value cannot pop items.");}
+  virtual void clear() {throw std::runtime_error("This dynamic value cannot be cleared.");}
+  virtual SEAny shallow_copy() const {throw std::runtime_error("This dynamic value cannot be copied.");}
   virtual bool remove(const SEAny&) {throw std::runtime_error("This dynamic value cannot remove items.");}
   virtual SEAny member(const std::string&) {throw std::runtime_error("Unknown dynamic field.");}
   virtual void set_member(const std::string&,const SEAny&) {throw std::runtime_error("Unknown dynamic field.");}
@@ -823,6 +832,13 @@ inline std::string se_module_help(const std::string& module){
   if(module=="process"||module=="subprocess")return "members: help, run, output";
   if(module=="shutil")return "members: help, copy, move, copytree, remove, mkdir";
   if(module=="functools")return "members: help, partial, reduce, map, filter";
+  if(module=="option")return "members: help, some, none, is_some, is_none, value, or";
+  if(module=="result")return "members: help, ok, err, is_ok, is_err, value, error, or";
+  if(module=="match")return "members: help, value, option, result";
+  if(module=="queue")return "members: help, new, put, get, empty, size";
+  if(module=="db")return "members: help, open, set, get, has, remove, keys, save";
+  if(module=="log"||module=="logging")return "members: help, level, debug, info, warn, error";
+  if(module=="glob")return "members: help, match, find";
   return "members: help";
 }
 inline std::string se_help_text(const std::string&){return "members: help, len, upper, lower";}
@@ -1119,3 +1135,8 @@ template<class T,class F,class... Rest> auto se_function_pipe(T value,F first,Re
 #include "se_process_runtime.hpp"
 #include "se_data_runtime.hpp"
 #include "se_enum_typing_runtime.hpp"
+#include "se_option_result_runtime.hpp"
+#include "se_queue_runtime.hpp"
+#include "se_database_runtime.hpp"
+#include "se_logging_runtime.hpp"
+#include "se_glob_runtime.hpp"

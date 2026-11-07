@@ -61,3 +61,48 @@ template<class T> SEList<SEList<SEAny>> se_data_items(const SEMap<T>& values) {
   for (const auto& item : values.items) out.push_back(SEList<SEAny>{SEAny(item.first), SEAny(item.second)});
   return out;
 }
+inline void se_data_append(SEAny& values, const SEAny& item) { se_any_box(values)->add(item); }
+inline void se_data_extend(SEAny& values, const SEAny& source) {
+  for (const auto& item : se_any_box(source)->iterate()) se_any_box(values)->add(item);
+}
+inline void se_data_insert(SEAny& values, std::int64_t index, const SEAny& item) {
+  se_any_box(values)->insert(SEAny(index), item);
+}
+inline SEAny se_data_pop(SEAny& values, std::int64_t index = -1) { return se_any_box(values)->pop(SEAny(index)); }
+inline void se_data_clear(SEAny& values) { se_any_box(values)->clear(); }
+inline SEAny se_data_copy(const SEAny& values) { return se_any_box(values)->shallow_copy(); }
+inline SEAny se_data_get(const SEAny& values, const std::string& key) {
+  for (const auto& pair : se_any_box(values)->pairs()) if (pair.first == key) return pair.second;
+  return SEAny{};
+}
+inline SEAny se_data_get(const SEAny& values, const std::string& key, const SEAny& fallback) {
+  for (const auto& pair : se_any_box(values)->pairs()) if (pair.first == key) return pair.second;
+  return fallback;
+}
+inline void se_data_set(SEAny& values, const std::string& key, const SEAny& item) {
+  se_any_box(values)->assign(SEAny(key), item);
+}
+inline void se_data_update(SEAny& values, const SEAny& source) {
+  for (const auto& pair : se_any_box(source)->pairs()) se_any_box(values)->assign(SEAny(pair.first), pair.second);
+}
+template<class T> void se_data_update(SEAny& values, const SEMap<T>& source) {
+  for (const auto& pair : source.items) se_any_box(values)->assign(SEAny(pair.first), SEAny(pair.second));
+}
+inline bool se_data_delete(SEAny& values, const std::string& key) {
+  return se_any_box(values)->remove(SEAny(key));
+}
+inline bool se_data_has(const SEAny& values, const SEAny& item) {
+  auto entries = se_any_box(values)->iterate();
+  for (const auto& entry : entries) if (entry == item) return true;
+  if (se_any_box(values)->type() == "Map") for (const auto& pair : se_any_box(values)->pairs()) if (pair.first == se_any_cast<std::string>(item)) return true;
+  return false;
+}
+inline SEList<std::string> se_data_keys(const SEAny& values) {
+  SEList<std::string> out; for (const auto& pair : se_any_box(values)->pairs()) out.push_back(pair.first); return out;
+}
+inline SEList<SEAny> se_data_values(const SEAny& values) {
+  SEList<SEAny> out; for (const auto& pair : se_any_box(values)->pairs()) out.push_back(pair.second); return out;
+}
+inline SEList<SEList<SEAny>> se_data_items(const SEAny& values) {
+  SEList<SEList<SEAny>> out; for (const auto& pair : se_any_box(values)->pairs()) out.push_back(SEList<SEAny>{SEAny(pair.first), pair.second}); return out;
+}

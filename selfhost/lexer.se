@@ -84,7 +84,9 @@ make lex source:Text -> List[List[Text]]
                 column += 1
             kind = "Identifier"
             if word in keywords
-                if tokens.len == 0
+                if (tokens.len > 0 and tokens[tokens.len - 1][1] == "use") or (word == "match" and i < n and chars[i] == ".")
+                    kind = "Identifier"
+                else if tokens.len == 0
                     kind = word
                 else if tokens[tokens.len - 1][0] != "."
                     kind = word

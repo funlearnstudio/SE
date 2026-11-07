@@ -55,9 +55,9 @@ make parse_native source:Text metadata:Text -> List[Text]
                     index += 1
                 if index + 1 >= fields.len
                     fail "Native function needs -> ReturnType."
-                result = fields[index + 1]
-                if not (native_type result)
-                    fail "Invalid native result type: " + result
+                return_type = fields[index + 1]
+                if not (native_type return_type)
+                    fail "Invalid native result type: " + return_type
                 index += 2
                 fallible = "false"
                 cleanup = ""
@@ -70,16 +70,16 @@ make parse_native source:Text metadata:Text -> List[Text]
                     else
                         fail "Unknown native declaration option."
                     index += 1
-                if cleanup != "" and not (text.starts result "Handle:")
+                if cleanup != "" and not (text.starts return_type "Handle:")
                     fail "Native cleanup requires a Handle result."
-                expression = json.stringify (["NativeCall", metadata, library, fields[1], result, json.stringify types, json.stringify args, fallible, cleanup, fields[0]])
+                expression = json.stringify (["NativeCall", metadata, library, fields[1], return_type, json.stringify types, json.stringify args, fallible, cleanup, fields[0]])
                 body = [json.stringify (["give", "", expression, ""])]
-                declarations.add (json.stringify (["Make", fields[0], json.stringify params, try pack_block body, result, "[]"]))
+                declarations.add (json.stringify (["Make", fields[0], json.stringify params, try pack_block body, return_type, "[]"]))
     if library == ""
         fail "Native metadata has no library line."
-    result = [json.stringify (["NativeLoad", metadata, library])]
+    output = [json.stringify (["NativeLoad", metadata, library])]
     index = 0
     while index < declarations.len
-        result.add declarations[index]
+        output.add declarations[index]
         index += 1
-    give result
+    give output
