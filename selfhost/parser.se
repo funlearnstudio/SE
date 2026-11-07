@@ -588,6 +588,32 @@ make _statement tokens:List[List[Text]] state:List[Int] -> Text
             fail "Expected module name after use."
         try _expect tokens state "Newline"
         give json.stringify (["Use", name[1], "", ""])
+    # Sized array declarations (SE 0.8): a[5] = [], names[5]:Text = [],
+    # and grid[rows][cols]:Int = []. Only an empty list initializer
+    # identifies this form; normal indexed assignments remain unchanged.
+    if kind == "Identifier"
+        saved_sized = state[0]
+        variable = _advance tokens state
+        if _kind tokens state == "["
+            dimensions = []
+            while _kind tokens state == "["
+                _advance tokens state
+                dimensions.add (try _expression tokens state 1)
+                try _expect tokens state "]"
+                if dimensions.len > 2
+                    fail "Sized arrays support at most two dimensions."
+            element = "Int"
+            if _kind tokens state == ":"
+                _advance tokens state
+                element = try _type_ref tokens state
+            if _kind tokens state == "="
+                _advance tokens state
+                if _kind tokens state == "[" and tokens[state[0] + 1][0] == "]"
+                    _advance tokens state
+                    try _expect tokens state "]"
+                    try _expect tokens state "Newline"
+                    give json.stringify (["SizedAssign", variable[1], json.stringify dimensions, element])
+        state[0] = saved_sized
     if kind == "Identifier" or kind == "("
         saved = state[0]
         target_expr = try _expression tokens state 9
