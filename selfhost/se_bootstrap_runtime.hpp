@@ -404,10 +404,10 @@ inline std::string se_json_pretty(double value) {
 template<class T> requires (!std::is_same_v<T,std::string>)
 std::string se_json_pretty(const SEList<T>& values) {
   if (values.empty()) return "[]";
-  std::string out="[\\n";
+  std::string out="[\n";
   for(std::size_t i=0;i<values.size();++i) {
     out+="  "+se_json_pretty(values[i]);
-    out+=(i+1==values.size()?"\\n":",\\n");
+    out+=(i+1==values.size()?"\n":",\n");
   }
   return out+"]";
 }
