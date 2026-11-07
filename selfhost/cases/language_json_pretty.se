@@ -1,0 +1,3 @@
+use json
+say json.pretty "SE"
+say json.pretty ["A", "B"]
