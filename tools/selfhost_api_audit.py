@@ -52,7 +52,7 @@ def main() -> int:
     parser.add_argument("--inventory", type=Path, default=INVENTORY)
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--require-complete", action="store_true",
-                        help="exit 1 if any API lacks a lowering")
+                        help="exit 1 unless all API members are lowered and parity-certified")
     args = parser.parse_args()
     report = audit(args.inventory)
     if args.json:
@@ -67,8 +67,9 @@ def main() -> int:
         for row in report["modules"]:
             if row["missing"]:
                 print(f'{row["module"]}: {", ".join(row["missing"])}')
-    if args.require_complete and report["summary"]["missing"]:
-        print("SE selfhost is not API-complete; refusing complete status.",
+    if args.require_complete and (report["summary"]["missing"] or
+                                  report["summary"]["certified"] != report["summary"]["members"]):
+        print("SE selfhost is not API-complete and parity-certified; refusing complete status.",
               file=sys.stderr)
         return 1
     return 0
