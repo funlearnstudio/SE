@@ -100,6 +100,7 @@ def main() -> None:
         tmp = Path(folder)
         verify_positive("language_sized_arrays.se", "", tmp, expected_output="5\n0\n7\n2\n\nSE\nfalse\n2\n3\n42\n3\n")
         verify_positive("language_xml_escape.se", "", tmp, expected_output="&lt;SE &amp; friends&gt;\nplain\n")
+        verify_positive("language_hash_sha256.se", "", tmp, expected_output="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\nba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\nba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\nba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\nba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\n")
         verify_positive("language_json_pretty.se", "", tmp, expected_output='"SE"\n[\n  "A",\n  "B"\n]\n[\n  1,\n  2\n]\ntrue\n')
         verify_positive("language_object_aliases.se", "", tmp)
         verify_positive("language_collection_aliases.se", "", tmp)
