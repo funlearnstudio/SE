@@ -36,7 +36,7 @@
     "full_differential_suite": "passed on the Stage3 multi-file self-hosted compiler, including API and arity cases"
   },
   "current_batch": "all 586 advertised API members lowered; added dynamic, format, storage, network/server, Node, and graphics/media runtimes",
-  "current_batch_committed": false,
+  "current_batch_committed": true,
   "current_batch_verification": {
     "api_inventory": "586 advertised members; 0 missing lowerings",
     "differential_suite": "passed under the Stage3 self-hosted compiler",
