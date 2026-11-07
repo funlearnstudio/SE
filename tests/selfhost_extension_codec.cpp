@@ -7,6 +7,12 @@
 #include <string>
 
 int main() {
+  assert(se_hash_sha256("") == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+  assert(se_hash_sha256("abc") == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+  assert(se_hashlib_hmac_sha256("key","The quick brown fox jumps over the lazy dog") ==
+         "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8");
+  assert(se_hashlib_compare("same","same"));
+  assert(!se_hashlib_compare("same","different"));
   assert(se_xml_escape("<SE & friends>") == "&lt;SE &amp; friends&gt;");
   assert(se_xml_escape("plain") == "plain");
   assert(se_xml_escape("\"'") == "&quot;&apos;");
