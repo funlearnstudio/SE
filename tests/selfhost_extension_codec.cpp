@@ -11,7 +11,7 @@ int main() {
   assert(se_xml_escape("plain") == "plain");
   assert(se_xml_escape("\"'") == "&quot;&apos;");
   assert(se_json_pretty(std::string("SE")) == "\"SE\"");
-  assert(se_json_pretty(SEList<std::string>{"A","B"}) == "[\\n  \"A\",\\n  \"B\"\\n]");
+  assert(se_json_pretty(SEList<std::string>{"A","B"}) == "[\n  \"A\",\n  \"B\"\n]");
   assert(se_json_pretty(SEList<std::string>{}) == "[]");
   assert(se_url_encode("a b/+") == "a%20b%2F%2B");
   assert(se_url_decode("a%20b%2F%2B") == "a b/+");
