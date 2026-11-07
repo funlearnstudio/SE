@@ -371,7 +371,7 @@
     "statement_record_bytes_after": 522018
   },
   "current_batch": "network and Web extension APIs, with symlink-safe static and upload paths",
-  "current_batch_committed": false,
+  "current_batch_committed": true,
   "current_batch_verification": {
     "network_api_case": "passed",
     "web_extension_api_case": "passed",
@@ -380,5 +380,6 @@
     "direct_multifile_selfhosting": "passed; source hashes match",
     "web_corpus": "passed",
     "standalone_runtime_ubsan": "passed, including symlink path-containment cases"
-  }
+  },
+  "integration": "origin/main merged into experiment/se-self-hosting-bootstrap; not merged into main"
 }

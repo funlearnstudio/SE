@@ -245,6 +245,25 @@ ast::StmtPtr Parser::statement(){
       return std::make_shared<ast::Page>(start.pos,std::move(route),std::move(body));
     }
   }
+  // Multiple values from one input line. Single 'ask "prompt"' remains an expression.
+  if(check(TokenKind::Ask)&&peek(1).kind==TokenKind::Identifier&&
+     (peek(2).kind==TokenKind::Colon||peek(2).kind==TokenKind::Identifier)){
+    ++at_;
+    std::vector<std::string> names,types;
+    while(check(TokenKind::Identifier)){
+      names.push_back(tokens_[at_++].text);
+      std::string type="Text";
+      if(match(TokenKind::Colon)){
+        type=take(TokenKind::Identifier,"Expected Text, Int or Num after ':'.").text;
+        if(type!="Text"&&type!="Int"&&type!="Num")
+          throw Error(peek().pos,"Multi-value ask supports only Text, Int and Num.");
+      }
+      types.push_back(type);
+    }
+    if(names.size()<2)throw Error(start.pos,"Multi-value ask needs at least two variables.");
+    line_end();
+    return std::make_shared<ast::MultiAsk>(start.pos,std::move(names),std::move(types));
+  }
   if(match(TokenKind::Say)){ auto e=expression(); line_end(); return std::make_shared<ast::Say>(start.pos,e); }
   if(match(TokenKind::Use)){ auto n=take(TokenKind::Identifier,"Write a module name after 'use'."); line_end(); return std::make_shared<ast::Use>(start.pos,n.text); }
   if(match(TokenKind::Type)) return type_decl(start.pos);

@@ -49,6 +49,7 @@ std::string CppCompiler::function(const std::shared_ptr<ast::Function>&x) const{
 
 std::string CppCompiler::stmt(const ast::StmtPtr&s) const{
   if(auto x=std::dynamic_pointer_cast<ast::ExprStmt>(s))return "std::make_shared<ast::ExprStmt>("+pos(x->pos)+","+expr(x->value)+")";
+  if(auto x=std::dynamic_pointer_cast<ast::MultiAsk>(s))return "std::make_shared<ast::MultiAsk>("+pos(x->pos)+","+strings(x->names)+","+strings(x->types)+")";
   if(auto x=std::dynamic_pointer_cast<ast::Assign>(s))return "std::make_shared<ast::Assign>("+pos(x->pos)+","+expr(x->target)+","+expr(x->value)+","+block(x->init)+")";
   if(auto x=std::dynamic_pointer_cast<ast::Say>(s))return "std::make_shared<ast::Say>("+pos(x->pos)+","+expr(x->value)+")";
   if(auto x=std::dynamic_pointer_cast<ast::If>(s))return "std::make_shared<ast::If>("+pos(x->pos)+","+expr(x->condition)+","+block(x->then_block)+","+block(x->else_block)+")";

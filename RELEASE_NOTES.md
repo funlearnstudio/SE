@@ -1,11 +1,24 @@
-# SE 0.7.5
+# SE 0.7.6
 
-Improve SE expression behavior and synchronize the CLI, installers, release packages, and VS Code extension.
+This release synchronizes the native SE CLI, documentation, and VS Code extension.
 
-- Support arithmetic inside no-parentheses bare function-call arguments, including `func a-1 + func a-2` and the whitespace-equivalent form.
-- Allow Text concatenation with other printable SE values, such as `"hello" + 5`, `5 + " apples"`, Bool, and Num values.
-- Keep numeric `+` behavior unchanged when both operands are numeric.
-- Add regression coverage for bare-call Fibonacci syntax and mixed-type Text concatenation.
-- Ship the VS Code extension as version 0.7.5 and package `se-language-0.7.5.vsix`.
-- Update macOS/Linux `install.sh` and Windows `install.ps1` fallback versions to 0.7.5.
-- Build release assets under the v0.7.5 tag for supported macOS, Linux, and Windows targets.
+## Highlights
+
+- Support typed multi-value input: `ask a:Int b:Int` and `ask name:Text age:Int height:Num`.
+- Read whitespace-separated values on one line, validate their count and numeric types.
+- Preserve the existing `name = ask "Question"` expression.
+- Add an `askmulti` VS Code snippet and diagnostics support.
+- Package SE Language 0.7.6 VSIX plus macOS, Linux and Windows binaries.
+
+## Example
+
+```se
+ask a:Int b:Int
+say a + b
+```
+
+Input `10 20` produces `30`.
+
+## Install
+
+Download an archive for your platform or `se-language-0.7.6.vsix` from this release.

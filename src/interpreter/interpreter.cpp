@@ -248,6 +248,40 @@ Value Interpreter::evaluate(const ast::ExprPtr& e){
 
 void Interpreter::execute(const ast::StmtPtr& s){
   if(std::dynamic_pointer_cast<ast::Use>(s))return;if(auto x=std::dynamic_pointer_cast<ast::Say>(s)){out_<<evaluate(x->value).text()<<'\n';return;}if(auto x=std::dynamic_pointer_cast<ast::ExprStmt>(s)){auto value=evaluate(x->value);if(auto m=std::dynamic_pointer_cast<ast::Member>(x->value);m&&m->name=="help")out_<<value.text()<<'\n';return;}
+  if(auto x=std::dynamic_pointer_cast<ast::MultiAsk>(s)){
+    out_<<"Input "<<x->names.size()<<" space-separated values: ";
+    std::string line;
+    if(!std::getline(in_,line))throw Error(x->pos,"ask: unable to read input.");
+    std::istringstream stream(line);
+    std::vector<std::string> fields;
+    std::string field;
+    while(stream>>field)fields.push_back(field);
+    if(fields.size()!=x->names.size())
+      throw Error(x->pos,"ask: expected "+std::to_string(x->names.size())+
+                         " values but received "+std::to_string(fields.size())+".");
+    std::vector<Value> values;
+    values.reserve(fields.size());
+    for(std::size_t i=0;i<fields.size();++i){
+      try{
+        if(x->types[i]=="Int"){
+          std::size_t end=0;
+          auto n=std::stoll(fields[i],&end,10);
+          if(end!=fields[i].size())throw std::invalid_argument("trailing characters");
+          values.emplace_back(static_cast<std::int64_t>(n));
+        }else if(x->types[i]=="Num"){
+          std::size_t end=0;
+          auto n=std::stod(fields[i],&end);
+          if(end!=fields[i].size()||!std::isfinite(n))throw std::invalid_argument("invalid number");
+          values.emplace_back(n);
+        }else values.emplace_back(fields[i]);
+      }catch(const std::exception&){
+        throw Error(x->pos,"ask: '"+x->names[i]+"' needs "+x->types[i]+
+                           ", got '"+fields[i]+"'.");
+      }
+    }
+    for(std::size_t i=0;i<values.size();++i)env_->set(x->names[i],values[i]);
+    return;
+  }
   if(auto x=std::dynamic_pointer_cast<ast::Assign>(s)){auto v=evaluate(x->value);if(auto n=std::dynamic_pointer_cast<ast::Variable>(x->target)){env_->set(n->name,v);if(!x->init.empty()){auto o=std::get_if<std::shared_ptr<ObjectData>>(&v.data());if(!o)throw Error(x->pos,"Indented initialization needs an object.");execute_block(x->init,std::make_shared<Environment>(env_,*o));}return;}if(auto m=std::dynamic_pointer_cast<ast::Member>(x->target)){auto owner=evaluate(m->value);auto o=std::get_if<std::shared_ptr<ObjectData>>(&owner.data());if(!o||!(*o)->fields.contains(m->name))throw Error(x->pos,"Unknown object field '"+m->name+"'.");(*o)->fields[m->name]=v;return;}if(auto i=std::dynamic_pointer_cast<ast::Index>(x->target)){auto c=evaluate(i->value),k=evaluate(i->index);if(auto l=std::get_if<std::shared_ptr<ListData>>(&c.data())){if(!std::holds_alternative<std::int64_t>(k.data()))throw Error(x->pos,"A List index needs Int.");auto n=std::get<std::int64_t>(k.data());if(n<0||static_cast<std::size_t>(n)>=(*l)->items.size())throw Error(x->pos,"List index is out of bounds.");(*l)->items[static_cast<std::size_t>(n)]=v;return;}if(auto mp=std::get_if<std::shared_ptr<MapData>>(&c.data())){if(!std::holds_alternative<std::string>(k.data()))throw Error(x->pos,"A Map key needs Text.");auto key=std::get<std::string>(k.data());for(auto&q:(*mp)->items)if(q.first==key){q.second=v;return;}(*mp)->items.emplace_back(key,v);return;}throw Error(x->pos,"Only List or Map items can be assigned by index.");}throw Error(x->pos,"You can only assign to a name, field, or collection item.");}
   if(auto x=std::dynamic_pointer_cast<ast::If>(s)){execute_block(evaluate(x->condition).truth(x->pos)?x->then_block:x->else_block,std::make_shared<Environment>(env_));return;}
   if(auto x=std::dynamic_pointer_cast<ast::Match>(s)){auto subject=evaluate(x->value);for(auto& c:x->cases){if(value_equal(subject,evaluate(c.pattern))){execute_block(c.body,std::make_shared<Environment>(env_));return;}}execute_block(x->else_block,std::make_shared<Environment>(env_));return;}
