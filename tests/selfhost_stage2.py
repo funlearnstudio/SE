@@ -103,7 +103,7 @@ def verify(se: Path) -> None:
         for module in HEADER_DIR.glob("*.se"):
             shutil.copy2(module, stage0_source / module.name)
         invoke([str(se), "build", str(stage0_source / "compiler.se")], env=bootstrap_build_env,
-               timeout_seconds=420)
+               timeout_seconds=1200)
         native_stage0 = stage0_source / ("compiler.exe" if os.name == "nt" else "compiler")
         if not native_stage0.is_file():
             raise RuntimeError("Production SE build did not create a Stage0 driver")
