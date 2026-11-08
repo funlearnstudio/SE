@@ -1,0 +1,145 @@
+name: SE self-host compiler downloadable build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - 'selfhost/**'
+      - 'tools/se'
+      - '.github/workflows/dual-compiler.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: se-selfhost-package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package-independent-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: se-selfhost-0.8.0-experimental-linux-x64
+          - os: macos-15
+            asset: se-selfhost-0.8.0-experimental-macos-arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Configure production bootstrap
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Build Stage0
+        run: cmake --build build --target se native_test --parallel 2
+      - name: Build remaining production tests
+        run: cmake --build build --parallel 2
+      - name: Production CTest regression (both compiler tracks stay intact)
+        run: ctest --test-dir build --output-on-failure
+      - name: Compile independent SE compiler and prove Stage2/3/4
+        run: python3 tests/selfhost_stage2.py "$PWD/build/se"
+      - name: Verify independent compiler executable
+        run: |
+          test -s build/se-selfhost
+          test -s build/se-selfhost.cpp
+          SE_SELFHOST_SOURCE=selfhost/cases/language_core.se \
+          SE_SELFHOST_OUTPUT=build/selfhost-package-smoke.cpp \
+          build/se-selfhost
+          c++ -std=c++20 -O0 -Iselfhost build/selfhost-package-smoke.cpp -o build/selfhost-package-smoke
+          build/selfhost-package-smoke
+      - name: Package separate independent SE compiler
+        run: |
+          set -eu
+          bundle="${{ matrix.asset }}"
+          mkdir -p "package/$bundle/bin" "package/$bundle/selfhost" "package/$bundle/tools"
+          cp build/se-selfhost "package/$bundle/bin/se-selfhost"
+          cp selfhost/*.hpp "package/$bundle/selfhost/"
+          cp tools/se "package/$bundle/tools/se"
+          cp build/se "package/$bundle/bin/se"
+          "package/$bundle/tools/se" --backend cmake check examples/hello.se
+          "package/$bundle/tools/se" --backend se check selfhost/cases/language_core.se
+          cp selfhost/README.md "package/$bundle/SELFHOST_README.md"
+          cp LICENSE "package/$bundle/LICENSE"
+          cat > "package/$bundle/SELECT_BACKEND.txt" <<'HELP'
+          To compile using the downloaded independent SE compiler (Python 3):
+          ./tools/se --backend se compile /path/to/app.se -o /tmp/app.cpp
+          To compile and run:
+          ./tools/se --backend se run /path/to/app.se
+          The standalone header files are in selfhost/.
+          The separate stable CMake/C++ compiler is available in release v0.8.0.
+          HELP
+          (cd package && tar -czf "$bundle.tar.gz" "$bundle")
+          shasum -a 256 "package/$bundle.tar.gz" > "package/$bundle.tar.gz.sha256"
+      - name: Upload selectable SE-written compiler (not CMake)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: |
+            package/${{ matrix.asset }}.tar.gz
+            package/${{ matrix.asset }}.tar.gz.sha256
+          if-no-files-found: error
+
+  publish-experimental:
+    name: Publish verified dual compiler preview
+    runs-on: ubuntu-latest
+    needs: [package-independent-linux]
+    permissions:
+      contents: write
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download both independently verified packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: se-selfhost-0.8.0-experimental-*
+          path: release-assets
+          merge-multiple: true
+      - name: Verify exact Linux and Apple Silicon package files
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          for platform in linux-x64 macos-arm64; do
+            asset="se-selfhost-0.8.0-experimental-${platform}.tar.gz"
+            test -s "$asset"
+            test -s "$asset.sha256"
+            shasum -a 256 -c "$asset.sha256"
+          done
+      - name: Publish commit-specific GitHub prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="v0.8.0-selfhost-preview.${GITHUB_SHA:0:7}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Already published: $tag"
+            exit 0
+          fi
+          cat > /tmp/se-preview-notes.md <<'NOTES'
+          Includes the CMake/C++ compiler and experimental SE self-hosted compiler.
+          Select either with ./tools/se --backend cmake or ./tools/se --backend se.
+          These Linux x64 and Apple Silicon arm64 artifacts passed this commit's
+          CTest, independent Stage2/3/4 bootstrap and differential/Web proof.
+          The compiler intentionally supports only a subset of the complete
+          production SE language, native ABI, and extension APIs.
+
+          The original production CMake/C++ SE 0.8.0 release remains available:
+          https://github.com/funlearnstudio/SE/releases/tag/v0.8.0
+
+          See SELECT_BACKEND.txt in the download.
+          NOTES
+          gh release create "$tag" release-assets/*.tar.gz release-assets/*.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "SE self-host preview 0.8.0 (${GITHUB_SHA:0:7})" \
+            --notes-file /tmp/se-preview-notes.md \
+            --prerelease
