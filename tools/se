@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+"""Explicit selector for production CMake/C++ and experimental SE compilers.
+
+Production mode forwards commands to the existing CMake-built se CLI.
+Self-host mode uses the independently bootstrapped SE compiler and writes
+C++20 (or Web assets). It never silently falls back to production SE.
+"""
+from __future__ import annotations
+
+import argparse
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def select_binary(value: str | None, fallback: Path, label: str) -> Path:
+    candidate = Path(value).expanduser() if value else fallback
+    candidate = candidate.resolve()
+    if not candidate.is_file():
+        raise ValueError(
+            f"{label} not found: {candidate}. "
+            + ("Build using CMake first." if label == "CMake SE" else
+               "Run python3 tests/selfhost_stage2.py build/se first.")
+        )
+    return candidate
+
+
+def default_binary(name: str) -> Path:
+    executable = name + (".exe" if os.name == "nt" else "")
+    build = ROOT / "build" / executable
+    if build.is_file():
+        return build
+    # Downloaded packages place launchers in bin/, not build/.
+    return ROOT / "bin" / executable
+
+
+def run(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Choose CMake/C++ SE or independently bootstrapped SE compiler")
+    parser.add_argument("--backend", choices=("cmake", "se"), default=os.environ.get("SE_BACKEND", "cmake"),
+                        help="cmake: production SE CLI; se: independent SE self-host compiler")
+    parser.add_argument("--cmake-bin", default=os.environ.get("SE_CMAKE_BIN"))
+    parser.add_argument("--selfhost-bin", default=os.environ.get("SE_SELFHOST_BIN"))
+    parser.add_argument("--target", choices=("native", "web"), default="native")
+    parser.add_argument("-o", "--output", help="SE backend output (.cpp or Web directory)")
+    parser.add_argument("command", choices=("check", "run", "build", "compile", "web"))
+    parser.add_argument("source", help="input .se path")
+    args = parser.parse_args(argv)
+
+    source = Path(args.source).expanduser().resolve()
+    if not source.is_file():
+        parser.error(f"SE source not found: {source}")
+
+    if args.backend == "cmake":
+        if args.command == "compile":
+            parser.error("compile is for --backend se; use build for CMake SE")
+        if args.output:
+            parser.error("-o is only supported with --backend se")
+        if args.target != "native":
+            parser.error("--target is only supported with --backend se")
+        action = ["web", "build", str(source), str(source.parent / "dist")] if args.command == "web" else [args.command, str(source)]
+        try:
+            binary = select_binary(args.cmake_bin, default_binary("se"), "CMake SE")
+        except ValueError as exc:
+            parser.error(str(exc))
+        return subprocess.run([str(binary), *action], check=False).returncode
+
+    target = "web" if args.command == "web" else args.target
+    if target == "web" and args.command in ("run", "check", "build"):
+        parser.error("Use the native target for run, check and build")
+    try:
+        binary = select_binary(args.selfhost_bin, default_binary("se-selfhost"), "SE self-host")
+    except ValueError as exc:
+        parser.error(str(exc))
+    if args.output:
+        output = Path(args.output).expanduser().resolve()
+    elif target == "web":
+        output = source.with_name(source.stem + "-web")
+    else:
+        output = source.with_suffix(".selfhost.cpp")
+    if args.command in ("compile", "web"):
+        output.parent.mkdir(parents=True, exist_ok=True)
+    env = dict(os.environ, SE_SELFHOST_SOURCE=str(source), SE_SELFHOST_OUTPUT=str(output))
+    env["SE_SELFHOST_TARGET"] = target
+    if args.command in ("compile", "web"):
+        return subprocess.run([str(binary)], env=env, check=False).returncode
+
+    # Self-host output is C++20 and needs the standalone header, not libs_core.
+    with tempfile.TemporaryDirectory(prefix="se-selfhost-run-") as tmp:
+        cpp = Path(tmp) / "program.cpp"
+        exe = Path(tmp) / ("program.exe" if os.name == "nt" else "program")
+        env["SE_SELFHOST_OUTPUT"] = str(cpp)
+        result = subprocess.run([str(binary)], env=env, check=False)
+        if result.returncode:
+            return result.returncode
+        if not cpp.is_file():
+            print("SE compiler did not produce C++ output", file=sys.stderr)
+            return 1
+        if args.command == "build":
+            exe = Path(args.output).expanduser().resolve() if args.output else source.with_suffix(".exe" if os.name == "nt" else "")
+            if exe == source:
+                parser.error("Build output must differ from the source")
+            exe.parent.mkdir(parents=True, exist_ok=True)
+        cxx = os.environ.get("CXX", "c++")
+        result = subprocess.run([cxx, "-std=c++20", "-O0", "-I", str(ROOT / "selfhost"),
+                                 str(cpp), *(["-fsyntax-only"] if args.command == "check" else ["-o", str(exe)])], check=False)
+        if result.returncode:
+            return result.returncode
+        return subprocess.run([str(exe)], check=False).returncode if args.command == "run" else 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(run())
+    except OSError as exc:
+        print(f"SE compiler launcher error: {exc}", file=sys.stderr)
+        raise SystemExit(1)
