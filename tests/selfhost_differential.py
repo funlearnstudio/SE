@@ -1,0 +1,274 @@
+#!/usr/bin/env python3
+"""Differential checks: SE-written compiler vs production SE interpreter.
+
+This test does not use a fake compiler response: it invokes SE source through
+SE CLI, compiles the generated C++20, runs the resulting executable, and
+compares output against the production interpreter on the same SE source.
+"""
+from __future__ import annotations
+import os
+from pathlib import Path
+import re
+import socket
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.request
+
+ROOT = Path(__file__).resolve().parent.parent
+CASE_DIR = ROOT / "selfhost" / "cases"
+SE = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else ROOT / "se-0.7.6-linux-x64" / "bin" / "se"
+CXX = os.environ.get("CXX", "c++")
+NATIVE = Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else None
+
+
+def run(*argv: str, input_text: str = "", env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [str(x) for x in argv],
+        input=input_text,
+        text=True,
+        capture_output=True,
+        cwd=ROOT,
+        env=env,
+        timeout=180 if str(argv[0]) == CXX else 45,
+        check=False,
+    )
+
+
+def verify_positive(case: str, data: str, tmp: Path, *, expected_output: str | None = None) -> None:
+    src = CASE_DIR / case
+    cpp = tmp / (case + ".cpp")
+    exe = tmp / (case + (".exe" if os.name == "nt" else ""))
+    env = dict(os.environ, SE_SELFHOST_SOURCE=str(src), SE_SELFHOST_OUTPUT=str(cpp))
+    produced = run(*([str(NATIVE)] if NATIVE else [str(SE), "run", "selfhost/compiler.se"]), env=env)
+    assert produced.returncode == 0, (case, "self-host compiler", produced.stderr)
+    assert cpp.is_file(), f"Missing generated source for {case}"
+    compiled = run(CXX, "-std=c++20", "-O0", "-g0", "-I", str(ROOT / "selfhost"), str(cpp), "-o", str(exe))
+    assert compiled.returncode == 0, (case, "g++", compiled.stderr)
+    actual = run(str(exe), input_text=data)
+    if expected_output is not None:
+        # Some valid bootstrap-subset syntax (typed multi-ask) has not yet
+        # been implemented in the production interpreter. Verify the actual
+        # generated executable against an explicit output oracle, not a fake
+        # interpreter result.
+        assert actual.returncode == 0, (case, actual.stderr)
+        assert actual.stdout == expected_output, (case, repr(actual.stdout), repr(expected_output))
+        print(f"PASS bootstrap execution: {case}")
+        return
+    expected = run(str(SE), "run", str(src), input_text=data)
+    assert actual.returncode == expected.returncode, (case, actual.stderr, expected.stderr)
+    native_stdout = re.sub(r"^Input \d+ space-separated values: ", "", expected.stdout)
+    assert actual.stdout == native_stdout, (case, repr(actual.stdout), repr(native_stdout))
+    print(f"PASS differential: {case}")
+
+
+
+def verify_native_load_failure(case: str, tmp: Path) -> None:
+    src = CASE_DIR / case
+    cpp = tmp / (case + ".cpp")
+    exe = tmp / (case + (".exe" if os.name == "nt" else ""))
+    env = dict(os.environ, SE_SELFHOST_SOURCE=str(src), SE_SELFHOST_OUTPUT=str(cpp))
+    produced = run(*([str(NATIVE)] if NATIVE else [str(SE), "run", "selfhost/compiler.se"]), env=env)
+    assert produced.returncode == 0, (case, "self-host compiler", produced.stderr)
+    compiled = run(CXX, "-std=c++20", "-O0", "-g0", "-I", str(ROOT / "selfhost"), str(cpp), "-o", str(exe))
+    assert compiled.returncode == 0, (case, "g++", compiled.stderr)
+    actual = run(str(exe))
+    assert actual.returncode != 0, (case, "missing library should fail during module import")
+    assert "Could not load native library" in actual.stderr, (case, repr(actual.stderr))
+    assert "unreachable" not in actual.stdout, (case, repr(actual.stdout))
+    print(f"PASS eager native load failure: {case}")
+
+
+def verify_negative(case: str, part: str, tmp: Path) -> None:
+    src = CASE_DIR / case
+    cpp = tmp / (case + ".cpp")
+    env = dict(os.environ, SE_SELFHOST_SOURCE=str(src), SE_SELFHOST_OUTPUT=str(cpp))
+    proc = run(*([str(NATIVE)] if NATIVE else [str(SE), "run", "selfhost/compiler.se"]), env=env)
+    assert proc.returncode != 0, (case, "expected failure")
+    assert part in proc.stderr, (case, repr(proc.stderr), part)
+    assert not cpp.exists(), (case, "compiled invalid source")
+    print(f"PASS rejected: {case}")
+
+
+def verify_http_listener(tmp: Path) -> None:
+    src = CASE_DIR / "language_http_listener.se"
+    cpp = tmp / "language_http_listener.cpp"
+    exe = tmp / ("language_http_listener.exe" if os.name == "nt" else "language_http_listener")
+    env = dict(os.environ, SE_SELFHOST_SOURCE=str(src), SE_SELFHOST_OUTPUT=str(cpp))
+    produced = run(*([str(NATIVE)] if NATIVE else [str(SE), "run", "selfhost/compiler.se"]), env=env)
+    assert produced.returncode == 0, ("HTTP listener", "self-host compiler", produced.stderr)
+    compiled = run(CXX, "-std=c++20", "-O0", "-g0", "-I", str(ROOT / "selfhost"), str(cpp), "-o", str(exe))
+    assert compiled.returncode == 0, ("HTTP listener", "C++ compile", compiled.stderr)
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    process = subprocess.Popen([str(exe)], cwd=ROOT, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        assert process.stdin is not None
+        process.stdin.write(f"{port}\n"); process.stdin.flush()
+        last_error = None
+        for _ in range(50):
+            try:
+                request = urllib.request.Request(f"http://127.0.0.1:{port}/echo", data=b"ping", method="POST")
+                with urllib.request.urlopen(request, timeout=1) as response:
+                    body = response.read().decode()
+                    assert response.status == 200 and body == "heard:ping", (response.status, body)
+                    break
+            except Exception as error:
+                last_error = error
+                if process.poll() is not None:
+                    raise AssertionError(("HTTP listener exited", process.stderr.read())) from error
+                time.sleep(0.05)
+        else:
+            raise AssertionError(("HTTP listener did not respond", repr(last_error)))
+        print("PASS HTTP listener end-to-end")
+    finally:
+        process.terminate()
+        try: process.wait(timeout=3)
+        except subprocess.TimeoutExpired: process.kill(); process.wait()
+
+
+def main() -> None:
+    for filename in ("lexer.se", "parser.se", "symbol_table.se", "typechecker.se", "codegen.se", "compile.se", "compiler.se"):
+        result = run(str(SE), "check", str(ROOT / "selfhost" / filename))
+        assert result.returncode == 0, (filename, result.stdout, result.stderr)
+    for filename in ("parser_test.se", "parser_extended_test.se", "parser_match_test.se", "symbol_table_test.se", "typechecker_test.se", "typechecker_extended_test.se", "codegen_test.se"):
+        result = run(str(SE), "run", str(ROOT / "selfhost" / filename))
+        assert result.returncode == 0, (filename, result.stdout, result.stderr)
+        print(f"PASS unit: {filename}")
+    with tempfile.TemporaryDirectory(prefix="se-selfhost-") as folder:
+        tmp = Path(folder)
+        verify_positive("language_object_aliases.se", "", tmp)
+        verify_positive("language_collection_aliases.se", "", tmp)
+        verify_positive("language_series.se", "", tmp)
+        verify_positive("language_linear_algebra.se", "", tmp)
+        verify_positive("language_expansion_numeric.se", "", tmp)
+        verify_positive("language_regex_uuid.se", "", tmp)
+        verify_positive("language_operator_module.se", "", tmp)
+        verify_positive("language_csv.se", "", tmp, expected_output="CSV roundtrip passed\n")
+        verify_positive("language_dynamic_containers.se", "", tmp, expected_output="List\n2\n[9, 2, 3]\n9\nMap\n[9, 8, 3]\nCounter\n10\n15\n15\ntrue\nSet\n3\nset [1, 3]\n9\n5\n14\n1\n3.5\ntrue\nvalue=7\ndynamic true\n9\n8\n3\nkey\n3\ntrue\ntrue\n[1, SE, true]\n42\nSE\n[1, SE, true, 99]\n")
+        verify_positive("language_dynamic_errors.se", "", tmp, expected_output="Dynamic value has the wrong type.\nList index out of bounds\nDynamic value has the wrong type.\nDynamic value has the wrong type.\nDivision by zero.\nHELLO\n8\n")
+        verify_positive("language_iter_helpers.se", "", tmp)
+        verify_positive("language_encoding_url.se", "", tmp, expected_output="encoding and URL passed\n")
+        verify_positive("language_configuration.se", "", tmp, expected_output="configuration passed\n")
+        verify_positive("language_decimal_datetime.se", "", tmp, expected_output="decimal and datetime passed\n")
+        verify_positive("language_data_module.se", "", tmp, expected_output="data module passed\n")
+        verify_positive("language_standard_helpers.se", "", tmp, expected_output="standard helpers passed\n")
+        if os.name != "nt":
+            verify_positive("language_process_helpers.se", "", tmp, expected_output="process helpers passed\n")
+        verify_positive("language_option_result.se", "", tmp, expected_output="OptionError\nResultError\noption and result passed\n")
+        verify_positive("language_match_module.se", "", tmp, expected_output="match module passed\n")
+        verify_positive("language_queue.se", "", tmp, expected_output="queue API passed\n")
+        verify_positive("language_dynamic_data.se", "", tmp, expected_output="dynamic data API passed\n")
+        verify_positive("language_database.se", "", tmp, expected_output="database API passed\n")
+        verify_positive("language_logging_glob.se", "", tmp, expected_output="logging and glob APIs passed\n")
+        verify_positive("language_result_name_shadowing.se", "", tmp, expected_output="result variable shadowing passed\n")
+        verify_positive("language_network_api.se", "", tmp, expected_output="network API validation passed\n")
+        verify_positive("language_web_extension_api.se", "", tmp, expected_output="web extension API passed\n")
+        verify_positive("language_ml_tensor_cli.se", "", tmp, expected_output="ML, tensor, CLI and logging APIs passed\n")
+        verify_positive("language_format_bridge.se", "", tmp, expected_output="format bridge APIs passed\n")
+        verify_positive("language_node_tools.se", "", tmp, expected_output="Node and JavaScript APIs passed\n")
+        verify_positive("language_zip_apis.se", "", tmp, expected_output="ZIP APIs passed\n")
+        verify_positive("language_hash_apis.se", "", tmp, expected_output="Hash APIs passed\n")
+        verify_positive("language_storage_network_apis.se", "", tmp, expected_output="Storage and DNS APIs passed\n")
+        verify_positive("language_router_apis.se", "", tmp, expected_output="Router APIs passed\n")
+        verify_positive("language_graphics_apis.se", "", tmp, expected_output="Graphics APIs passed\n")
+        verify_http_listener(tmp)
+        verify_positive("language_dynamic_any.se", "", tmp, expected_output="Int\nText\nBool\ndynamic Any ok\n")
+        verify_positive("language_evaluation_order.se", "one\ntwo\nthree\nfour\n", tmp, expected_output="first: second: [one, two]\nthird: fourth: threefour\n")
+        verify_positive("language_copy.se", "", tmp, expected_output="9\n9\n7\n1\n")
+        verify_positive("language_generic_callbacks.se", "", tmp, expected_output="[1, 2, 3]\n[2, 4, 6]\n42\n12\n7\n22\n3.75\n")
+        verify_positive("language_native_abi.se", "", tmp, expected_output="42\n16\ntrue\nnative text\n88\n11\n89\n11\nNativeError\n42\n0\n")
+        verify_native_load_failure("language_native_eager_failure.se", tmp)
+        verify_positive("language_numeric_recovery.se", "", tmp, expected_output="Division by zero.\nDivision by zero.\nrepeat count cannot be negative.\n")
+        verify_positive("language_remainder.se", "", tmp)
+        verify_positive("language_repeat_count.se", "", tmp)
+        verify_positive("language_none_returns.se", "", tmp)
+        verify_positive("language_deep_expression.se", "", tmp)
+        verify_positive("language_core.se", "", tmp)
+        verify_positive("language_text.se", "", tmp)
+        verify_positive("language_text_replace.se", "", tmp)
+        verify_positive("language_math_extended.se", "", tmp)
+        verify_positive("language_statistics_regex.se", "", tmp)
+        verify_positive("language_conversions.se", "", tmp)
+        verify_positive("language_time.se", "", tmp)
+        verify_positive("language_file_module.se", "", tmp)
+        verify_positive("language_generic_tests.se", "", tmp)
+        verify_positive("language_generic_index.se", "", tmp)
+        verify_positive("language_nested_generic.se", "", tmp)
+        verify_positive("language_input.se", "5 7 hello\n", tmp, expected_output="12\nhello\n")
+        verify_positive("language_index_assignment.se", "", tmp)
+        verify_positive("language_map_set.se", "", tmp)
+        verify_positive("language_recursion.se", "", tmp)
+        verify_positive("language_forward_functions.se", "", tmp)
+        verify_positive("language_inferred_forward.se", "", tmp)
+        verify_positive("language_inferred_control.se", "", tmp)
+        verify_positive("language_match.se", "", tmp)
+        verify_positive("language_char_collections.se", "", tmp)
+        verify_positive("language_json_ast.se", "", tmp)
+        verify_positive("language_try_recovery.se", "", tmp)
+        verify_positive("language_for_map_pairs.se", "", tmp)
+        verify_positive("language_generic_functions.se", "", tmp)
+        verify_positive("language_fibonacci_canonical.se", "", tmp)
+        verify_positive("language_bare_arithmetic.se", "", tmp)
+        verify_positive("language_std_basic.se", "", tmp)
+        verify_positive("language_user_type.se", "", tmp)
+        verify_positive("language_typed_fields.se", "", tmp)
+        verify_positive("language_generic_user_types.se", "", tmp)
+        verify_positive("language_nested_functions.se", "", tmp)
+        verify_positive("language_escaping_closures.se", "", tmp)
+        verify_positive("language_nested_generic_functions.se", "", tmp)
+        verify_positive("language_tasks_functions.se", "", tmp)
+        verify_positive("language_global_bindings.se", "", tmp)
+        verify_positive("language_recursive_collection_mutation.se", "", tmp)
+        verify_positive("language_collections_functional.se", "", tmp)
+        verify_positive("language_remove_collections.se", "", tmp)
+        verify_positive("language_remove_map.se", "", tmp)
+        verify_positive("language_cpp_keywords.se", "", tmp)
+        verify_positive("language_source_imports.se", "", tmp)
+        verify_positive("language_module_namespaces.se", "", tmp)
+        verify_positive("language_s_imports.se", "", tmp)
+        verify_positive("language_package_imports.se", "", tmp)
+        verify_positive("language_duration.se", "", tmp, expected_output="duration ok\n")
+        verify_positive("language_elif.se", "", tmp, expected_output="middle\n")
+        # Production runtime auto-invokes nullary functions, but its static
+        # checker currently rejects their arithmetic use as Function + Int.
+        # Exercise the actual generated C++ against a fixed output oracle.
+        verify_positive("language_zero_arg_functions.se", "", tmp, expected_output="42\n43\nready\ntrue\n84\n")
+        for case, message in (
+            ("negative_unknown_annotation.se", "Unknown type annotation"),
+            ("negative_private_import.se", "Undefined function"),
+            ("negative_duplicate_export.se", "provided by more than one module"),
+            ("negative_generic_rebind.se", "was already inferred as"),
+            ("negative_required_field.se", "Missing required field"),
+            ("negative_generic_wrong_arity.se", "needs 1 type arguments"),
+            ("negative_generic_wrong_field.se", "Initializer field type mismatch"),
+            ("negative_try_missing_else.se", "try block needs else"),
+            ("negative_field_default.se", "Field default type mismatch"),
+            ("negative_wrong_type.se", "Arithmetic requires numbers"),
+            ("negative_undefined.se", "Undefined identifier"),
+            ("negative_wrong_arity.se", "Wrong arity"),
+            ("negative_hash_arity.se", "Hash operation has the wrong number of arguments"),
+            ("negative_graphics_arity.se", "Graphics operation has the wrong number of arguments"),
+            ("negative_http_server_arity.se", "Web server operation has the wrong number of arguments"),
+            ("negative_zero_arg_wrong_arity.se", "Wrong arity"),
+            ("negative_wrong_return.se", "Function return type"),
+            ("negative_hetero_list.se", "List element type mismatch"),
+            ("negative_bad_ask.se", "ask supports Text, Int or Num"),
+            ("negative_index_type.se", "Collection assignment expects Int"),
+            ("negative_map_key.se", "Map keys must be Text"),
+            ("negative_set_value.se", "Set values must have the same type"),
+            ("negative_missing_return.se", "is missing a return"),
+            ("negative_match_type.se", "Match case type mismatch"),
+            ("negative_for_pairs_not_map.se", "Two-variable for expects a Map"),
+            ("negative_unknown_type_field.se", "Unknown initializer field"),
+            ("negative_cyclic_import.se", "Cyclic SE module import"),
+            ("negative_missing_source_import.se", "SE module not found"),
+        ):
+            verify_negative(case, message, tmp)
+    print("SE selfhost differential tests passed")
+
+
+if __name__ == "__main__":
+    main()

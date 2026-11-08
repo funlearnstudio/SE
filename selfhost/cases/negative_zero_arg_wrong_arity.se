@@ -1,0 +1,4 @@
+make answer -> Int
+    give 42
+
+say answer 3

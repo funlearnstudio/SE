@@ -1,0 +1,28 @@
+use iter
+use itertools
+use test
+
+values = [1, 2, 3]
+labels = ["a", "b"]
+nested = [[1, 2], [3]]
+test.equal (try iter.range 3) [0, 1, 2]
+test.equal (try iter.range 5 0 (-2)) [5, 3, 1]
+test.equal (try iter.enumerate values) [[0, 1], [1, 2], [2, 3]]
+say try iter.enumerate labels
+test.equal (try iter.zip values values) [[1, 1], [2, 2], [3, 3]]
+say try iter.zip values labels
+test.equal (try iter.product labels labels) [["a", "a"], ["a", "b"], ["b", "a"], ["b", "b"]]
+test.equal (try iter.permutations labels) [["a", "b"], ["b", "a"]]
+test.equal (try iter.permutations values 1) [[1], [2], [3]]
+test.equal (try iter.combinations values 2) [[1, 2], [1, 3], [2, 3]]
+test.equal (try itertools.chain values values) [1, 2, 3, 1, 2, 3]
+test.equal (try itertools.flatten nested) values
+test.equal (try itertools.chunked values 2) [[1, 2], [3]]
+test.equal (try itertools.windows values 2) [[1, 2], [2, 3]]
+test.equal (try itertools.take values 2) [1, 2]
+test.equal (try itertools.drop values 2) [3]
+test.equal (try itertools.cycle labels 2) ["a", "b", "a", "b"]
+test.equal (try itertools.pairs values) [[1, 2], [2, 3]]
+repeated = [1, 1, 2, 3, 2]
+test.equal (try itertools.unique repeated) values
+say "iterator helpers passed"

@@ -1,0 +1,8 @@
+use http_server
+
+make echo body
+    give http_server.text ("heard:" + body)
+
+http_server.post "/echo" echo
+port = int ask "port: "
+http_server.listen port

@@ -1,0 +1,11 @@
+# SE self-hosting bootstrap entry point.
+# Run from repository root: se run selfhost/bootstrap.se
+use parser
+use codegen
+
+source = try read "selfhost/sample.se"
+ast = try parse source
+cpp = try emit_program ast
+try write "selfhost/generated_sample.cpp" cpp
+
+say "Generated selfhost/generated_sample.cpp"

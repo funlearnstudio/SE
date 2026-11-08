@@ -1,0 +1,7 @@
+# Bare function argument arithmetic follows production SE precedence.
+make square value:Int -> Int
+    give value * value
+
+say square 3 + 1
+say square 3 * 2
+say square 3 + square 4

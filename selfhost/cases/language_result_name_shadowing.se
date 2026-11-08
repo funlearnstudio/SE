@@ -1,0 +1,6 @@
+use test
+
+result = []
+result.add "local value"
+test.equal result ["local value"]
+say "result variable shadowing passed"

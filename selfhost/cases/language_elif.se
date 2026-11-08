@@ -1,0 +1,9 @@
+value = 7
+if value > 10
+    say "large"
+elif value > 6
+    say "middle"
+elif value == 5
+    say "five"
+else
+    say "small"

@@ -1,0 +1,6 @@
+nums = [1, 2, 3]
+nums[0] = 9
+nums[1] += 8
+say nums[0]
+say nums[1]
+say nums

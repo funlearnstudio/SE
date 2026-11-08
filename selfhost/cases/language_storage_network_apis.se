@@ -1,0 +1,33 @@
+use file
+use test
+use pickle
+use sqlite
+use sqlite3
+use dns
+
+db_path = "selfhost/cases/.selfhost-sqlite-test.db"
+db = try sqlite.open db_path
+try sqlite.exec db "CREATE TABLE items (name TEXT, value INTEGER); INSERT INTO items VALUES ('alpha', 7);"
+row = try sqlite.query_one db "SELECT name, value FROM items"
+test.equal row[0] "alpha"
+test.equal row[1] 7
+test.equal (try sqlite.tables db).len 1
+test.equal (try sqlite.query db "SELECT value FROM items")[0][0] 7
+test.equal (try sqlite.table_info db "items").len 2
+try sqlite.execute_many db ["INSERT INTO items VALUES ('beta', 9);", "UPDATE items SET value = 8 WHERE name = 'beta';"]
+test.equal (try sqlite.query_one db "SELECT value FROM items WHERE name = 'beta'")[0] 8
+backup_path = "selfhost/cases/.selfhost-sqlite-backup.db"
+try sqlite.backup db backup_path
+backup_db = try sqlite3.open backup_path
+test.equal (try sqlite3.query_one backup_db "SELECT name FROM items ORDER BY value DESC")[0] "beta"
+file.remove db_path
+file.remove backup_path
+
+payload = ["SE", "42", "true"]
+encoded = pickle.dumps payload
+decoded = try pickle.loads encoded
+test.equal decoded[0] "SE"
+test.equal decoded[1] "42"
+test.ok (try dns.is_ip "127.0.0.1")
+test.ok (not (try dns.is_ip "not-an-ip"))
+say "Storage and DNS APIs passed"

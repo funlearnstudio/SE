@@ -1,0 +1,179 @@
+# SE self-hosting bootstrap: lexical analyzer (first implementation).
+# Returns [kind, lexeme, line, column] records (all Text for List typing).
+# Assumes ASCII syntax characters; text.split with an empty separator
+# currently splits UTF-8 bytes, so Unicode identifiers are not yet supported.
+use text
+use collections
+
+make is_digit c:Text -> Bool
+    give c in ["0","1","2","3","4","5","6","7","8","9"]
+
+make is_letter c:Text -> Bool
+    give text.contains "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_" c
+
+make is_word c:Text -> Bool
+    give is_letter c or is_digit c
+
+make add_token tokens:List[List[Text]] kind:Text value:Text line:Int column:Int
+    entry = [kind, value, string(line), string(column)]
+    tokens.add entry
+
+make lex source:Text -> List[List[Text]]
+    chars = text.split source ""
+    n = chars.len
+    # Seed the nested List type, then empty it (SE uses homogeneous Lists).
+    tokens = [["", "", "", ""]]
+    tokens = collections.take tokens 0
+    levels = [0]
+    i = 0
+    line = 1
+    column = 1
+    line_start = true
+    depth = 0
+    carriage_return = char 13
+    keywords = ["true","false","say","ask","if","else","elif","repeat","for","in","while","make","give","type","use","try","fail","set","map","match","case","and","or","not"]
+    while i < n
+        c = chars[i]
+        if line_start and depth == 0
+            spaces = 0
+            while i < n and (chars[i] == " " or chars[i] == "\t")
+                if chars[i] == "\t"
+                    spaces += 4
+                else
+                    spaces += 1
+                i += 1
+            column = spaces + 1
+            if i < n
+                c = chars[i]
+            else
+                c = "\n"
+            if c != "\n" and c != "#"
+                if spaces % 4 != 0
+                    fail "Indentation must use groups of 4 spaces."
+                previous = levels[levels.len - 1]
+                if spaces > previous
+                    levels.add spaces
+                    add_token tokens "Indent" "" line 1
+                else
+                    while spaces < levels[levels.len - 1]
+                        levels = collections.take levels (levels.len - 1)
+                        add_token tokens "Dedent" "" line 1
+                    if spaces != levels[levels.len - 1]
+                        fail "Indentation does not match an earlier block."
+            line_start = false
+        if c == " " or c == "\t" or c == carriage_return
+            i += 1
+            column += 1
+        else if c == "#"
+            while i < n and chars[i] != "\n"
+                i += 1
+                column += 1
+        else if c == "\n"
+            if depth == 0
+                add_token tokens "Newline" "" line column
+            i += 1
+            line += 1
+            column = 1
+            line_start = true
+        else if is_letter c
+            start_col = column
+            word = ""
+            while i < n and is_word chars[i]
+                word = word + chars[i]
+                i += 1
+                column += 1
+            kind = "Identifier"
+            if word in keywords
+                if (tokens.len > 0 and tokens[tokens.len - 1][1] == "use") or (word == "match" and i < n and chars[i] == ".")
+                    kind = "Identifier"
+                else if tokens.len == 0
+                    kind = word
+                else if tokens[tokens.len - 1][0] != "."
+                    kind = word
+            add_token tokens kind word line start_col
+        else if is_digit c
+            start_col = column
+            number = ""
+            while i < n and is_digit chars[i]
+                number = number + chars[i]
+                i += 1
+                column += 1
+            kind = "Integer"
+            if i + 1 < n
+                if chars[i] == "." and is_digit chars[i + 1]
+                    kind = "Number"
+                    number = number + "."
+                    i += 1
+                    column += 1
+                    while i < n and is_digit chars[i]
+                        number = number + chars[i]
+                        i += 1
+                        column += 1
+            if kind == "Integer" and i < n
+                suffix = ""
+                if is_letter chars[i]
+                    while i < n and is_letter chars[i]
+                        suffix = suffix + chars[i]
+                        i += 1
+                        column += 1
+                    if not (suffix in ["ms", "s", "min"])
+                        fail "Invalid numeric/duration suffix: " + suffix
+                    kind = "Duration"
+                    number = number + suffix
+            add_token tokens kind number line start_col
+        else if c == "\""
+            start_col = column
+            i += 1
+            column += 1
+            value = ""
+            closed = false
+            while i < n and chars[i] != "\n" and not closed
+                if chars[i] == "\""
+                    closed = true
+                    i += 1
+                    column += 1
+                else
+                    if chars[i] == "\\" and i + 1 < n
+                        i += 1
+                        column += 1
+                        if chars[i] == "n"
+                            value = value + "\n"
+                        else if chars[i] == "t"
+                            value = value + "\t"
+                        else
+                            value = value + chars[i]
+                    else
+                        value = value + chars[i]
+                    i += 1
+                    column += 1
+            if not closed
+                fail "Unterminated string literal."
+            add_token tokens "String" value line start_col
+        else
+            op = c
+            if i + 1 < n
+                pair = c + chars[i + 1]
+                if pair in ["**","==","!=",">=","<=","..","->","+=","-=","*=","/=","%="]
+                    op = pair
+            if not (op in ["**","==","!=",">=","<=","..","->","+=","-=","*=","/=","%=","+","-","*","/","%","=",">","<","(",")","[","]","{","}",",",":","."])
+                fail "Unexpected character in SE source."
+            if op == "(" or op == "[" or op == "{"
+                depth += 1
+            if op == ")" or op == "]" or op == "}"
+                depth -= 1
+                if depth < 0
+                    fail "Closing bracket without opening bracket."
+            add_token tokens op op line column
+            i += op.len
+            column += op.len
+    if depth != 0
+        fail "An opening bracket was not closed."
+    if tokens.len == 0
+        add_token tokens "Newline" "" line column
+    else if tokens[tokens.len - 1][0] != "Newline"
+        add_token tokens "Newline" "" line column
+    while levels.len > 1
+        levels = collections.take levels (levels.len - 1)
+        add_token tokens "Dedent" "" line 1
+    add_token tokens "End" "" line column
+    give tokens

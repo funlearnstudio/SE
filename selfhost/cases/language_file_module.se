@@ -1,0 +1,12 @@
+use file
+
+try
+    file.write "build/se-selfhost-file-test.txt" "first"
+    handle = file.open "build/se-selfhost-file-test.txt"
+    say handle.read
+    handle.write " second"
+    say handle.read
+    handle.close
+    file.remove "build/se-selfhost-file-test.txt"
+else err
+    say err.message

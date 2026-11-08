@@ -1,0 +1,7 @@
+make factorial n:Int -> Int
+    if n <= 1
+        give 1
+    else
+        give n * factorial (n - 1)
+
+say factorial 6

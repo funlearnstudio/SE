@@ -1,0 +1,37 @@
+use auth
+use crypto
+use email
+use jwt
+use session
+use test
+use toml
+use xml
+
+source = "name = 'SE'\nversion = 7"
+config = try toml.parse source
+test.equal config["name"] "SE"
+test.equal config["version"] 7
+
+test.equal (try crypto.sha256 "abc") "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+test.equal (try crypto.constant_time_equal "same" "same") true
+test.equal (try crypto.constant_time_equal "same" "diff") false
+random = try crypto.random_hex 16
+test.equal random.len 32
+
+claims = ["sub": "student", "role": "admin"]
+token = try jwt.sign claims "test-secret"
+decoded = try jwt.verify token "test-secret"
+test.equal decoded["sub"] "student"
+session_token = try session.encode claims "test-secret"
+session_data = try session.decode session_token "test-secret"
+test.equal session_data["role"] "admin"
+
+hashed = try auth.hash_password "correct horse battery staple"
+test.equal (try auth.verify_password "correct horse battery staple" hashed) true
+test.equal (try auth.verify_password "wrong password" hashed) false
+
+message = try email.compose "sender@example.test" "reader@example.test" "SE test" "Hello"
+parsed = try email.parse message
+test.equal parsed["subject"] "SE test"
+test.equal (try xml.escape "<SE & \"safe\">") "&lt;SE &amp; &quot;safe&quot;&gt;"
+say "format bridge APIs passed"

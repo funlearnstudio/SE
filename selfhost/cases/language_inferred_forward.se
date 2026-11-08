@@ -1,0 +1,19 @@
+make outer n:Int
+    give middle n
+make middle n:Int
+    value = leaf n
+    give value + 1
+make leaf n:Int
+    give n * 2
+make choose flag:Bool
+    if flag
+        give "yes"
+    else
+        give "no"
+say outer 20
+say choose true
+make describe n:Int
+    give later_text n + 1
+make later_text n:Int
+    give "value=" + n
+say describe 3

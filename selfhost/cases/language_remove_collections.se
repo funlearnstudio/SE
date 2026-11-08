@@ -1,0 +1,8 @@
+nums = [1, 2, 2, 3]
+nums.remove 2
+say nums
+
+unique = set [1, 2, 3]
+unique.remove 2
+say unique
+

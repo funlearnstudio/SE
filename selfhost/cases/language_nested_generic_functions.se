@@ -1,0 +1,15 @@
+make outer number:Int -> Int
+    make identity[Item] value:Item -> Item
+        give value
+    make first[Element] values:List[Element] -> Element
+        give values[0]
+    say identity "SE"
+    words = ["nested", "generic"]
+    say first words
+    give identity number
+
+make same[Element] a:Element b:Element -> Element
+    give a
+
+say outer 42
+say same "a" "b"

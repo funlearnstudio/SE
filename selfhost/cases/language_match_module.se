@@ -1,0 +1,26 @@
+use match
+use option
+use result
+use test
+
+make double value:Int -> Int
+    give value * 2
+make fallback value:Int -> Int
+    give -value
+make absent -> Int
+    give 42
+make on_error message:Text -> Text
+    give "error: " + message
+
+present = option.some 7
+empty = option.none
+test.equal (int (match.option present double absent)) 14
+test.equal (int (match.option empty double absent)) 42
+success = result.ok 9
+failure = result.err "failed"
+test.equal (int (match.result success double on_error)) 18
+test.equal (text (match.result failure double on_error)) "error: failed"
+pattern = 7
+test.equal (int (match.value 7 pattern double fallback)) 14
+test.equal (int (match.value 8 pattern double fallback)) (-8)
+say "match module passed"

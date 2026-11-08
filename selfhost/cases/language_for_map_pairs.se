@@ -1,0 +1,3 @@
+pairs = ["A": 2, "B": 4]
+for key value in pairs
+    say key + "=" + value

@@ -1,0 +1,11 @@
+say int "42"
+say integer "-7"
+say num "3.14"
+say double "2.5"
+say float 8
+say text 123
+say string true
+say bool "TRUE"
+say boolean "false"
+say char "中"
+say char 65

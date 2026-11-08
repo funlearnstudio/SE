@@ -104,6 +104,23 @@ For source builds and platform details, see [Installation](docs/installation.md)
 
 若要從原始碼編譯或查看各平台細節，請看 [Installation](docs/installation.md)。
 
+## Development-branch native build / 開發分支原生編譯
+
+The experimental branch can reuse its CMake-built production runtime archive for
+faster `se build` iterations. This is a **production-runtime-linked native build**,
+not SE self-hosting:
+
+```bash
+cmake -S . -B build -DBUILD_TESTING=ON
+cmake --build build --target se -j2
+SE_NATIVE_CORE_LIB="$(pwd)/build/libs_core.a" SE_NATIVE_OPT=0 build/se build examples/function.se
+./examples/function
+```
+
+Without `SE_NATIVE_CORE_LIB`, the original C++ source-bundle build behavior remains.
+The experimental SE-written compiler is under `selfhost/`; see its
+[status and known limits](selfhost/README.md).
+
 ## Core workflow / 基本工作流程
 
 ```bash

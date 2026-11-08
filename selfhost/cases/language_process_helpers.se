@@ -1,0 +1,9 @@
+use process
+use subprocess
+use test
+
+test.equal (try process.run "sh" "-c" "exit 7") 7
+test.equal (try subprocess.run "exit 0") 0
+test.equal (try process.output "printf SE") "SE"
+test.equal (try subprocess.output "printf 'line1\nline2'") "line1\nline2"
+say "process helpers passed"

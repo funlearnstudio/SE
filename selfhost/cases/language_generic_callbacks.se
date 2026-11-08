@@ -1,0 +1,24 @@
+use collections
+use function
+use async
+
+make identity[Item] value:Item -> Item
+    give value
+
+make twice value:Int -> Int
+    give value + value
+
+values = [1, 2, 3]
+say collections.map values identity
+say collections.map values twice
+bound = function.bind identity 42
+say bound
+say function.pipe 3 twice twice
+job = async.run identity 7
+say try async.await job
+
+make combine[T] first:T second:T -> T
+    give first + second
+
+say combine 10 12
+say combine 1.5 2.25

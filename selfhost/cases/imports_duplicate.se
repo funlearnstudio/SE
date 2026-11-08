@@ -1,0 +1,2 @@
+make left value:Int -> Int
+    give value

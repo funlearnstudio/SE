@@ -1,0 +1,2 @@
+ask n:Bool b:Int
+say n

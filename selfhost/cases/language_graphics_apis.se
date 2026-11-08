@@ -1,0 +1,88 @@
+use test
+use text
+use file
+use canvas
+use collision
+use physics
+use sprite
+use image
+use input
+use keyboard
+use mouse
+use animation
+use sound
+use audio
+use video
+use camera
+use window
+use game
+use gui
+use scene
+
+stage = canvas.new 320 200 "SE graphics"
+canvas.background stage "#202020"
+canvas.rect stage 4 8 20 30 "#ff0000" true
+canvas.circle stage 40 50 12 "#00ff00" false
+canvas.line stage 0 0 80 90 "#ffffff" 2
+canvas.text stage "Hello" 4 100 16 "#ffffff"
+sprite.sprite_color stage "hero" 10 20 8 9 "#ffaa00"
+sprite.position stage "hero" 30 40
+sprite.move stage "hero" 1 2
+sprite.velocity stage "hero" 3 4
+sprite.animate stage 60
+input.key_move stage "hero" "ArrowRight" 5 0
+keyboard.key_move stage "hero" "ArrowLeft" 5 0
+mouse.follow_mouse stage "hero"
+physics.particles stage 20 30 4 "#ffffff" 2
+physics.camera stage 0 0
+sound.sound stage "click" "click.ogg"
+sound.play stage "click" false 1.0
+audio.stop stage "click"
+image.image stage "pixel.png" 1 2 3 4
+image.sprite stage "other" "pixel.png" 1 2 3 4
+video.add stage "movie.mp4" 0 0 100 80
+video.stop stage
+camera.start stage 0 0 100 80
+camera.stop stage
+window.fullscreen stage
+
+game_stage = game.new 160 90 "SE game"
+game.background game_stage "#101820"
+game.rect game_stage 1 2 3 4 "#abcdef" true
+game.circle game_stage 5 6 7 "#123456" true
+game.line game_stage 0 0 10 10 "#ffffff" 1
+game.text game_stage "game" 2 3 12 "#ffffff"
+game.script game_stage "window.SEGameReady=true;"
+test.ok (text.contains (try game.html game_stage) "SEGameReady")
+game.save game_stage "selfhost/cases/.game-render-test.html"
+test.ok (text.contains (try file.read "selfhost/cases/.game-render-test.html") "<canvas")
+file.remove "selfhost/cases/.game-render-test.html"
+
+gui_stage = gui.new 120 80 "SE GUI"
+gui.rect gui_stage 1 1 10 10 "red" true
+gui.circle gui_stage 20 20 5 "blue" true
+gui.text gui_stage "gui" 1 30 12 "black"
+test.ok (text.contains (try gui.html gui_stage) "SE GUI")
+gui.save gui_stage "selfhost/cases/.gui-render-test.html"
+file.remove "selfhost/cases/.gui-render-test.html"
+
+window_stage = window.new 100 70 "SE Window"
+window.fullscreen window_stage
+scene_stage = scene.new 100 70 "SE Scene"
+scene.background scene_stage "white"
+scene.clear scene_stage
+test.ok (text.contains (try scene.html scene_stage) "SE Scene")
+scene.save scene_stage "selfhost/cases/.scene-render-test.html"
+file.remove "selfhost/cases/.scene-render-test.html"
+
+page = canvas.html stage
+test.ok (text.contains page "SE graphics")
+test.ok (text.contains page "fillRect")
+test.ok (text.contains page "requestAnimationFrame")
+test.ok (try collision.rect_hit 0 0 10 10 5 5 10 10)
+test.ok (try physics.circle_hit 0 0 4 7 0 4)
+test.equal (try physics.distance 0 0 3 4) 5
+vector = try physics.vector 6 8
+test.equal vector[0] 6
+test.equal vector[1] 8
+say "Graphics APIs passed"

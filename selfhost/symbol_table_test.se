@@ -1,0 +1,15 @@
+use symbol_table
+use test
+
+original = [["seed", "Text", "0", ""]]
+try define_symbol original "value" "Unknown" "0" ""
+local = clone_symbols original
+try assign_symbol local "value" "Int"
+outer = lookup_symbol original "value"
+inner = lookup_symbol local "value"
+test.equal outer[1] "Unknown"
+test.equal inner[1] "Int"
+try define_symbol local "private" "Text" "0" ""
+missing = lookup_symbol original "private"
+test.equal missing[0] ""
+say "SE selfhost symbol isolation passed"

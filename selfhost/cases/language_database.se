@@ -1,0 +1,24 @@
+use db
+use file
+use option
+use test
+
+path = "build/selfhost-database-case.tsv"
+try file.remove path
+database = db.open path
+test.ok (not (db.has database "name"))
+db.set database "name" "SE"
+db.set database "multiline" "line1\nline2"
+test.ok (db.has database "name")
+test.equal (text (try option.value (db.get database "name"))) "SE"
+test.equal (text (try option.value (db.get database "multiline"))) "line1\nline2"
+test.ok (option.is_none (db.get database "missing"))
+test.equal (db.keys database) ["name", "multiline"]
+db.save database
+reopened = db.open path
+test.equal (text (try option.value (db.get reopened "name"))) "SE"
+test.ok (db.remove reopened "name")
+test.ok (not (db.remove reopened "missing"))
+test.ok (not (db.has reopened "name"))
+try file.remove path
+say "database API passed"

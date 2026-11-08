@@ -1,0 +1,21 @@
+use parser
+use typechecker
+use test
+use text
+
+s = "make add a:Int b:Int -> Int\n    give a + b\nvalues = [1, 2, 3]\nx = add 10 20\nsay values[0]\nfor i in 1..3\n    say i\n"
+ast = try parse s
+symbols = try check_program ast
+test.equal 3 symbols.len
+first = symbols[0]
+test.equal "add" first[0]
+test.equal "Function" first[1]
+test.equal "Int" first[3]
+second = symbols[1]
+test.equal "values" second[0]
+test.equal "List[Int]" second[1]
+third = symbols[2]
+test.equal "x" third[0]
+test.equal "Int" third[1]
+
+say "SE selfhost extended checker passed"

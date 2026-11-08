@@ -1,0 +1,20 @@
+use file
+use shutil
+use test
+
+root = "build/selfhost-shutil-case"
+copy = root + "-copy"
+source = root + "/source.txt"
+copied = root + "/copied.txt"
+moved = root + "/moved.txt"
+try shutil.mkdir root
+try file.write source "payload"
+try shutil.copy source copied
+test.equal (try file.read copied) "payload"
+try shutil.move copied moved
+test.equal (try file.read moved) "payload"
+try shutil.copytree root copy
+test.equal (try file.read (copy + "/moved.txt")) "payload"
+try shutil.remove root
+try shutil.remove copy
+say "shutil helpers passed"

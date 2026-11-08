@@ -1,0 +1,637 @@
+# SE self-hosting compiler parser (recursive descent + Pratt precedence).
+# AST is JSON Text nodes inside List[Text] to respect homogeneous SE Lists.
+# Expr: Atom / Unary / Binary / List / Index / Member / Call / Ask / Try.
+# Stmt: Assign / ExprStmt / say / give / If / while / repeat / For / Make / Use / fail.
+use lexer
+use json
+use text
+use ast_codec
+
+make _node encoded:Text -> List[Text]
+    give unpack_node encoded
+
+make _kind tokens:List[List[Text]] state:List[Int] -> Text
+    give tokens[state[0]][0]
+
+make _advance tokens:List[List[Text]] state:List[Int] -> List[Text]
+    token = tokens[state[0]]
+    state[0] += 1
+    give token
+
+make _expect tokens:List[List[Text]] state:List[Int] wanted:Text -> Text
+    found = _kind tokens state
+    if found != wanted
+        tok = tokens[state[0]]
+        fail "SE parser expected " + wanted + ", got " + found + " at " + tok[2] + ":" + tok[3]
+    _advance tokens state
+    give "OK"
+
+make _precedence op:Text -> Int
+    if op == "or"
+        give 1
+    if op == "and"
+        give 2
+    if op == "==" or op == "!="
+        give 3
+    if op in ["<", "<=", ">", ">=", "in"]
+        give 4
+    if op == ".."
+        give 5
+    if op == "+" or op == "-"
+        give 6
+    if op in ["*", "/", "%"]
+        give 7
+    if op == "**"
+        give 8
+    give 0
+
+make _argument_start kind:Text -> Bool
+    give kind in ["Integer", "Number", "Duration", "String", "Identifier", "true", "false", "(", "[", "ask", "try", "set", "map"]
+
+make _type_ref tokens:List[List[Text]] state:List[Int] -> Text
+    tok = _advance tokens state
+    if tok[0] != "Identifier"
+        fail "Expected type name in annotation."
+    result = tok[1]
+    if _kind tokens state == "["
+        _advance tokens state
+        first = try _type_ref tokens state
+        result = result + "[" + first
+        while _kind tokens state == ","
+            _advance tokens state
+            nested = try _type_ref tokens state
+            result = result + "," + nested
+        try _expect tokens state "]"
+        result = result + "]"
+    give result
+
+make _prefix tokens:List[List[Text]] state:List[Int] -> Text
+    kind = _kind tokens state
+    if kind == "-" or kind == "not"
+        tok = _advance tokens state
+        rhs = try _expression tokens state 8
+        give pack_node (["Unary", tok[0], rhs, ""])
+    if kind == "ask" or kind == "try"
+        tok = _advance tokens state
+        rhs = try _expression tokens state 9
+        name = "Ask"
+        if kind == "try"
+            name = "Try"
+        give pack_node ([name, rhs, "", ""])
+    if kind == "("
+        _advance tokens state
+        value = try _expression tokens state 1
+        try _expect tokens state ")"
+        give value
+    if kind == "[" or kind == "set" or kind == "map"
+        forced = "List"
+        if kind == "set"
+            forced = "Set"
+            _advance tokens state
+            try _expect tokens state "["
+        else if kind == "map"
+            forced = "Map"
+            _advance tokens state
+            try _expect tokens state "["
+        else
+            _advance tokens state
+        items = []
+        pairs = []
+        if _kind tokens state != "]"
+            first = try _expression tokens state 1
+            if _kind tokens state == ":"
+                if forced == "Set"
+                    fail "A Set cannot contain key/value entries."
+                forced = "Map"
+                _advance tokens state
+                value = try _expression tokens state 1
+                pairs.add (pack_node ([first, value]))
+                while _kind tokens state == ","
+                    _advance tokens state
+                    key = try _expression tokens state 1
+                    try _expect tokens state ":"
+                    value = try _expression tokens state 1
+                    pairs.add (pack_node ([key, value]))
+            else
+                if forced == "Map"
+                    fail "Map entries require key: value."
+                items.add first
+                while _kind tokens state == ","
+                    _advance tokens state
+                    item = try _expression tokens state 1
+                    items.add item
+        try _expect tokens state "]"
+        if forced == "Map"
+            give pack_node (["Map", json.stringify pairs, "", ""])
+        give pack_node ([forced, json.stringify items, "", ""])
+    if kind in ["Integer", "Number", "Duration", "String", "true", "false", "Identifier"]
+        tok = _advance tokens state
+        give pack_node (["Atom", tok[0], tok[1], ""])
+    tok = tokens[state[0]]
+    fail "Expected SE expression, got " + kind + " at line " + tok[2]
+
+make _postfix tokens:List[List[Text]] state:List[Int] start:Text -> Text
+    left = start
+    looping = true
+    while looping
+        kind = _kind tokens state
+        if kind == "."
+            _advance tokens state
+            member = _advance tokens state
+            if member[0] != "Identifier" and member[0] != "map" and member[0] != "match"
+                fail "Expected member name after '.'"
+            left = pack_node (["Member", left, member[1], ""])
+        else if kind == "["
+            # Uppercase SE type names (Box[Int]) are specialization, not indexing.
+            base_node = _node left
+            generic_type = false
+            if base_node[0] == "Atom" and base_node[1] == "Identifier"
+                name_chars = text.split base_node[2] ""
+                if name_chars.len > 0
+                    generic_type = text.contains "ABCDEFGHIJKLMNOPQRSTUVWXYZ" name_chars[0]
+            if generic_type
+                _advance tokens state
+                if _kind tokens state == "]"
+                    fail "A generic type needs at least one argument."
+                arguments = []
+                arguments.add (try _type_ref tokens state)
+                while _kind tokens state == ","
+                    _advance tokens state
+                    arguments.add (try _type_ref tokens state)
+                try _expect tokens state "]"
+                left = pack_node (["TypeInstance", base_node[2], json.stringify arguments, ""])
+            else
+                # Adjacent brackets index a value; separated brackets start List arguments.
+                bracket = tokens[state[0]]
+                previous = tokens[state[0] - 1]
+                previous_width = previous[1].len
+                if previous[0] == "String"
+                    previous_width += 2
+                bracket_column = int bracket[3]
+                preceding_column = int previous[3]
+                preceding_end = preceding_column + previous_width
+                adjacent = bracket_column == preceding_end
+                if adjacent
+                    _advance tokens state
+                    index = try _expression tokens state 1
+                    try _expect tokens state "]"
+                    left = pack_node (["Index", left, index, ""])
+                else
+                    looping = false
+        else
+            looping = false
+    give left
+
+make _expression tokens:List[List[Text]] state:List[Int] minimum:Int -> Text
+    first = try _prefix tokens state
+    left = try _postfix tokens state first
+    # Bare SE function calls. A parenthesized expression can be one argument.
+    first_node = _node left
+    can_call = first_node[0] == "Member"
+    if first_node[0] == "Atom" and first_node[1] == "Identifier"
+        can_call = true
+    if can_call and _argument_start (_kind tokens state)
+        arguments = []
+        while _argument_start (_kind tokens state)
+            raw_arg = try _prefix tokens state
+            arg = try _postfix tokens state raw_arg
+            arithmetic = true
+            while arithmetic
+                op = _kind tokens state
+                precedence = _precedence op
+                if precedence < 6
+                    arithmetic = false
+                else
+                    outer_call = false
+                    if op == "+" or op == "-"
+                        next_token = tokens[state[0] + 1]
+                        following = tokens[state[0] + 2]
+                        if next_token[0] == "Identifier" and _argument_start following[0]
+                            outer_call = true
+                    if outer_call
+                        arithmetic = false
+                    else
+                        _advance tokens state
+                        min_right = precedence + 1
+                        if op == "**"
+                            min_right = precedence
+                        right = try _expression tokens state min_right
+                        arg = pack_node (["Binary", op, arg, right])
+            arguments.add arg
+        left = pack_node (["Call", left, json.stringify arguments, ""])
+    while true
+        op = _kind tokens state
+        precedence = _precedence op
+        if precedence == 0 or precedence < minimum
+            give left
+        _advance tokens state
+        next_minimum = precedence + 1
+        if op == "**"
+            next_minimum = precedence
+        right = try _expression tokens state next_minimum
+        left = pack_node (["Binary", op, left, right])
+    give left
+
+make _block tokens:List[List[Text]] state:List[Int] nested:Bool -> List[Text]
+    statements = []
+    while _kind tokens state != "End"
+        kind = _kind tokens state
+        if kind == "Dedent"
+            if not nested
+                fail "Unexpected dedent in top-level SE source."
+            _advance tokens state
+            give statements
+        if kind == "Newline"
+            _advance tokens state
+        else
+            stmt = try _statement tokens state
+            statements.add stmt
+    if nested
+        fail "Expected Dedent before end of SE file."
+    give statements
+
+make _body tokens:List[List[Text]] state:List[Int] -> List[Text]
+    try _expect tokens state "Newline"
+    while _kind tokens state == "Newline"
+        _advance tokens state
+    try _expect tokens state "Indent"
+    give try _block tokens state true
+
+# Parse a complete elif chain recursively so each branch has one AST shape.
+make _elif_chain tokens:List[List[Text]] state:List[Int] -> Text
+    try _expect tokens state "elif"
+    condition = try _expression tokens state 1
+    yes = try _body tokens state
+    no = []
+    if _kind tokens state == "elif"
+        no.add (try _elif_chain tokens state)
+    else if _kind tokens state == "else"
+        _advance tokens state
+        if _kind tokens state == "if"
+            no.add (try _statement tokens state)
+        else
+            no = try _body tokens state
+    give json.stringify (["If", condition, try pack_block yes, try pack_block no])
+
+# Contextual Web grammar uses ordinary identifiers outside Web sections.
+make _web_element tokens:List[List[Text]] state:List[Int] -> Text
+    tag = _advance tokens state
+    if tag[0] != "Identifier"
+        fail "Expected an HTML element name."
+    value = ""
+    if not (_kind tokens state in ["Newline", "Dedent", "End"])
+        value = try _expression tokens state 1
+    children = []
+    next_token = tokens[state[0] + 1]
+    if _kind tokens state == "Newline" and next_token[0] == "Indent"
+        try _expect tokens state "Newline"
+        try _expect tokens state "Indent"
+        while not (_kind tokens state in ["Dedent", "End"])
+            if _kind tokens state == "Newline"
+                _advance tokens state
+            else
+                children.add (try _web_element tokens state)
+        try _expect tokens state "Dedent"
+    else
+        try _expect tokens state "Newline"
+    give json.stringify (["WebElement", tag[1], value, try pack_block children])
+
+make _web_css_item tokens:List[List[Text]] state:List[Int] -> Text
+    end = state[0]
+    while not (tokens[end][0] in ["Newline", "Dedent", "End"])
+        end += 1
+    following = tokens[end + 1]
+    children = []
+    if tokens[end][0] == "Newline" and following[0] == "Indent"
+        selector = ""
+        while state[0] < end
+            token = _advance tokens state
+            part = token[1]
+            if token[0] == "String"
+                part = json.stringify part
+            selector = selector + part
+        try _expect tokens state "Newline"
+        try _expect tokens state "Indent"
+        while not (_kind tokens state in ["Dedent", "End"])
+            if _kind tokens state == "Newline"
+                _advance tokens state
+            else
+                children.add (try _web_css_item tokens state)
+        try _expect tokens state "Dedent"
+        give json.stringify (["WebCss", selector, "", try pack_block children])
+    name = _advance tokens state
+    if name[0] != "Identifier"
+        fail "Expected a CSS property name."
+    value = try _expression tokens state 1
+    try _expect tokens state "Newline"
+    give json.stringify (["WebCss", name[1], value, try pack_block children])
+
+make _web_section tokens:List[List[Text]] state:List[Int] section:Text -> Text
+    try _expect tokens state "Newline"
+    try _expect tokens state "Indent"
+    items = []
+    while not (_kind tokens state in ["Dedent", "End"])
+        if _kind tokens state == "Newline"
+            _advance tokens state
+        else if section == "html"
+            items.add (try _web_element tokens state)
+        else if section in ["css", "style"]
+            items.add (try _web_css_item tokens state)
+        else
+            word = _advance tokens state
+            if word[1] == "when"
+                event = _advance tokens state
+                if not (event[0] in ["Identifier", "String"])
+                    fail "Expected an event name after when."
+                body = try _body tokens state
+                items.add (json.stringify (["WebEvent", event[1], try pack_block body, ""]))
+            else if word[1] == "native"
+                expression = try _expression tokens state 1
+                try _expect tokens state "Newline"
+                items.add (json.stringify (["WebNative", expression, "", ""]))
+            else
+                fail "Inside js, use when event or native Text."
+    try _expect tokens state "Dedent"
+    give json.stringify (["WebSection", section, try pack_block items, ""])
+
+make _statement tokens:List[List[Text]] state:List[Int] -> Text
+    kind = _kind tokens state
+    if kind == "Identifier"
+        token = tokens[state[0]]
+        following = tokens[state[0] + 1]
+        if token[1] in ["html", "css", "style", "js"] and following[0] == "Newline"
+            _advance tokens state
+            give try _web_section tokens state token[1]
+        if token[1] == "page"
+            end = state[0]
+            while not (tokens[end][0] in ["Newline", "End"])
+                end += 1
+            after_line = tokens[end + 1]
+            if tokens[end][0] == "Newline" and after_line[0] == "Indent"
+                _advance tokens state
+                route = try _expression tokens state 1
+                body = try _body tokens state
+                give json.stringify (["Page", route, try pack_block body, ""])
+    if kind == "say" or kind == "give" or kind == "fail"
+        _advance tokens state
+        expr = try _expression tokens state 1
+        try _expect tokens state "Newline"
+        give json.stringify ([kind, "", expr, ""])
+    if kind == "if"
+        _advance tokens state
+        condition = try _expression tokens state 1
+        yes = try _body tokens state
+        no = []
+        if _kind tokens state == "elif"
+            no.add (try _elif_chain tokens state)
+        else if _kind tokens state == "else"
+            _advance tokens state
+            if _kind tokens state == "if"
+                elseif_stmt = try _statement tokens state
+                no.add elseif_stmt
+            else
+                no = try _body tokens state
+        give json.stringify (["If", condition, try pack_block yes, try pack_block no])
+    if kind == "try"
+        next_token = tokens[state[0] + 1]
+        if next_token[0] == "Newline"
+            _advance tokens state
+            protected = try _body tokens state
+            error_name = "err"
+            recovery = []
+            if _kind tokens state != "else"
+                fail "A try block needs else to handle an error."
+            _advance tokens state
+            if _kind tokens state == "Identifier"
+                error_token = _advance tokens state
+                error_name = error_token[1]
+            recovery = try _body tokens state
+            give json.stringify (["TryStmt", try pack_block protected, error_name, try pack_block recovery])
+    if kind == "type"
+        _advance tokens state
+        type_token = _advance tokens state
+        if type_token[0] != "Identifier"
+            fail "Expected type name after type."
+        generics = []
+        if _kind tokens state == "["
+            _advance tokens state
+            if _kind tokens state == "]"
+                fail "A generic type needs at least one type name."
+            more = true
+            while more
+                variable = _advance tokens state
+                if variable[0] != "Identifier"
+                    fail "Expected generic type parameter."
+                if variable[1] in generics
+                    fail "Duplicate generic type parameter: " + variable[1]
+                generics.add variable[1]
+                if _kind tokens state == ","
+                    _advance tokens state
+                else
+                    more = false
+            try _expect tokens state "]"
+        try _expect tokens state "Newline"
+        while _kind tokens state == "Newline"
+            _advance tokens state
+        try _expect tokens state "Indent"
+        fields = []
+        methods = []
+        while _kind tokens state != "Dedent"
+            current = _kind tokens state
+            if current == "Newline"
+                _advance tokens state
+            else if current == "make"
+                method = try _statement tokens state
+                methods.add method
+            else if current == "Identifier"
+                field = _advance tokens state
+                annotation = "Unknown"
+                if _kind tokens state == ":"
+                    _advance tokens state
+                    annotation = try _type_ref tokens state
+                mode = "required"
+                value = json.stringify (["Atom", "String", "", ""])
+                if _kind tokens state == "="
+                    _advance tokens state
+                    value = try _expression tokens state 1
+                    mode = "default"
+                else if annotation == "Unknown"
+                    fail "A type field needs a type annotation or default value."
+                try _expect tokens state "Newline"
+                fields.add (json.stringify ([field[1], value, annotation, mode]))
+            else
+                fail "Expected a field or method inside type " + type_token[1]
+        try _expect tokens state "Dedent"
+        give json.stringify (["TypeDecl", type_token[1], json.stringify fields, try pack_block methods, json.stringify generics])
+    if kind == "match"
+        _advance tokens state
+        subject = try _expression tokens state 1
+        try _expect tokens state "Newline"
+        while _kind tokens state == "Newline"
+            _advance tokens state
+        try _expect tokens state "Indent"
+        choices = []
+        fallback = []
+        has_else = false
+        while _kind tokens state != "Dedent"
+            current = _kind tokens state
+            if current == "Newline"
+                _advance tokens state
+            else if current == "case"
+                if has_else
+                    fail "A match case cannot follow else."
+                _advance tokens state
+                pattern = try _expression tokens state 1
+                case_body = try _body tokens state
+                choices.add (json.stringify ([pattern, try pack_block case_body]))
+            else if current == "else"
+                if has_else
+                    fail "Duplicate else in match."
+                _advance tokens state
+                fallback = try _body tokens state
+                has_else = true
+            else
+                fail "Expected case or else inside match."
+        try _expect tokens state "Dedent"
+        if choices.len == 0
+            fail "A match must contain at least one case."
+        give json.stringify (["Match", subject, json.stringify choices, try pack_block fallback])
+    if kind == "while" or kind == "repeat"
+        _advance tokens state
+        condition = try _expression tokens state 1
+        body = try _body tokens state
+        give json.stringify ([kind, condition, try pack_block body, ""])
+    if kind == "for"
+        _advance tokens state
+        name = _advance tokens state
+        if name[0] != "Identifier"
+            fail "Expected loop variable after for."
+        second_name = ""
+        if _kind tokens state == "Identifier"
+            token = _advance tokens state
+            second_name = token[1]
+        try _expect tokens state "in"
+        iterable = try _expression tokens state 1
+        body = try _body tokens state
+        if second_name != ""
+            give json.stringify (["ForPairs", name[1], second_name, iterable, try pack_block body])
+        give json.stringify (["For", name[1], iterable, try pack_block body])
+    if kind == "make"
+        _advance tokens state
+        name = _advance tokens state
+        if name[0] != "Identifier"
+            fail "Expected function name after make."
+        generics = []
+        if _kind tokens state == "["
+            _advance tokens state
+            more_generics = true
+            while more_generics
+                variable = _advance tokens state
+                if variable[0] != "Identifier"
+                    fail "Expected a generic type parameter."
+                if variable[1] in generics
+                    fail "Duplicate generic type parameter: " + variable[1]
+                generics.add variable[1]
+                if _kind tokens state == ","
+                    _advance tokens state
+                else
+                    more_generics = false
+            try _expect tokens state "]"
+        params = []
+        while _kind tokens state == "Identifier"
+            param = _advance tokens state
+            annotation = "Unknown"
+            if _kind tokens state == ":"
+                _advance tokens state
+                annotation = try _type_ref tokens state
+            params.add (json.stringify ([param[1], annotation]))
+        return_type = "Unknown"
+        if _kind tokens state == "->"
+            _advance tokens state
+            return_type = try _type_ref tokens state
+        body = try _body tokens state
+        give json.stringify (["Make", name[1], json.stringify params, try pack_block body, return_type, json.stringify generics])
+    if kind == "ask"
+        next_token = tokens[state[0] + 1]
+        if next_token[0] == "Identifier"
+            _advance tokens state
+            fields = []
+            while _kind tokens state == "Identifier"
+                name = _advance tokens state
+                declared = "Text"
+                if _kind tokens state == ":"
+                    _advance tokens state
+                    declared = try _type_ref tokens state
+                if not (declared in ["Text", "Int", "Num"])
+                    fail "ask supports Text, Int or Num only."
+                fields.add (json.stringify ([name[1], declared]))
+            if fields.len < 2
+                fail "Multi-value ask requires at least two variables."
+            try _expect tokens state "Newline"
+            give json.stringify (["MultiAsk", json.stringify fields, "", ""])
+    if kind == "use"
+        _advance tokens state
+        name = _advance tokens state
+        if name[0] != "Identifier"
+            fail "Expected module name after use."
+        try _expect tokens state "Newline"
+        give json.stringify (["Use", name[1], "", ""])
+    if kind == "Identifier" or kind == "("
+        saved = state[0]
+        target_expr = try _expression tokens state 9
+        op = _kind tokens state
+        if op in ["=", "+=", "-=", "*=", "/=", "%="]
+            _advance tokens state
+            expr = try _expression tokens state 1
+            try _expect tokens state "Newline"
+            initializer = []
+            if _kind tokens state == "Indent"
+                if op != "="
+                    fail "Only plain assignment can initialize a type."
+                _advance tokens state
+                while _kind tokens state != "Dedent"
+                    current = _kind tokens state
+                    if current == "Newline"
+                        _advance tokens state
+                    else
+                        field = _advance tokens state
+                        if field[0] != "Identifier"
+                            fail "Expected a field name in type initialization."
+                        try _expect tokens state "="
+                        field_value = try _expression tokens state 1
+                        try _expect tokens state "Newline"
+                        initializer.add (json.stringify ([field[1], field_value]))
+                try _expect tokens state "Dedent"
+            if op != "="
+                binary_op = "+"
+                if op == "-="
+                    binary_op = "-"
+                if op == "*="
+                    binary_op = "*"
+                if op == "/="
+                    binary_op = "/"
+                if op == "%="
+                    binary_op = "%"
+                expr = json.stringify (["Binary", binary_op, target_expr, expr])
+            target = _node target_expr
+            if target[0] == "Atom" and target[1] == "Identifier"
+                if initializer.len > 0
+                    give json.stringify (["AssignInit", target[2], expr, json.stringify initializer])
+                give json.stringify (["Assign", target[2], expr, ""])
+            if target[0] == "Index"
+                give json.stringify (["AssignIndex", target[1], target[2], expr])
+            if target[0] == "Member"
+                give json.stringify (["AssignMember", target[1], target[2], expr])
+            fail "Invalid assignment target in SE bootstrap compiler."
+        state[0] = saved
+    expr = try _expression tokens state 1
+    try _expect tokens state "Newline"
+    give json.stringify (["ExprStmt", "", expr, ""])
+
+make parse_tokens tokens:List[List[Text]] -> List[Text]
+    state = [0]
+    give try _block tokens state false
+
+make parse source:Text -> List[Text]
+    tokens = try lex source
+    give try parse_tokens tokens

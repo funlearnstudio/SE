@@ -1,0 +1,6 @@
+use time
+
+current = time.now
+stamp = time.unix current
+restored = time.from_unix stamp
+say time.iso restored

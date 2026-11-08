@@ -1,0 +1,27 @@
+use file
+use test
+use zip
+use zipfile
+
+archive = "selfhost/cases/.zip-api-test.zip"
+files = ["selfhost/cases/node_output.js"]
+created = try zipfile.create archive files
+test.ok (try zipfile.is_zip archive)
+test.ok (try zipfile.test archive)
+entries = try zipfile.entries archive
+test.equal entries.len 1
+test.equal (try zipfile.read archive "node_output.js") "process.stdout.write(\"node file output\\n\")\n"
+
+output = "selfhost/cases/.zip-api-extract"
+extracted_ok = try zipfile.extract archive output
+extracted = try file.read (output + "/node_output.js")
+test.equal extracted "process.stdout.write(\"node file output\\n\")\n"
+
+second = "selfhost/cases/.zip-api-test-2.zip"
+second_created = try zip.create second files
+zip_entries = try zip.list second
+test.equal zip_entries.len 1
+file.remove output
+file.remove archive
+file.remove second
+say "ZIP APIs passed"

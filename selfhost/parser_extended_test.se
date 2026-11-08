@@ -1,0 +1,28 @@
+use ast_codec
+use parser
+use json
+use text
+use test
+
+make node encoded:Text -> List[Text]
+    give unpack_node encoded
+
+s = "make add a:Int b:Int -> Int\n    give a + b\nvalues = [1, 2, 3]\nx = add 10 20\nsay values[0]\nfor i in 1..3\n    say i\nuse math\n"
+ast = try parse s
+test.equal 6 ast.len
+first = node ast[0]
+test.equal "Make" first[0]
+test.equal "Int" first[4]
+second = node ast[1]
+test.equal "Assign" second[0]
+xnode = node ast[2]
+expr = node xnode[2]
+test.equal "Call" expr[0]
+item = node ast[3]
+index = node item[2]
+test.equal "Index" index[0]
+forloop = node ast[4]
+test.equal "For" forloop[0]
+last = node ast[5]
+test.equal "Use" last[0]
+say "SE selfhost extended parser passed"

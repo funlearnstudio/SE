@@ -1,0 +1,10 @@
+# The user's SE syntax for recursive Fibonacci: no C/JS braces or "fn".
+s = 10
+make func a
+    if a <= 1
+        give a
+
+    ans = (func a - 1) + (func a - 2)
+    give ans
+
+say func s

@@ -1,0 +1,28 @@
+use math
+use test
+
+values = [1, 2, 3, 4]
+test.equal (math.cbrt 27) 3
+test.equal (math.trunc 3.8) 3
+test.equal (math.exp2 3) 8
+test.equal (math.log2 8) 3
+test.equal (math.gamma 5) 24
+test.equal (math.hypot 2 3 6) 7
+test.equal (math.min 4 2.5 7) 2.5
+test.equal (math.max 4 2.5 7) 7
+test.equal (math.clamp 7 1 5) 5
+test.equal (math.lerp 0 10 0.5) 5
+test.equal (math.map_range 5 0 10 0 100) 50
+test.equal (math.sign (-5)) (-1)
+test.equal (math.gcd 24 36 48) 12
+test.equal (math.lcm 2 3 4) 12
+test.equal (math.factorial 5) 120
+test.equal (math.comb 10 3) 120
+test.equal (math.perm 5 3) 60
+test.equal (math.sum values) 10
+test.equal (math.mean values) 2.5
+test.equal (math.median values) 2.5
+test.equal (math.variance values) 1.25
+test.ok (math.isfinite math.pi)
+test.ok (math.isinf math.inf)
+say "extended math passed"

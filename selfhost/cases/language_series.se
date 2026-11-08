@@ -1,0 +1,21 @@
+use series
+use array
+
+values = [2, 4, 8, 16]
+say series.sum values
+mean_value = try series.mean values
+say mean_value
+say series.min values
+say series.max values
+say series.diff values
+tmp_lag = try series.lag values 1
+say tmp_lag
+tmp_moving_average = try series.moving_average values 2
+say tmp_moving_average
+say series.cumulative_sum values
+tmp_returns = try series.returns values
+say tmp_returns
+tmp_normalize = try series.normalize values
+say tmp_normalize
+tmp_slice = try array.slice values 1 3
+say tmp_slice

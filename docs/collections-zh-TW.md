@@ -21,6 +21,7 @@ Index 超出範圍時會產生 SE error，而不是去讀未知記憶體。
 ```se
 user = ["name": "SE", "score": 100]
 say user["name"]
+removed = user.remove "score"   # Bool：成功刪除回傳 true
 ```
 
 Map 很適合搭配 JSON-style data。

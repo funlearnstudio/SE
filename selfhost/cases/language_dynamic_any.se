@@ -1,0 +1,17 @@
+use dynamic
+use test
+
+make identity value:Any -> Any
+    give value
+
+number = identity 42
+word = identity "SE"
+truth = identity true
+say dynamic.type_of number
+say dynamic.type_of word
+say dynamic.type_of truth
+test.ok (dynamic.is number "Int")
+test.ok (dynamic.is word "Text")
+test.equal (int number) 42
+test.equal (text word) "SE"
+say "dynamic Any ok"

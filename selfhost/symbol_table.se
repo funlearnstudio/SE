@@ -1,0 +1,68 @@
+# SE self-hosting symbol table (compiler stage 3).
+# Entries: [name, type, arity, return_type]; all fields are Text.
+# Block scopes copy the visible symbol table; exports/locals cannot leak back.
+use collections
+
+make new_symbols -> List[List[Text]]
+    seeded = [["", "", "", ""]]
+    give collections.take seeded 0
+
+make clone_symbols entries:List[List[Text]] -> List[List[Text]]
+    cloned = [["", "", "", ""]]
+    cloned = collections.take cloned 0
+    for entry in entries
+        copied = []
+        for field in entry
+            copied.add field
+        cloned.add copied
+    give cloned
+
+make lookup_symbol entries:List[List[Text]] name:Text -> List[Text]
+    i = entries.len - 1
+    while i >= 0
+        item = entries[i]
+        if item[0] == name
+            give item
+        i -= 1
+    give ["", "", "", ""]
+
+make define_symbol entries:List[List[Text]] name:Text kind:Text arity:Text result:Text -> Text
+    previous = lookup_symbol entries name
+    if previous[0] != ""
+        fail "Duplicate symbol: " + name
+    record = [name, kind, arity, result]
+    entries.add record
+    give "OK"
+
+make assign_symbol entries:List[List[Text]] name:Text kind:Text -> Text
+    i = entries.len - 1
+    while i >= 0
+        item = entries[i]
+        if item[0] == name
+            previous = item[1]
+            if previous == "List[Unknown]" and kind in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[List[Text]]", "List[List[Int]]"]
+                item[1] = kind
+                entries[i] = item
+                give "OK"
+            if kind == "List[Unknown]" and previous in ["List[Int]", "List[Num]", "List[Text]", "List[Bool]", "List[List[Text]]", "List[List[Int]]"]
+                give "OK"
+            if kind != "Unknown" and previous != "Unknown" and previous != kind
+                if not (previous == "Num" and kind == "Int")
+                    fail "Cannot assign " + kind + " to " + previous + " variable " + name
+            if previous == "Unknown" and kind != "Unknown"
+                item[1] = kind
+                entries[i] = item
+            give "OK"
+        i -= 1
+    give try define_symbol entries name kind "0" ""
+
+# Explicit writeback preserves records in both SE's shared Lists and the
+# standalone backend's value-based collection representation.
+make replace_symbol entries:List[List[Text]] record:List[Text] -> Text
+    i = entries.len - 1
+    while i >= 0
+        if entries[i][0] == record[0]
+            entries[i] = record
+            give "OK"
+        i -= 1
+    fail "Cannot replace unknown symbol: " + record[0]

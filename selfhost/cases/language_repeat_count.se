@@ -1,0 +1,12 @@
+count = 3
+repeat count
+    say count
+    count -= 1
+make count_once unused:Int -> Int
+    say "count evaluated"
+    give 2
+repeat count_once 0
+    repeat 2
+        say "body"
+repeat 0
+    say "unreachable"

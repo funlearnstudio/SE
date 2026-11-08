@@ -1,0 +1,13 @@
+use json
+
+make decode encoded:Text -> List[Text]
+    give json.parse encoded
+
+original = ["alpha", "line\nbreak", "quoted\"value", "中"]
+encoded = json.stringify original
+decoded = decode encoded
+say decoded.len
+say decoded[0]
+say decoded[1]
+say decoded[2]
+say decoded[3]

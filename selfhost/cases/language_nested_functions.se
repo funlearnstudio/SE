@@ -1,0 +1,21 @@
+make apply amount:Int -> Int
+    factor = 3
+    make add value:Int -> Int
+        give value + amount + factor
+    give add 4
+
+make factorial start:Int -> Int
+    make fact n:Int -> Int
+        if n <= 1
+            give 1
+        give n * (fact (n - 1))
+    give fact start
+
+make outer n:Int -> Int
+    make add x
+        give x + n
+    give add 4
+
+say apply 5
+say factorial 5
+say outer 3

@@ -1,0 +1,16 @@
+# Run: SE_SELFHOST_SOURCE=path.se SE_SELFHOST_OUTPUT=path.cpp se run selfhost/compiler.se
+use compile
+use os
+
+source = os.getenv "SE_SELFHOST_SOURCE"
+if source == ""
+    source = "selfhost/sample.se"
+output = os.getenv "SE_SELFHOST_OUTPUT"
+if output == ""
+    output = "selfhost/generated_sample.cpp"
+result = ""
+if os.getenv "SE_SELFHOST_TARGET" == "web"
+    result = try compile_web_file source output
+else
+    result = try compile_file source output
+say "SE selfhost compiler: generated " + result

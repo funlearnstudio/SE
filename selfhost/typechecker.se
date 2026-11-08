@@ -1,0 +1,1182 @@
+# SE self-hosted compiler: semantic analysis and static type checking.
+# Supported subset: typed/untyped functions, List, numeric/boolean/Text
+# expressions, local scopes, bounded loops, declarations and module names.
+use json
+use text
+use symbol_table
+use collections
+use ast_codec
+use type_model
+
+make _node encoded:Text -> List[Text]
+    give unpack_node encoded
+
+make _compatible expected:Text actual:Text -> Bool
+    give type_matches expected actual
+
+make _field_type field:List[Text] symbols:List[List[Text]] -> Text
+    if field.len > 2 and field[2] != "Unknown"
+        give field[2]
+    give try _infer field[1] symbols
+
+make _user_shape type_name:Text symbols:List[List[Text]] -> List[Text]
+    parts = decompose_type type_name
+    give lookup_symbol symbols parts[0]
+
+make _user_bindings type_name:Text shape:List[Text] -> List[List[Text]]
+    bindings = [["", ""]]
+    bindings = collections.take bindings 0
+    actual = decompose_type type_name
+    generics = []
+    if shape.len > 6
+        generics = _node shape[6]
+    if generics.len > 0
+        if actual.len != generics.len + 1
+            fail "Generic type " + shape[0] + " needs " + string(generics.len) + " type arguments."
+        i = 0
+        while i < generics.len
+            bindings.add ([generics[i], actual[i + 1]])
+            i += 1
+    else if actual.len > 1
+        fail "Non-generic type " + shape[0] + " cannot take type arguments."
+    give bindings
+
+make _validate_type source:Text symbols:List[List[Text]] -> Text
+    if text.starts source "Handle:"
+        give "OK"
+    if source == "Unknown"
+        give "OK"
+    parts = decompose_type source
+    base = parts[0]
+    if base in ["Int", "Num", "Bool", "Text", "Time", "File", "Duration", "Error", "Bytes", "None", "Any"]
+        if parts.len != 1
+            fail "Type " + base + " does not accept type arguments."
+        give "OK"
+    if base in ["List", "Set", "Map"]
+        count = 2
+        if base == "Map"
+            count = 3
+        if parts.len != count
+            fail "Wrong type argument count for " + base
+        index = 1
+        while index < parts.len
+            try _validate_type parts[index] symbols
+            index += 1
+        if base == "Map" and parts[1] != "Text"
+            fail "Map keys must be Text."
+        give "OK"
+    shape = lookup_symbol symbols base
+    if shape[1] == "TypeParameter" and parts.len == 1
+        give "OK"
+    if shape[1] == "UserType"
+        try _user_bindings source shape
+        index = 1
+        while index < parts.len
+            try _validate_type parts[index] symbols
+            index += 1
+        give "OK"
+    fail "Unknown type annotation: " + source
+
+make _add_generics encoded:Text symbols:List[List[Text]] -> Text
+    variables = _node encoded
+    for variable in variables
+        symbols.add ([variable, "TypeParameter", "0", ""])
+    give "OK"
+
+make _numeric kind:Text -> Bool
+    # Generic type parameters may use operators when the concrete call-site
+    # type supplies that operator. The generated C++ template remains the
+    # final constraint check for unsupported instantiations.
+    give kind == "Int" or kind == "Num" or kind == "Unknown" or kind == "TypeParameter" or kind == "Any"
+
+make _generic_type kind:Text symbols:List[List[Text]] -> Bool
+    shape = lookup_symbol symbols kind
+    give shape[1] == "TypeParameter"
+
+make _infer encoded:Text symbols:List[List[Text]] -> Text
+    node = _node encoded
+    kind = node[0]
+    if kind == "NativeCall"
+        give node[4]
+    if kind == "Atom"
+        token = node[1]
+        if token == "Integer"
+            give "Int"
+        if token == "Number"
+            give "Num"
+        if token == "Duration"
+            give "Duration"
+        if token == "String"
+            give "Text"
+        if token == "true" or token == "false"
+            give "Bool"
+        if token == "Identifier"
+            record = lookup_symbol symbols node[2]
+            if record[0] == ""
+                fail "Undefined identifier: " + node[2]
+            if record[1] == "UserType"
+                try _user_bindings record[0] record
+                give record[0]
+            # A bare reference to a zero-parameter SE function evaluates the
+            # function immediately, just as the production interpreter does.
+            if record[1] == "Function" and record[2] == "0"
+                give record[3]
+            give record[1]
+    if kind == "TypeInstance"
+        shape = lookup_symbol symbols node[1]
+        if shape[1] != "UserType"
+            fail "Unknown generic user type: " + node[1]
+        arguments = _node node[2]
+        name = node[1] + "[" + (text.join arguments ",") + "]"
+        try _user_bindings name shape
+        give name
+    if kind == "Unary"
+        operand = try _infer node[2] symbols
+        if node[1] == "not"
+            if not _compatible "Bool" operand
+                fail "not expects Bool, got " + operand
+            give "Bool"
+        if not _numeric operand and not (_generic_type operand symbols)
+            fail "Unary - needs a number, got " + operand
+        give operand
+    if kind == "Binary"
+        left = try _infer node[2] symbols
+        right = try _infer node[3] symbols
+        op = node[1]
+        if op == "and" or op == "or"
+            if not _compatible "Bool" left or not _compatible "Bool" right
+                fail "Logical operation requires Bool operands."
+            give "Bool"
+        if op in ["==", "!=", "in"]
+            give "Bool"
+        if op in ["<", "<=", ">", ">="]
+            if (not _numeric left and not (_generic_type left symbols)) or (not _numeric right and not (_generic_type right symbols))
+                fail "Comparison requires numeric operands."
+            give "Bool"
+        if op == ".."
+            if left != "Int" or right != "Int"
+                fail "Range endpoints must be Int."
+            give "List[Int]"
+        if op == "+" and (left == "Text" or right == "Text")
+            give "Text"
+        if (not _numeric left and not (_generic_type left symbols)) or (not _numeric right and not (_generic_type right symbols))
+            fail "Arithmetic requires numbers, got " + left + " and " + right
+        if left == right and _generic_type left symbols and op != "/"
+            give left
+        if left == "Any" or right == "Any"
+            give "Any"
+        if op == "/" or op == "**" or left == "Num" or right == "Num"
+            give "Num"
+        give "Int"
+    if kind == "List"
+        items = _node node[1]
+        element = "Unknown"
+        for item in items
+            got = try _infer item symbols
+            if element == "Unknown"
+                element = got
+            else if not _compatible element got
+                if element == "Int" and got == "Num"
+                    element = "Num"
+                else
+                    fail "List element type mismatch: " + element + " vs " + got
+        give "List[" + element + "]"
+    if kind == "Map"
+        pairs = _node node[1]
+        element = "Unknown"
+        for item in pairs
+            pair = _node item
+            key_type = try _infer pair[0] symbols
+            if key_type != "Text"
+                fail "Map keys must be Text."
+            got = try _infer pair[1] symbols
+            if element == "Unknown"
+                element = got
+            else if not _compatible element got
+                if element == "Int" and got == "Num"
+                    element = "Num"
+                else
+                    fail "Map values must have the same type."
+        give "Map[Text," + element + "]"
+    if kind == "Set"
+        items = _node node[1]
+        element = "Unknown"
+        for item in items
+            got = try _infer item symbols
+            if element == "Unknown"
+                element = got
+            else if not _compatible element got
+                if element == "Int" and got == "Num"
+                    element = "Num"
+                else
+                    fail "Set values must have the same type."
+        give "Set[" + element + "]"
+    if kind == "Index"
+        container = try _infer node[1] symbols
+        index_type = try _infer node[2] symbols
+        parts = decompose_type container
+        if parts[0] == "Map" and parts.len == 3
+            if not (type_matches parts[1] index_type)
+                fail "Map key must be " + parts[1] + "."
+            give parts[2]
+        if parts[0] == "List" and parts.len == 2
+            if index_type != "Int" and index_type != "Unknown"
+                fail "List index must be Int."
+            give parts[1]
+        if container == "Bytes"
+            if index_type != "Int" and index_type != "Unknown"
+                fail "Bytes index must be Int."
+            give "Int"
+        if container == "Any"
+            give "Any"
+        if container == "Unknown"
+            give "Unknown"
+        fail "Only List and Map indexing supported, got " + container
+    if kind == "Member"
+        object_type = try _infer node[1] symbols
+        member = node[2]
+        owner = _node node[1]
+        if member == "help"
+            give "Text"
+        if owner[0] == "Atom" and owner[1] == "Identifier"
+            if owner[0] == "Atom" and owner[1] == "Identifier" and owner[2] == "uuid" and member == "v4"
+                give "Text"
+            if owner[2] == "dynamic" and member in ["type_of", "is"]
+                give "Function"
+            if owner[2] == "math" and member in ["pi", "e", "tau", "inf"]
+                give "Num"
+            if owner[2] == "random" and member == "num"
+                give "Num"
+            if owner[2] == "os" and member in ["platform", "cwd"]
+                give "Text"
+            if owner[2] == "time" and member == "now"
+                give "Time"
+            if owner[2] == "logging" and member == "records"
+                give "Any"
+            if owner[2] == "node" and member == "version"
+                give "Text"
+        if member == "message" and object_type == "Error"
+            give "Text"
+        if member == "kind" and object_type == "Error"
+            give "Text"
+        if object_type == "File" and member == "read"
+            give "Text"
+        if object_type == "File" and member in ["write", "close"]
+            give "Function"
+        parts = decompose_type object_type
+        if member == "len"
+            if object_type in ["Text", "Bytes", "Unknown"] or parts[0] in ["List", "Map", "Set"]
+                give "Int"
+        if member == "upper" or member == "lower"
+            if object_type == "Text" or object_type == "Unknown"
+                give "Text"
+        if member in ["add", "remove"]
+            if object_type == "Unknown" or parts[0] in ["List", "Set"]
+                give "Function"
+            if member == "remove" and parts[0] == "Map"
+                give "Function"
+        if object_type == "Any"
+            if member == "len"
+                give "Int"
+            give "Any"
+        if object_type == "Module"
+            give "Function"
+        user_type = _user_shape object_type symbols
+        if user_type[1] == "UserType"
+            bindings = try _user_bindings object_type user_type
+            fields = _node user_type[4]
+            for encoded_field in fields
+                field = _node encoded_field
+                if field[0] == member
+                    give resolve_type (try _field_type field symbols) bindings
+            methods = try unpack_block user_type[5]
+            for encoded_method in methods
+                method = _node encoded_method
+                if method[1] == member
+                    give resolve_type method[4] bindings
+        fail "Unknown member " + member + " of " + object_type
+    if kind == "Call"
+        callee = _node node[1]
+        args = _node node[2]
+        if callee[0] == "Member"
+            call_owner = _node callee[1]
+            if call_owner[0] == "Atom" and call_owner[1] == "Identifier" and call_owner[2] == "dynamic"
+                method = callee[2]
+                if method == "type_of"
+                    if args.len != 1
+                        fail "dynamic.type_of expects one value."
+                    give "Text"
+                if method == "is"
+                    if args.len != 2
+                        fail "dynamic.is expects a value and a type name."
+                    give "Bool"
+                fail "Unknown dynamic operation: " + method
+            if call_owner[0] == "Atom" and call_owner[1] == "Identifier" and call_owner[2] == "operator"
+                method = callee[2]
+                if not (method in ["add", "sub", "mul", "div", "mod", "eq", "ne", "lt", "le", "gt", "ge"])
+                    fail "Unknown operator function: " + method
+                if args.len != 2
+                    fail "operator." + method + " expects two arguments."
+                left_type = try _infer args[0] symbols
+                right_type = try _infer args[1] symbols
+                if method in ["eq", "ne", "lt", "le", "gt", "ge"]
+                    give "Bool"
+                if left_type == "Text" and right_type == "Text" and method == "add"
+                    give "Text"
+                if not (left_type in ["Int", "Num", "Unknown", "Any"]) or not (right_type in ["Int", "Num", "Unknown", "Any"])
+                    fail "operator." + method + " expects compatible operands."
+                if left_type == "Any" or right_type == "Any"
+                    give "Any"
+                if method == "div" or left_type == "Num" or right_type == "Num"
+                    give "Num"
+                give "Int"
+        for item in args
+            try _infer item symbols
+        if callee[0] == "Atom" and callee[1] == "Identifier"
+            name = callee[2]
+            if name == "read"
+                if args.len != 1
+                    fail "read expects one file path."
+                give "Text"
+            if name == "open"
+                if args.len != 1
+                    fail "open expects one file path."
+                give "File"
+            if name == "write" or name == "append"
+                if args.len != 2
+                    fail name + " expects path and text."
+                give "Unknown"
+            if name == "wait"
+                if args.len != 1
+                    fail "wait expects one Duration."
+                wait_type = try _infer args[0] symbols
+                if wait_type != "Duration" and wait_type != "Unknown"
+                    fail "wait expects a Duration value."
+                give "Unknown"
+            if name == "bytes"
+                if args.len != 1
+                    fail "bytes needs one Text argument."
+                give "Bytes"
+            if name == "char"
+                if args.len != 1
+                    fail "char expects one argument."
+                codepoint_type = try _infer args[0] symbols
+                if codepoint_type != "Int" and codepoint_type != "Text" and codepoint_type != "Unknown"
+                    fail "char expects an Int codepoint or one-character Text."
+                give "Text"
+            if name == "int" or name == "integer"
+                if args.len != 1
+                    fail "int expects one argument."
+                give "Int"
+            if name == "num" or name == "float" or name == "double"
+                if args.len != 1
+                    fail "num expects one argument."
+                give "Num"
+            if name == "bool" or name == "boolean"
+                if args.len != 1
+                    fail "bool expects one argument."
+                bool_type = try _infer args[0] symbols
+                if bool_type != "Bool" and bool_type != "Text" and bool_type != "Unknown"
+                    fail "bool needs Bool or Text true/false."
+                give "Bool"
+            if name == "string" or name == "text"
+                if args.len != 1
+                    fail "text expects one argument."
+                give "Text"
+            entry = lookup_symbol symbols name
+            if entry[0] == ""
+                fail "Undefined function: " + name
+            if entry[1] == "Unknown"
+                for argument in args
+                    try _infer argument symbols
+                give "Unknown"
+            if entry[1] != "Function"
+                fail "Cannot call non-function: " + name
+            if int entry[2] != args.len
+                fail "Wrong arity for " + name + ": expected " + entry[2]
+            bindings = [["", ""]]
+            bindings = collections.take bindings 0
+            if entry.len > 5
+                variables = _node entry[5]
+                for variable in variables
+                    bindings.add ([variable, "Unknown"])
+            if entry.len > 4
+                signature = _node entry[4]
+                i = 0
+                while i < signature.len
+                    pair = _node signature[i]
+                    got = try _infer args[i] symbols
+                    try bind_type pair[1] got bindings
+                    if not _compatible (resolve_type pair[1] bindings) got
+                        fail "Function " + name + " argument " + string(i + 1) + " expects " + pair[1] + ", got " + got
+                    i += 1
+            give resolve_type entry[3] bindings
+        if callee[0] == "Member"
+            owner_type = try _infer callee[1] symbols
+            if owner_type == "Module"
+                owner = _node callee[1]
+                if owner[0] == "Atom" and owner[2] == "collections"
+                    method = callee[2]
+                    if method == "contains"
+                        if args.len != 2
+                            fail "collections.contains expects a collection and a value."
+                        give "Bool"
+                    if method in ["first", "last", "unique", "sort_by", "sort_by_desc"]
+                        expected = 1
+                        if method in ["sort_by", "sort_by_desc"]
+                            expected = 2
+                        if args.len != expected
+                            fail "Wrong argument count for collections."
+                        if method in ["sort_by", "sort_by_desc"]
+                            key_type = try _infer args[1] symbols
+                            if key_type != "Text" and key_type != "Unknown"
+                                fail "collections.sort_by expects a Text key."
+                        collection_type = try _infer args[0] symbols
+                        collection_parts = decompose_type collection_type
+                        if collection_parts[0] == "List" and collection_parts.len == 2
+                            if method in ["first", "last"]
+                                give collection_parts[1]
+                            give collection_type
+                    if method in ["keys", "values"]
+                        if args.len != 1
+                            fail "collections.keys/values expects one Map."
+                        map_type = decompose_type (try _infer args[0] symbols)
+                        if map_type[0] == "Map" and map_type.len == 3
+                            if method == "keys"
+                                give "List[Text]"
+                            give "List[" + map_type[2] + "]"
+                if owner[0] == "Atom" and owner[2] == "time"
+                    if callee[2] == "now"
+                        if args.len != 0
+                            fail "time.now expects no arguments."
+                        give "Time"
+                    if callee[2] == "unix"
+                        if args.len != 1
+                            fail "time.unix expects one Time."
+                        give "Int"
+                    if callee[2] == "from_unix"
+                        if args.len != 1
+                            fail "time.from_unix expects one Int."
+                        give "Time"
+                    if callee[2] == "iso"
+                        if args.len != 1
+                            fail "time.iso expects one Time."
+                        give "Text"
+                if owner[0] == "Atom" and owner[2] == "file"
+                    if callee[2] == "open"
+                        if args.len != 1
+                            fail "file.open expects one path."
+                        give "File"
+                    if callee[2] == "read"
+                        give "Text"
+                    if callee[2] in ["write", "append", "copy", "move", "copytree", "remove", "mkdir"]
+                        give "Unknown"
+                if owner[0] == "Atom" and owner[2] == "args"
+                    if callee[2] == "parse"
+                        if args.len != 1
+                            fail "args.parse expects one List[Text]."
+                        give "Map[Text,Any]"
+                    if callee[2] == "get"
+                        if args.len != 2 and args.len != 3
+                            fail "args.get expects a parsed Map, name, and optional default."
+                        give "Any"
+                    if callee[2] == "flag"
+                        if args.len != 2
+                            fail "args.flag expects a parsed Map and name."
+                        give "Bool"
+                if owner[0] == "Atom" and owner[2] == "argparse"
+                    if callee[2] == "parse_args"
+                        if args.len != 1
+                            fail "argparse.parse_args expects one List[Text]."
+                        give "Map[Text,Any]"
+                    if callee[2] == "get"
+                        if args.len != 2 and args.len != 3
+                            fail "argparse.get expects a parsed Map, name, and optional default."
+                        give "Any"
+                    if callee[2] == "flag" or callee[2] == "has"
+                        if args.len != 2
+                            fail "argparse flag/has expects a parsed Map and name."
+                        give "Bool"
+                    if callee[2] == "help"
+                        if args.len != 2
+                            fail "argparse.help expects a title and option List[Text]."
+                        give "Text"
+                    if callee[2] == "positionals"
+                        if args.len != 1
+                            fail "argparse.positionals expects a parsed Map."
+                        give "Any"
+                    if callee[2] == "get_int" or callee[2] == "require"
+                        if args.len != 2
+                            fail "argparse.get_int/require expects a parsed Map and name."
+                        if callee[2] == "get_int"
+                            give "Int"
+                        give "Any"
+                if owner[0] == "Atom" and owner[2] == "dataset"
+                    if callee[2] == "describe"
+                        if args.len != 1
+                            fail "dataset.describe expects one List of row Maps."
+                        give "Any"
+                    if callee[2] == "train_test_split"
+                        if args.len != 2
+                            fail "dataset.train_test_split expects rows and a ratio."
+                        give "Any"
+                    if callee[2] == "filter_eq" or callee[2] == "unique"
+                        if args.len != 3 and callee[2] == "filter_eq"
+                            fail "dataset.filter_eq expects rows, column, and value."
+                        if args.len != 2 and callee[2] == "unique"
+                            fail "dataset.unique expects rows and a column."
+                        give "Any"
+                if owner[0] == "Atom" and owner[2] == "ml"
+                    if callee[2] == "linear_regression"
+                        if args.len != 2
+                            fail "ml.linear_regression expects two numeric Lists."
+                        give "Any"
+                    if callee[2] == "predict"
+                        if args.len != 2
+                            fail "ml.predict expects a model and a number."
+                        give "Num"
+                if owner[0] == "Atom" and owner[2] == "tensor"
+                    if callee[2] == "shape"
+                        if args.len != 1
+                            fail "tensor.shape expects one tensor."
+                        give "Any"
+                    if callee[2] == "add" or callee[2] == "matmul"
+                        if args.len != 2
+                            fail "tensor.add/matmul expects two tensors."
+                        give "Any"
+                if owner[0] == "Atom" and owner[2] == "logging"
+                    if callee[2] in ["debug", "info", "warning", "error", "critical", "set_level"]
+                        if args.len != 1
+                            fail "logging operation expects one Text argument."
+                        give "None"
+                    if callee[2] == "records"
+                        if args.len != 0
+                            fail "logging.records expects no arguments."
+                        give "Any"
+                if owner[0] == "Atom" and owner[2] in ["hash", "hashlib"]
+                    expected = 1
+                    if callee[2] in ["hmac_sha256", "compare", "digest", "file_digest"]
+                        expected = 2
+                    if args.len != expected
+                        fail "Hash operation has the wrong number of arguments."
+                    if callee[2] == "compare"
+                        give "Bool"
+                    give "Text"
+                if owner[0] == "Atom" and owner[2] == "pickle"
+                    if args.len != 1
+                        fail "pickle operation expects one argument."
+                    give "Any"
+                if owner[0] == "Atom" and owner[2] == "socket"
+                    if callee[2] == "resolve"
+                        if args.len != 1
+                            fail "socket.resolve expects one host."
+                        give "Text"
+                    if callee[2] == "tcp"
+                        if args.len != 3
+                            fail "socket.tcp expects host, port, and payload."
+                        give "Text"
+                if owner[0] == "Atom" and owner[2] == "dns"
+                    if args.len != 1
+                        fail "DNS operation expects one name or address."
+                    if callee[2] == "is_ip"
+                        give "Bool"
+                    if callee[2] in ["resolve", "resolve4", "resolve6", "lookup_mx", "lookup_txt"]
+                        give "Any"
+                    give "Text"
+                if owner[0] == "Atom" and owner[2] in ["sqlite", "sqlite3"]
+                    expected = 1
+                    if callee[2] in ["exec", "query", "query_one", "table_info", "backup", "execute_many"]
+                        expected = 2
+                    if args.len != expected
+                        fail "SQLite operation has the wrong number of arguments."
+                    if callee[2] in ["query", "query_one", "tables", "table_info"]
+                        give "Any"
+                    if callee[2] == "open"
+                        give "Any"
+                    give "Int"
+                if owner[0] == "Atom" and owner[2] in ["http_server", "router", "web"]
+                    expected = 0
+                    if callee[2] in ["get", "post", "put", "patch", "delete", "header", "param", "listen", "text", "json"]
+                        expected = 1
+                    if callee[2] in ["handle", "handle_status", "response"]
+                        expected = 3
+                    if callee[2] in ["get", "post", "put", "patch", "delete"]
+                        expected = 2
+                    if args.len != expected
+                        fail "Web server operation has the wrong number of arguments."
+                    if callee[2] == "route_count" or callee[2] == "handle_status"
+                        give "Int"
+                    if callee[2] in ["method", "path", "query", "body"]
+                        give "Text"
+                    if callee[2] == "handle" or callee[2] == "text"
+                        give "Text"
+                    give "Any"
+                if owner[0] == "Atom" and owner[2] in ["game", "gui", "window", "canvas", "scene", "input", "sprite", "physics", "sound", "keyboard", "mouse", "animation", "collision", "image", "audio", "video", "camera"]
+                    expected = 1
+                    if callee[2] in ["new", "background", "script", "position", "move", "velocity", "camera", "sound", "stop", "image", "key_move", "follow_mouse", "animate", "particles", "rect_hit", "circle_hit", "distance", "vector", "text", "line", "rect", "circle", "sprite", "sprite_color", "add", "start", "response"]
+                        expected = 2
+                    if callee[2] == "new"
+                        expected = 3
+                    if callee[2] in ["position", "move", "velocity"]
+                        expected = 4
+                    if callee[2] == "sound"
+                        expected = 3
+                    if callee[2] in ["rect"]
+                        expected = 7
+                    if callee[2] in ["circle"]
+                        expected = 6
+                    if callee[2] in ["line"]
+                        expected = 7
+                    if callee[2] in ["text"]
+                        expected = 6
+                    if callee[2] == "sprite_color"
+                        expected = 7
+                    if callee[2] == "particles"
+                        expected = 6
+                    if callee[2] in ["image", "add"]
+                        expected = 6
+                    if callee[2] == "sprite"
+                        expected = 7
+                    if callee[2] == "key_move"
+                        expected = 5
+                    if callee[2] in ["fullscreen", "clear", "html", "show"]
+                        expected = 1
+                    if callee[2] == "save"
+                        expected = 2
+                    if callee[2] == "play"
+                        expected = 4
+                    if callee[2] in ["camera", "start"]
+                        expected = 3
+                    if callee[2] == "start"
+                        expected = 5
+                    if callee[2] == "stop"
+                        expected = 2
+                        if owner[2] == "camera" or owner[2] == "video"
+                            expected = 1
+                    if callee[2] == "rect_hit"
+                        expected = 8
+                    if callee[2] == "circle_hit"
+                        expected = 6
+                    if callee[2] == "distance"
+                        expected = 4
+                    if args.len != expected
+                        fail "Graphics operation has the wrong number of arguments."
+                    if callee[2] in ["rect_hit", "circle_hit", "distance", "vector", "new", "html", "show"]
+                        give "Any"
+                    give "None"
+                give "Unknown"
+            if owner_type == "Any"
+                give "Any"
+            if owner_type == "File"
+                if callee[2] == "write"
+                    if args.len != 1
+                        fail "File.write expects one Text."
+                    give "Unknown"
+                if callee[2] == "close"
+                    if args.len != 0
+                        fail "File.close expects no arguments."
+                    give "Unknown"
+            if callee[2] in ["add", "remove"]
+                if args.len != 1
+                    fail "Collection.add/remove expects exactly one value."
+                give "Unknown"
+            user_type = _user_shape owner_type symbols
+            if user_type[1] == "UserType"
+                bindings = try _user_bindings owner_type user_type
+                methods = try unpack_block user_type[5]
+                for encoded_method in methods
+                    method = _node encoded_method
+                    if method[1] == callee[2]
+                        if method.len > 5
+                            variables = _node method[5]
+                            for variable in variables
+                                bindings.add ([variable, "Unknown"])
+                        parameters = _node method[2]
+                        if parameters.len != args.len
+                            fail "Wrong arity for method " + callee[2]
+                        j = 0
+                        while j < parameters.len
+                            parameter = _node parameters[j]
+                            found_type = try _infer args[j] symbols
+                            try bind_type parameter[1] found_type bindings
+                            expected_type = resolve_type parameter[1] bindings
+                            if not _compatible expected_type found_type
+                                fail "Method argument type mismatch."
+                            j += 1
+                        give resolve_type method[4] bindings
+        fail "Unsupported call expression in bootstrap checker."
+    if kind == "Ask"
+        got = try _infer node[1] symbols
+        if got != "Text" and got != "Unknown"
+            fail "ask needs a Text question."
+        give "Text"
+    if kind == "Try"
+        give try _infer node[1] symbols
+    fail "Unsupported AST expression in self-hosted checker: " + kind
+
+make _guarantees_return statements:List[Text] -> Bool
+    for item in statements
+        node = _node item
+        if node[0] == "give" or node[0] == "fail"
+            give true
+        if node[0] == "TryStmt"
+            protected = try unpack_block node[1]
+            recovery = try unpack_block node[3]
+            if recovery.len > 0 and try _guarantees_return protected and try _guarantees_return recovery
+                give true
+        if node[0] == "Match"
+            options = _node node[2]
+            fallback = try unpack_block node[3]
+            if fallback.len > 0 and try _guarantees_return fallback
+                every_case = true
+                for encoded_case in options
+                    case_pair = _node encoded_case
+                    if not (try _guarantees_return (try unpack_block case_pair[1]))
+                        every_case = false
+                if every_case
+                    give true
+        if node[0] == "If"
+            yes = try unpack_block node[2]
+            no = try unpack_block node[3]
+            if try _guarantees_return yes and try _guarantees_return no
+                give true
+    give false
+
+make _check_block statements:List[Text] symbols:List[List[Text]] return_type:Text -> Text
+    for item in statements
+        try _check_statement item symbols return_type
+    give "OK"
+
+make _check_statement encoded:Text symbols:List[List[Text]] return_type:Text -> Text
+    node = _node encoded
+    kind = node[0]
+    if kind == "Assign"
+        inferred = try _infer node[2] symbols
+        shape = _user_shape inferred symbols
+        if shape[1] == "UserType"
+            try _user_bindings inferred shape
+            fields = _node shape[4]
+            for encoded_field in fields
+                field = _node encoded_field
+                if field.len > 3 and field[3] == "required"
+                    fail "Missing required field: " + field[0]
+        try assign_symbol symbols node[1] inferred
+        give "OK"
+    if kind == "AssignInit"
+        type_name = try _infer node[2] symbols
+        user_type = _user_shape type_name symbols
+        if user_type[1] != "UserType"
+            fail "Initializer block requires a user-defined type."
+        bindings = try _user_bindings type_name user_type
+        fields = _node user_type[4]
+        initializers = _node node[3]
+        for encoded_init in initializers
+            init = _node encoded_init
+            matched = false
+            for encoded_field in fields
+                field = _node encoded_field
+                if field[0] == init[0]
+                    matched = true
+                    declared = resolve_type (try _field_type field symbols) bindings
+                    actual = try _infer init[1] symbols
+                    if not _compatible declared actual
+                        fail "Initializer field type mismatch: " + init[0]
+            if not matched
+                fail "Unknown initializer field: " + init[0]
+        for encoded_field in fields
+            field = _node encoded_field
+            if field.len > 3 and field[3] == "required"
+                supplied = false
+                for encoded_init in initializers
+                    init = _node encoded_init
+                    if init[0] == field[0]
+                        supplied = true
+                if not supplied
+                    fail "Missing required field: " + field[0]
+        try assign_symbol symbols node[1] type_name
+        give "OK"
+    if kind == "AssignIndex"
+        target_type = try _infer node[1] symbols
+        index_type = try _infer node[2] symbols
+        value_type = try _infer node[3] symbols
+        element = "Unknown"
+        parts = decompose_type target_type
+        if parts[0] == "Map" and parts.len == 3
+            if not (type_matches parts[1] index_type)
+                fail "Map key assignment requires Text key."
+            element = parts[2]
+        else if parts[0] == "List" and parts.len == 2
+            if index_type != "Int" and index_type != "Unknown"
+                fail "List index assignment requires Int index."
+            element = parts[1]
+        else if target_type == "Bytes"
+            if index_type != "Int" and index_type != "Unknown"
+                fail "Bytes index must be Int."
+            if value_type != "Int" and value_type != "Unknown"
+                fail "Bytes assignments require an Int from 0 to 255."
+            give "OK"
+        else if target_type != "Unknown" and target_type != "Any"
+            fail "Assignment index target must be a List or Map."
+        if not _compatible element value_type
+            fail "Collection assignment expects " + element + ", got " + value_type
+        give "OK"
+    if kind == "AssignMember"
+        type_name = try _infer node[1] symbols
+        if type_name == "Any"
+            try _infer node[3] symbols
+            give "OK"
+        user_type = _user_shape type_name symbols
+        if user_type[1] != "UserType"
+            fail "Field assignment requires an object."
+        bindings = try _user_bindings type_name user_type
+        fields = _node user_type[4]
+        for encoded_field in fields
+            field = _node encoded_field
+            if field[0] == node[2]
+                declared = resolve_type (try _field_type field symbols) bindings
+                actual = try _infer node[3] symbols
+                if not _compatible declared actual
+                    fail "Object field assignment type mismatch."
+                give "OK"
+        fail "Unknown object field: " + node[2]
+    if kind == "MultiAsk"
+        fields = _node node[1]
+        for item in fields
+            field = _node item
+            try assign_symbol symbols field[0] field[1]
+        give "OK"
+    if kind == "ExprStmt"
+        try _infer node[2] symbols
+        give "OK"
+    if kind == "Use"
+        try define_symbol symbols node[1] "Module" "0" ""
+        give "OK"
+    if kind == "NativeLoad"
+        give "OK"
+    if kind == "fail"
+        got = try _infer node[2] symbols
+        if got != "Text" and got != "Unknown"
+            fail "fail message must be Text."
+        give "OK"
+    if kind == "say" or kind == "give"
+        got = try _infer node[2] symbols
+        if kind == "give"
+            if return_type == "TopLevel"
+                fail "give may only occur inside a function."
+            if not _compatible return_type got
+                fail "Function return type is " + return_type + ", got " + got
+        give "OK"
+    if kind == "TryStmt"
+        local = clone_symbols symbols
+        try _check_block (try unpack_block node[1]) local return_type
+        recovery = try unpack_block node[3]
+        if recovery.len > 0
+            errors = clone_symbols symbols
+            try define_symbol errors node[2] "Error" "0" ""
+            try _check_block recovery errors return_type
+        give "OK"
+    if kind == "Match"
+        subject_type = try _infer node[1] symbols
+        choices = _node node[2]
+        for encoded_case in choices
+            choice = _node encoded_case
+            case_type = try _infer choice[0] symbols
+            if not _compatible subject_type case_type and not _compatible case_type subject_type
+                fail "Match case type mismatch: " + subject_type + " vs " + case_type
+            local = clone_symbols symbols
+            try _check_block (try unpack_block choice[1]) local return_type
+        otherwise = clone_symbols symbols
+        try _check_block (try unpack_block node[3]) otherwise return_type
+        give "OK"
+    if kind == "If" or kind == "while" or kind == "repeat"
+        condition = try _infer node[1] symbols
+        expected = "Bool"
+        if kind == "repeat"
+            expected = "Int"
+        if not _compatible expected condition
+            fail kind + " requires " + expected + ", got " + condition
+        nested = clone_symbols symbols
+        body = try unpack_block node[2]
+        try _check_block body nested return_type
+        if kind == "If"
+            alternative = try unpack_block node[3]
+            nested_else = clone_symbols symbols
+            try _check_block alternative nested_else return_type
+        give "OK"
+    if kind == "ForPairs"
+        iterable = try _infer node[3] symbols
+        parts = decompose_type iterable
+        if iterable != "Unknown" and iterable != "Any" and not (parts[0] == "Map" and parts.len == 3)
+            fail "Two-variable for expects a Map, got " + iterable
+        element = "Unknown"
+        if iterable == "Any"
+            element = "Any"
+        key_type = "Text"
+        if parts[0] == "Map" and parts.len == 3
+            key_type = parts[1]
+            element = parts[2]
+        local = clone_symbols symbols
+        try define_symbol local node[1] key_type "0" ""
+        try define_symbol local node[2] element "0" ""
+        try _check_block (try unpack_block node[4]) local return_type
+        give "OK"
+    if kind == "For"
+        iterable = try _infer node[2] symbols
+        element_type = "Unknown"
+        parts = decompose_type iterable
+        if parts[0] in ["List", "Set"] and parts.len == 2
+            element_type = parts[1]
+        if parts[0] == "Map" and parts.len == 3
+            element_type = parts[1]
+        if iterable == "Any"
+            element_type = "Any"
+        recognized = (parts[0] in ["List", "Set"] and parts.len == 2) or iterable == "Any"
+        if parts[0] == "Map" and parts.len == 3
+            recognized = true
+        if iterable != "Unknown" and not recognized
+            fail "for expects List, Set or Map, got " + iterable
+        local = clone_symbols symbols
+        try define_symbol local node[1] element_type "0" ""
+        body = try unpack_block node[3]
+        try _check_block body local return_type
+        give "OK"
+    if kind == "TypeDecl"
+        fields = _node node[2]
+        local = clone_symbols symbols
+        if node.len > 4
+            try _add_generics node[4] local
+        for encoded_field in fields
+            field = _node encoded_field
+            field_type = try _field_type field local
+            try _validate_type field_type local
+            if field.len > 3 and field[3] == "default"
+                actual_default = try _infer field[1] local
+                if not _compatible field_type actual_default
+                    fail "Field default type mismatch: " + field[0]
+            try define_symbol local field[0] field_type "0" ""
+        methods = try unpack_block node[3]
+        for encoded_method in methods
+            method = _node encoded_method
+            parameters = _node method[2]
+            inner = clone_symbols local
+            if method.len > 5
+                try _add_generics method[5] inner
+            try _validate_type method[4] inner
+            for encoded_param in parameters
+                parameter = _node encoded_param
+                try _validate_type parameter[1] inner
+                try define_symbol inner parameter[0] parameter[1] "0" ""
+            body = try unpack_block method[3]
+            try _check_block body inner method[4]
+            if method[4] != "Unknown" and method[4] != "None" and method[4] != "Any" and not (try _guarantees_return body)
+                fail "Method " + method[1] + " requires a return on all paths."
+        give "OK"
+    if kind == "Make"
+        params = _node node[2]
+        # Nested declarations become visible in their lexical scope. Top-level
+        # functions are already predeclared by check_program for forward calls.
+        entry = lookup_symbol symbols node[1]
+        if entry[0] == ""
+            try define_symbol symbols node[1] "Function" (string params.len) node[4]
+            entry = lookup_symbol symbols node[1]
+            entry.add node[2]
+            if node.len > 5
+                entry.add node[5]
+            try replace_symbol symbols entry
+        local = clone_symbols symbols
+        if node.len > 5
+            try _add_generics node[5] local
+        try _validate_type node[4] local
+        for item in params
+            pair = _node item
+            try _validate_type pair[1] local
+            try define_symbol local pair[0] pair[1] "0" ""
+        body = try unpack_block node[3]
+        try _check_block body local node[4]
+        if node[4] != "Unknown" and node[4] != "None" and node[4] != "Any" and not (try _guarantees_return body)
+            fail "Function " + node[1] + " is missing a return on some code paths."
+        give "OK"
+    fail "Unsupported AST statement in self-hosted checker: " + kind
+
+# Inference must not turn an unresolved operand into a guessed numeric result.
+make _return_expression_ready encoded:Text symbols:List[List[Text]] -> Bool
+    inferred = try _infer encoded symbols
+    if text.contains inferred "Unknown"
+        give false
+    node = _node encoded
+    kind = node[0]
+    if kind == "Binary"
+        give (try _return_expression_ready node[2] symbols) and (try _return_expression_ready node[3] symbols)
+    if kind == "Unary"
+        give try _return_expression_ready node[2] symbols
+    if kind in ["Try", "Member"]
+        give try _return_expression_ready node[1] symbols
+    if kind == "Index"
+        give (try _return_expression_ready node[1] symbols) and (try _return_expression_ready node[2] symbols)
+    if kind in ["List", "Set", "Call"]
+        contents = node[1]
+        if kind == "Call"
+            contents = node[2]
+        for item in (_node contents)
+            if not (try _return_expression_ready item symbols)
+                give false
+    if kind == "Map"
+        for item in (_node node[1])
+            pair = _node item
+            if not (try _return_expression_ready pair[1] symbols)
+                give false
+    give true
+
+# Collect value returns in their lexical environments; nested function returns
+# belong to that function, not to its enclosing declaration.
+make _collect_return_types statements:List[Text] symbols:List[List[Text]] found:List[Text] -> Text
+    for item in statements
+        node = _node item
+        kind = node[0]
+        if kind == "give"
+            if try _return_expression_ready node[2] symbols
+                found.add (try _infer node[2] symbols)
+            else
+                found.add "Unknown"
+        else if kind == "If"
+            try _collect_return_types (try unpack_block node[2]) (clone_symbols symbols) found
+            try _collect_return_types (try unpack_block node[3]) (clone_symbols symbols) found
+        else if kind == "TryStmt"
+            try _collect_return_types (try unpack_block node[1]) (clone_symbols symbols) found
+            recovery = clone_symbols symbols
+            try define_symbol recovery node[2] "Error" "0" ""
+            try _collect_return_types (try unpack_block node[3]) recovery found
+        else if kind == "Match"
+            for encoded_case in (_node node[2])
+                choice = _node encoded_case
+                try _collect_return_types (try unpack_block choice[1]) (clone_symbols symbols) found
+            try _collect_return_types (try unpack_block node[3]) (clone_symbols symbols) found
+        else if kind in ["repeat", "while"]
+            try _collect_return_types (try unpack_block node[2]) (clone_symbols symbols) found
+        else if kind == "For"
+            local = clone_symbols symbols
+            iterable = try _infer node[2] symbols
+            parts = decompose_type iterable
+            element = "Unknown"
+            if parts[0] in ["List", "Set", "Map"] and parts.len > 1
+                element = parts[1]
+            try define_symbol local node[1] element "0" ""
+            try _collect_return_types (try unpack_block node[3]) local found
+        else if kind == "ForPairs"
+            local = clone_symbols symbols
+            iterable = try _infer node[3] symbols
+            parts = decompose_type iterable
+            if parts[0] == "Map" and parts.len == 3
+                try define_symbol local node[1] parts[1] "0" ""
+                try define_symbol local node[2] parts[2] "0" ""
+                try _collect_return_types (try unpack_block node[4]) local found
+            else
+                found.add "Unknown"
+        else
+            if kind in ["Assign", "AssignInit"]
+                if not (try _return_expression_ready node[2] symbols)
+                    found.add "Unknown"
+            try _check_statement item symbols "Unknown"
+    give "OK"
+
+# Join return constraints monotonically. Num widens Int, and scalar unions
+# use Any. Unknown is an unresolved constraint rather than a guessed number.
+make _join_return left:Text right:Text -> Text
+    if left == right or right == "Unknown"
+        give left
+    if left == "Unknown"
+        give right
+    if left in ["Int", "Num"] and right in ["Int", "Num"]
+        give "Num"
+    scalars = ["Int", "Num", "Bool", "Text", "Bytes", "Any", "None"]
+    if left in scalars and right in scalars
+        give "Any"
+    give "Unknown"
+
+make _infer_forward_returns statements:List[Text] symbols:List[List[Text]] -> Text
+    changed = true
+    blocked = []
+    while changed
+        changed = false
+        for item in statements
+            node = _node item
+            if node[0] == "Make" and node[4] == "Unknown" and not (node[1] in blocked)
+                entry = lookup_symbol symbols node[1]
+                try
+                    local = clone_symbols symbols
+                    if node.len > 5
+                        try _add_generics node[5] local
+                    unknown_parameter = false
+                    for encoded_param in (_node node[2])
+                        param = _node encoded_param
+                        if text.contains param[1] "Unknown"
+                            unknown_parameter = true
+                        try define_symbol local param[0] param[1] "0" ""
+                    returns = []
+                    body = try unpack_block node[3]
+                    try _collect_return_types body local returns
+                    result = "Unknown"
+                    unresolved = false
+                    conflict = false
+                    for candidate in returns
+                        if text.contains candidate "Unknown"
+                            unresolved = true
+                        else
+                            combined = _join_return result candidate
+                            if combined == "Unknown" and result != "Unknown"
+                                conflict = true
+                            result = combined
+                    if returns.len == 0
+                        result = "None"
+                    else if not (try _guarantees_return body)
+                        if result in ["Int", "Num", "Bool", "Text", "Bytes", "Any"]
+                            result = "Any"
+                        else
+                            result = "Unknown"
+                    # Recursive cycles may be seeded by concrete base returns,
+                    # but unknown parameters must not freeze a dependent type.
+                    if unknown_parameter and unresolved
+                        result = "Unknown"
+                    if conflict
+                        blocked.add node[1]
+                        entry[3] = "Unknown"
+                        try replace_symbol symbols entry
+                    else if not (text.contains result "Unknown") and result != "Function" and result != "Module"
+                        result = _join_return entry[3] result
+                        if result != "Unknown" and result != entry[3]
+                            entry[3] = result
+                            try replace_symbol symbols entry
+                            changed = true
+                else inference_error
+                    # The ordinary checker still reports actual source errors.
+                    changed = changed
+    give "OK"
+
+make check_program statements:List[Text] -> List[List[Text]]
+    symbols = [["", "", "", ""]]
+    symbols = collections.take symbols 0
+    # Register user type shapes first, enabling forward constructors/methods.
+    for item in statements
+        node = _node item
+        if node[0] == "TypeDecl"
+            try define_symbol symbols node[1] "UserType" "0" ""
+            entry = lookup_symbol symbols node[1]
+            entry.add node[2]
+            entry.add node[3]
+            if node.len > 4
+                entry.add node[4]
+            try replace_symbol symbols entry
+    # Register functions first, enabling forward calls.
+    for item in statements
+        node = _node item
+        if node[0] == "Make"
+            params = _node node[2]
+            try define_symbol symbols node[1] "Function" (string params.len) node[4]
+            entry = lookup_symbol symbols node[1]
+            entry.add node[2]
+            if node.len > 5
+                entry.add node[5]
+            try replace_symbol symbols entry
+    try _infer_forward_returns statements symbols
+    try _check_block statements symbols "TopLevel"
+    give symbols

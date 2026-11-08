@@ -1,0 +1,8 @@
+use text
+
+say text.starts "SE compiler" "SE"
+say text.ends "compiler.se" ".se"
+say text.replace "aaaa" "aa" "b"
+say text.replace "abc" "" "x"
+say text.replace "中中" "中" "文"
+say text.replace "aaa" "a" "aa"

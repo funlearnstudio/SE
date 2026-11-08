@@ -1,0 +1,16 @@
+use csv
+use test
+use file
+
+source = "name,age\r\n\"A, B\",14\r\n\"He said \"\"Hi\"\"\",15\r\n"
+rows = csv.parse source
+test.equal rows.len 3
+test.equal rows[1][0] "A, B"
+test.equal rows[2][0] "He said \"Hi\""
+encoded = csv.stringify rows
+test.equal (csv.parse encoded) rows
+target = "selfhost/cases/.csv-roundtrip.tmp"
+try csv.write target rows
+test.equal (try csv.read target) rows
+try file.remove target
+say "CSV roundtrip passed"

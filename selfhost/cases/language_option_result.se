@@ -1,0 +1,33 @@
+use option
+use result
+use test
+
+empty = option.none
+test.ok (option.is_none empty)
+empty = option.some 7
+test.ok (option.is_some empty)
+test.equal (int (try option.value empty)) 7
+absent = option.none
+test.equal (int (option.or absent 42)) 42
+values = [1, 2]
+present = option.some values
+shared = try option.value present
+shared[0] = 99
+test.equal values[0] 99
+try
+    option.value absent
+else error
+    say error.kind
+success = result.ok "SE"
+test.ok (result.is_ok success)
+test.equal (text (try result.value success)) "SE"
+test.equal (result.error success) ""
+failure = result.err "failed"
+test.ok (result.is_err failure)
+test.equal (result.error failure) "failed"
+test.equal (text (result.or failure "fallback")) "fallback"
+try
+    result.value failure
+else error
+    say error.kind
+say "option and result passed"
