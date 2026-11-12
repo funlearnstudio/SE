@@ -1,0 +1,26 @@
+use test
+
+make classify value
+    if value >= 90
+        give "A"
+    elif value >= 80
+        give "B"
+    elif value >= 70
+        give "C"
+    else
+        give "D"
+
+test.equal "A" classify 95
+test.equal "B" classify 85
+test.equal "C" classify 75
+test.equal "D" classify 65
+
+make classify_long value
+    if value == 1
+        give "one"
+    else if value == 2
+        give "two"
+    else
+        give "other"
+
+test.equal "two" classify_long 2
