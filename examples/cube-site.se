@@ -1,0 +1,205 @@
+# Cube Atlas — interactive Rubik's Cube website written in SE.
+# Build: se web build examples/cube-site.se dist/cube-site
+
+make Nav
+    html
+        nav
+            a "首頁"
+            a "魔方教學"
+            a "公式"
+            a "CFOP"
+            a "練習器"
+
+    js
+        when click
+            native "const a=event.target.closest('a');if(!a)return;event.preventDefault();location.hash=a.textContent==='首頁'?'#/' : a.textContent==='魔方教學'?'#/basics' : a.textContent==='公式'?'#/notation' : a.textContent==='CFOP'?'#/cfop' : '#/trainer';window.dispatchEvent(new HashChangeEvent('hashchange'));"
+
+    css
+        display flex
+        gap 10
+        padding 14
+        margin_bottom 22
+        background "rgba(255,255,255,0.82)"
+        border_radius 16
+        box_shadow "0 8px 30px rgba(0,0,0,0.08)"
+        flex_wrap wrap
+
+        a
+            padding 9
+            border_radius 10
+            background "#eef2ff"
+            color "#172033"
+            text_decoration none
+            cursor pointer
+
+make Hero title subtitle
+    html
+        section
+            h1 title
+            p subtitle
+
+    css
+        padding 38
+        border_radius 24
+        background "linear-gradient(135deg, #111827, #243b64)"
+        color "white"
+        margin_bottom 20
+
+        h1
+            font_size 42
+            margin_bottom 8
+
+        p
+            font_size 18
+            opacity 0.88
+
+make Card title text
+    html
+        article
+            h2 title
+            p text
+
+    css
+        padding 22
+        border_radius 18
+        background "white"
+        box_shadow "0 8px 30px rgba(0,0,0,0.06)"
+        margin_bottom 14
+
+make Cube3D
+    html
+        section
+            div
+                native "<div class=\"cube3d\" id=\"cube\"><div class=\"cubie U\"></div><div class=\"cubie F\"></div><div class=\"cubie R\"></div></div>"
+
+    css
+        min_height 280
+        display flex
+        align_items center
+        justify_content center
+        perspective 900
+
+        .cube3d
+            position relative
+            width 190
+            height 190
+            transform-style preserve-3d
+            transform rotateX(-28deg) rotateY(-38deg)
+            transition transform 0.45s ease
+
+        .cubie
+            position absolute
+            width 170
+            height 170
+            border_radius 14
+            border "8px solid #111"
+            box_sizing border-box
+            display grid
+            background "#dfe7f2"
+
+        .U
+            transform rotateX(90deg) translateZ(85px)
+            background "#f8f8f8"
+
+        .F
+            transform translateZ(85px)
+            background "#d92f2f"
+
+        .R
+            transform rotateY(90deg) translateZ(85px)
+            background "#ff9f0a"
+
+make Trainer
+    html
+        section
+            h2 "互動練習器"
+            p "使用按鈕旋轉魔方，或按下打亂產生練習題。"
+            div
+                button "U"
+                button "U'"
+                button "R"
+                button "R'"
+                button "F"
+                button "F'"
+                button "D"
+                button "D'"
+                button "L"
+                button "L'"
+                button "B"
+                button "B'"
+            div
+                button "打亂"
+                button "重設"
+            p "目前步數：0"
+            p "打亂：尚未產生"
+            p "計時：00:00.00"
+            button "開始計時"
+            button "停止計時"
+
+    js
+        when click
+            native "if(!event.target.matches('button'))return;const b=event.target;const cube=document.getElementById('cube');window.__cubeMoves=window.__cubeMoves||0;if(b.textContent==='重設'){window.__cubeMoves=0;cube.style.transform='rotateX(-28deg) rotateY(-38deg)';return}if(b.textContent==='打亂'){const m=['U','R','F','D','L','B'];const s=[];for(let i=0;i<18;i++)s.push(m[Math.floor(Math.random()*m.length)]+(Math.random()>.5?\"'\":''));b.parentElement.parentElement.querySelectorAll('p')[1].textContent='打亂：'+s.join(' ');return}if(b.textContent==='開始計時'){window.__timerStart=performance.now();window.__timerInterval=setInterval(()=>{const t=performance.now()-window.__timerStart;const p=b.parentElement.parentElement.querySelectorAll('p')[2];p.textContent='計時：'+(t/1000).toFixed(2)+' 秒'},30);return}if(b.textContent==='停止計時'){clearInterval(window.__timerInterval);return}window.__cubeMoves++;const p=b.parentElement.parentElement.querySelectorAll('p')[0];p.textContent='目前步數：'+window.__cubeMoves;const rx=-28+(Math.random()*12-6),ry=-38+(Math.random()*12-6);cube.style.transform='rotateX('+rx+'deg) rotateY('+ry+'deg)';"
+
+    css
+        padding 24
+        border_radius 20
+        background "white"
+        box_shadow "0 8px 30px rgba(0,0,0,0.07)"
+
+        button
+            padding 10
+            margin 4
+            border 0
+            border_radius 10
+            background "#e8eefc"
+            cursor pointer
+
+make Layout
+    css
+        max_width 1000
+        margin "0 auto"
+        padding 26
+        font_family "system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+        color "#172033"
+        line_height 1.7
+        background "#f5f7fb"
+
+page "/"
+    Layout
+    Nav
+    Hero "Cube Atlas" "一個用 SE Web 製作的互動式魔方學習網站。"
+    Cube3D
+    Card "從認識魔方開始" "這裡可以學習 3×3 魔方的結構、歷史、基本符號，以及競速魔方常見的 CFOP 方法。"
+    Trainer
+
+page "/basics"
+    Layout
+    Nav
+    Hero "魔方基本介紹" "先理解零件與面，再開始學公式。"
+    Card "中心、棱、角" "3×3 魔方主要由中心塊、棱塊與角塊構成。中心決定面的顏色方向，棱塊有兩種顏色，角塊有三種顏色。"
+    Card "六個面" "U、D、L、R、F、B 分別表示上、下、左、右、前、後。熟悉這些字母是閱讀公式的第一步。"
+    Card "學習流程" "初學者通常會把解法拆成幾個階段，先完成一部分結構，再逐步處理剩餘零件。"
+
+page "/notation"
+    Layout
+    Nav
+    Hero "公式與符號" "學會閱讀魔方的共同語言。"
+    Card "R、R'、R2" "R 是右面順時針 90 度，R' 是右面逆時針 90 度，R2 是右面 180 度。其他面遵循同樣規則。"
+    Card "基本公式" "R U R' U' 是非常經典的四步轉法。閱讀公式時由左至右依序執行。"
+    Card "練習方法" "先慢慢轉，確定每個符號代表哪個面，再逐漸建立手指動作與視覺辨識。"
+
+page "/cfop"
+    Layout
+    Nav
+    Hero "CFOP 教學" "從基礎解法走向競速魔方。"
+    Card "C — Cross" "先完成十字，並讓棱塊與中心顏色正確對齊。十字是後續 F2L 的基礎。"
+    Card "F — F2L" "First Two Layers 將角塊與棱塊配對，再一次插入前兩層。相較逐層解法，F2L 可以減少重複操作。"
+    Card "O — OLL" "Orient Last Layer 的目標是讓最後一層的貼紙方向一致。競速玩家會學習多個 OLL case。"
+    Card "P — PLL" "Permute Last Layer 會處理最後一層零件的位置，完成最後排列。"
+
+page "/trainer"
+    Layout
+    Nav
+    Hero "魔方練習器" "旋轉、打亂、計時，開始自己的練習。"
+    Cube3D
+    Trainer
